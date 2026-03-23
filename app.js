@@ -2,6 +2,8 @@ const defaultKnowledge = [
   {
     id: "memoire-active",
     title: "Memoire active",
+    type: "concept",
+    favorite: true,
     tags: ["cognition", "memoire", "apprentissage"],
     content: `# Memoire active
 
@@ -16,10 +18,17 @@ Calepin visuo-spatial : maintien des images et positions.
 Administrateur central : coordination de l'attention.`,
     createdAt: "2026-03-23T08:00:00.000Z",
     updatedAt: "2026-03-23T08:00:00.000Z",
+    review: {
+      streak: 2,
+      lastReviewedAt: "2026-03-22T19:00:00.000Z",
+      nextReviewAt: "2026-03-23T10:00:00.000Z",
+    },
   },
   {
     id: "revision-active",
     title: "Revision active",
+    type: "procedure",
+    favorite: true,
     tags: ["memoire", "apprentissage", "quiz"],
     content: `# Revision active
 
@@ -33,10 +42,17 @@ Recuperation : effort de rappel qui renforce la trace.
 Feedback : correction qui stabilise la bonne reponse.`,
     createdAt: "2026-03-23T08:10:00.000Z",
     updatedAt: "2026-03-23T08:10:00.000Z",
+    review: {
+      streak: 1,
+      lastReviewedAt: "2026-03-22T18:30:00.000Z",
+      nextReviewAt: "2026-03-23T08:00:00.000Z",
+    },
   },
   {
     id: "charge-cognitive",
     title: "Charge cognitive",
+    type: "concept",
+    favorite: false,
     tags: ["cognition", "conception", "clarte"],
     content: `# Charge cognitive
 
@@ -50,10 +66,17 @@ Charge intrinsique : difficulte propre au sujet.
 Charge extrinseque : difficulte creee par la presentation.`,
     createdAt: "2026-03-23T08:20:00.000Z",
     updatedAt: "2026-03-23T08:20:00.000Z",
+    review: {
+      streak: 0,
+      lastReviewedAt: null,
+      nextReviewAt: "2026-03-23T07:00:00.000Z",
+    },
   },
   {
     id: "systeme-personnel",
     title: "Systeme personnel",
+    type: "hub",
+    favorite: true,
     tags: ["organisation", "meta", "clarte"],
     content: `# Systeme personnel
 
@@ -67,15 +90,32 @@ Architecture de pensee : organisation personnelle des concepts.
 Backlink : page qui cite la page actuelle.`,
     createdAt: "2026-03-23T08:30:00.000Z",
     updatedAt: "2026-03-23T08:30:00.000Z",
+    review: {
+      streak: 3,
+      lastReviewedAt: "2026-03-22T17:00:00.000Z",
+      nextReviewAt: "2026-03-26T17:00:00.000Z",
+    },
   },
 ];
 
 const storageKey = "atlas-connaissance-notes";
+const noteTypeLabels = {
+  concept: "Concept",
+  hub: "Hub",
+  procedure: "Procedure",
+  question: "Question",
+};
+const reviewIntervalsInHours = [0, 12, 24, 72, 168, 336];
 
 const state = {
   notes: loadNotes(),
   activeNoteId: null,
   filter: "",
+  typeFilter: "all",
+  tagFilter: "all",
+  favoritesOnly: false,
+  graphTagFilter: "all",
+  graphFocusMode: "all",
   graphPositions: new Map(),
   activeTab: "knowledge",
   quiz: {
@@ -88,12 +128,18 @@ const state = {
 
 const elements = {
   searchInput: document.querySelector("#search-input"),
+  clearFiltersButton: document.querySelector("#clear-filters-button"),
+  typeFilter: document.querySelector("#type-filter"),
+  tagFilter: document.querySelector("#tag-filter"),
+  favoritesFilter: document.querySelector("#favorites-filter"),
   knowledgeList: document.querySelector("#knowledge-list"),
   pageCount: document.querySelector("#page-count"),
   newNoteButton: document.querySelector("#new-note-button"),
   duplicateNoteButton: document.querySelector("#duplicate-note-button"),
   exportButton: document.querySelector("#export-button"),
   importInput: document.querySelector("#import-input"),
+  dueReviewCount: document.querySelector("#due-review-count"),
+  dueReviewList: document.querySelector("#due-review-list"),
   tabs: [...document.querySelectorAll(".tab")],
   panels: {
     knowledge: document.querySelector("#knowledge-tab"),
@@ -101,25 +147,34 @@ const elements = {
     quiz: document.querySelector("#quiz-tab"),
   },
   titleInput: document.querySelector("#note-title"),
+  typeInput: document.querySelector("#note-type"),
   tagsInput: document.querySelector("#note-tags"),
+  favoriteInput: document.querySelector("#note-favorite"),
   contentInput: document.querySelector("#note-content"),
   saveButton: document.querySelector("#save-button"),
   previewTitle: document.querySelector("#preview-title"),
   previewTags: document.querySelector("#preview-tags"),
+  previewMeta: document.querySelector("#preview-meta"),
   previewContent: document.querySelector("#preview-content"),
   noteStatus: document.querySelector("#note-status"),
   outgoingLinks: document.querySelector("#outgoing-links"),
   backlinks: document.querySelector("#backlinks"),
+  backlinkContexts: document.querySelector("#backlink-contexts"),
   suggestedLinks: document.querySelector("#suggested-links"),
+  noteOutline: document.querySelector("#note-outline"),
+  pageTotalCount: document.querySelector("#page-total-count"),
   linkCount: document.querySelector("#link-count"),
-  backlinkCount: document.querySelector("#backlink-count"),
+  orphanCount: document.querySelector("#orphan-count"),
   quizCount: document.querySelector("#quiz-count"),
   graphCanvas: document.querySelector("#graph-canvas"),
   graphFocus: document.querySelector("#graph-focus"),
+  graphTagFilter: document.querySelector("#graph-tag-filter"),
+  graphFocusMode: document.querySelector("#graph-focus-mode"),
   resetGraphButton: document.querySelector("#reset-graph-button"),
   quizScope: document.querySelector("#quiz-scope"),
   quizTagWrapper: document.querySelector("#quiz-tag-wrapper"),
   quizTag: document.querySelector("#quiz-tag"),
+  quizMode: document.querySelector("#quiz-mode"),
   quizAmount: document.querySelector("#quiz-amount"),
   generateQuizButton: document.querySelector("#generate-quiz-button"),
   quizTitle: document.querySelector("#quiz-title"),
@@ -133,21 +188,51 @@ const elements = {
 
 init();
 
-function init() {
+async function init() {
   if (!state.notes.length) {
     state.notes = structuredClone(defaultKnowledge);
     saveNotes();
   }
 
+  await loadPublishedNotesIfNeeded();
   state.activeNoteId = state.notes[0]?.id ?? null;
+  syncDynamicControls();
   bindEvents();
   renderEverything();
+  registerServiceWorker();
 }
 
 function bindEvents() {
   elements.searchInput.addEventListener("input", (event) => {
     state.filter = event.target.value.trim().toLowerCase();
-    renderKnowledgeList();
+    renderEverything();
+  });
+
+  elements.typeFilter.addEventListener("change", (event) => {
+    state.typeFilter = event.target.value;
+    renderEverything();
+  });
+
+  elements.tagFilter.addEventListener("change", (event) => {
+    state.tagFilter = event.target.value;
+    renderEverything();
+  });
+
+  elements.favoritesFilter.addEventListener("change", (event) => {
+    state.favoritesOnly = event.target.checked;
+    renderEverything();
+  });
+
+  elements.clearFiltersButton.addEventListener("click", () => {
+    state.filter = "";
+    state.typeFilter = "all";
+    state.tagFilter = "all";
+    state.favoritesOnly = false;
+    elements.searchInput.value = "";
+    elements.typeFilter.value = "all";
+    elements.tagFilter.value = "all";
+    elements.favoritesFilter.checked = false;
+    renderEverything();
   });
 
   elements.newNoteButton.addEventListener("click", () => {
@@ -181,7 +266,9 @@ function bindEvents() {
 
   elements.saveButton.addEventListener("click", saveCurrentNote);
   elements.titleInput.addEventListener("input", renderLivePreview);
+  elements.typeInput.addEventListener("change", renderLivePreview);
   elements.tagsInput.addEventListener("input", renderLivePreview);
+  elements.favoriteInput.addEventListener("change", renderLivePreview);
   elements.contentInput.addEventListener("input", renderLivePreview);
 
   elements.exportButton.addEventListener("click", exportNotes);
@@ -203,6 +290,14 @@ function bindEvents() {
   });
 
   elements.graphCanvas.addEventListener("click", handleGraphClick);
+  elements.graphTagFilter.addEventListener("change", (event) => {
+    state.graphTagFilter = event.target.value;
+    drawGraph();
+  });
+  elements.graphFocusMode.addEventListener("change", (event) => {
+    state.graphFocusMode = event.target.value;
+    drawGraph();
+  });
 
   elements.quizScope.addEventListener("change", () => {
     elements.quizTagWrapper.classList.toggle(
@@ -213,6 +308,7 @@ function bindEvents() {
   });
 
   elements.quizTag.addEventListener("input", renderStats);
+  elements.quizMode.addEventListener("change", renderStats);
   elements.generateQuizButton.addEventListener("click", buildQuizSession);
   elements.showAnswerButton.addEventListener("click", showQuizAnswer);
   elements.markCorrectButton.addEventListener("click", () => scoreQuiz(true));
@@ -233,12 +329,14 @@ function bindEvents() {
 }
 
 function renderEverything() {
+  syncDynamicControls();
   renderTabs();
   renderKnowledgeList();
   hydrateEditorFromActiveNote();
   renderPreview();
   renderConnections();
   renderStats();
+  renderDueReviewList();
   drawGraph();
   renderQuizCard();
 }
@@ -264,10 +362,20 @@ function renderKnowledgeList() {
     button.className = "knowledge-item fade-in";
     button.style.animationDelay = `${index * 30}ms`;
     button.classList.toggle("is-active", note.id === state.activeNoteId);
+    const due = isNoteDue(note);
     button.innerHTML = `
-      <strong>${escapeHtml(note.title)}</strong>
+      <div class="knowledge-item-head">
+        <strong>${escapeHtml(note.title)}</strong>
+        ${note.favorite ? '<span class="pill">Favori</span>' : ""}
+      </div>
       <p>${escapeHtml(extractSummary(note.content))}</p>
-      <small>${escapeHtml(note.tags.slice(0, 3).join(" · ") || "Sans tag")}</small>
+      <div class="knowledge-item-meta">
+        <span>${escapeHtml(noteTypeLabels[note.type] || "Concept")}</span>
+        <span>${escapeHtml(note.tags.slice(0, 2).join(" | ") || "Sans tag")}</span>
+        <span class="${due ? "pill pill-due" : "pill pill-soft"}">${escapeHtml(
+          due ? "A revoir" : describeReviewState(note)
+        )}</span>
+      </div>
     `;
     button.addEventListener("click", () => {
       state.activeNoteId = note.id;
@@ -284,7 +392,9 @@ function hydrateEditorFromActiveNote() {
   }
 
   elements.titleInput.value = note.title;
+  elements.typeInput.value = note.type;
   elements.tagsInput.value = note.tags.join(", ");
+  elements.favoriteInput.checked = Boolean(note.favorite);
   elements.contentInput.value = note.content;
 }
 
@@ -297,7 +407,9 @@ function renderLivePreview() {
   const draftNote = {
     ...activeNote,
     title: elements.titleInput.value.trim() || "Sans titre",
+    type: elements.typeInput.value,
     tags: parseTags(elements.tagsInput.value),
+    favorite: elements.favoriteInput.checked,
     content: elements.contentInput.value,
   };
 
@@ -313,8 +425,21 @@ function renderPreview(note = getActiveNote(), isDraft = false) {
 
   elements.previewTitle.textContent = note.title || "Sans titre";
   elements.previewTags.innerHTML = "";
+  elements.previewMeta.innerHTML = "";
   elements.previewContent.innerHTML = renderNoteHtml(note.content);
   elements.noteStatus.textContent = isDraft ? "Brouillon" : "Synchronise";
+
+  const typeTag = document.createElement("span");
+  typeTag.className = "tag tag-type";
+  typeTag.textContent = noteTypeLabels[note.type] || "Concept";
+  elements.previewTags.appendChild(typeTag);
+
+  if (note.favorite) {
+    const favoriteTag = document.createElement("span");
+    favoriteTag.className = "tag tag-favorite";
+    favoriteTag.textContent = "Favori";
+    elements.previewTags.appendChild(favoriteTag);
+  }
 
   note.tags.forEach((tag) => {
     const node = document.createElement("span");
@@ -322,6 +447,13 @@ function renderPreview(note = getActiveNote(), isDraft = false) {
     node.textContent = tag;
     elements.previewTags.appendChild(node);
   });
+
+  const updatedMeta = document.createElement("span");
+  updatedMeta.textContent = `Maj: ${formatDate(note.updatedAt)}`;
+  const reviewMeta = document.createElement("span");
+  reviewMeta.textContent = `Revision: ${describeReviewState(note)}`;
+  elements.previewMeta.appendChild(updatedMeta);
+  elements.previewMeta.appendChild(reviewMeta);
 }
 
 function renderConnections(note = getActiveNote()) {
@@ -332,6 +464,8 @@ function renderConnections(note = getActiveNote()) {
   const outgoing = unique(extractLinks(note.content));
   const backlinks = getBacklinks(note.title, note.id);
   const suggested = getSuggestedLinks(note).map((item) => item.title);
+  const outline = extractOutline(note.content);
+  const backlinkContexts = getBacklinkContexts(note.title, note.id);
 
   renderChipCollection(elements.outgoingLinks, outgoing, "Aucun lien sortant");
   renderChipCollection(elements.backlinks, backlinks, "Aucun backlink");
@@ -340,9 +474,11 @@ function renderConnections(note = getActiveNote()) {
     suggested,
     "Aucune suggestion pour le moment"
   );
+  renderChipCollection(elements.noteOutline, outline, "Aucun sous-titre detecte", false);
+  renderInsightList(elements.backlinkContexts, backlinkContexts, "Aucun contexte de backlink");
 }
 
-function renderChipCollection(container, values, emptyMessage) {
+function renderChipCollection(container, values, emptyMessage, interactive = true) {
   container.innerHTML = "";
 
   if (!values.length) {
@@ -354,24 +490,31 @@ function renderChipCollection(container, values, emptyMessage) {
   }
 
   values.forEach((value) => {
-    const chip = document.createElement("button");
-    chip.type = "button";
+    const chip = document.createElement(interactive ? "button" : "span");
+    if (interactive) {
+      chip.type = "button";
+      chip.dataset.linkTitle = value;
+    }
     chip.className = "chip";
-    chip.dataset.linkTitle = value;
     chip.textContent = value;
     container.appendChild(chip);
   });
 }
 
 function renderStats(draftNote = null) {
-  const note = draftNote ?? getActiveNote();
-  const outgoing = note ? unique(extractLinks(note.content)).length : 0;
-  const backlinks = note ? getBacklinks(note.title, note.id).length : 0;
-  const quizCandidates = generateQuizQuestions(getQuizNotes()).length;
+  const sourceNotes = draftNote
+    ? state.notes.map((note) => (note.id === draftNote.id ? draftNote : note))
+    : state.notes;
+  const totalLinks = sourceNotes.reduce((count, note) => {
+    return count + unique(extractLinks(note.content)).length;
+  }, 0);
+  const orphanNotes = sourceNotes.filter((note) => isOrphanNote(note, sourceNotes)).length;
+  const dueCount = getDueNotes(sourceNotes).length;
 
-  elements.linkCount.textContent = String(outgoing);
-  elements.backlinkCount.textContent = String(backlinks);
-  elements.quizCount.textContent = String(quizCandidates);
+  elements.pageTotalCount.textContent = String(sourceNotes.length);
+  elements.linkCount.textContent = String(totalLinks);
+  elements.orphanCount.textContent = String(orphanNotes);
+  elements.quizCount.textContent = String(dueCount);
 }
 
 function saveCurrentNote() {
@@ -384,7 +527,9 @@ function saveCurrentNote() {
   const nextTitle = elements.titleInput.value.trim() || "Sans titre";
 
   current.title = nextTitle;
+  current.type = elements.typeInput.value;
   current.tags = parseTags(elements.tagsInput.value);
+  current.favorite = elements.favoriteInput.checked;
   current.content = elements.contentInput.value.trim();
   current.updatedAt = new Date().toISOString();
 
@@ -415,7 +560,7 @@ function exportNotes() {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "atlas-connaissance.json";
+  anchor.download = "knowledge-base.json";
   anchor.click();
   URL.revokeObjectURL(url);
 }
@@ -453,6 +598,8 @@ function createEmptyNote() {
   return {
     id: generateId(title),
     title,
+    type: "concept",
+    favorite: false,
     tags: [],
     content: `# ${title}
 
@@ -463,6 +610,7 @@ Idee centrale :
 Liens utiles : [[Systeme personnel]]`,
     createdAt: now,
     updatedAt: now,
+    review: createReviewState(),
   };
 }
 
@@ -503,6 +651,119 @@ function getSuggestedLinks(note) {
     .filter((candidate) => candidate.score > 0 && !outgoing.has(candidate.title))
     .sort((left, right) => right.score - left.score)
     .slice(0, 6);
+}
+
+function getBacklinkContexts(title, excludedId) {
+  return state.notes
+    .filter((note) => note.id !== excludedId && extractLinks(note.content).includes(title))
+    .map((note) => {
+      const snippet = extractLinkContext(note.content, title);
+      return {
+        title: note.title,
+        body: snippet || "Le lien est present dans cette page.",
+      };
+    });
+}
+
+function extractLinkContext(content, title) {
+  const lines = content.split("\n").map((line) => line.trim()).filter(Boolean);
+  const target = `[[${title}]]`;
+  const match = lines.find((line) => line.includes(target));
+  return match ? match.replace(target, title) : "";
+}
+
+function extractOutline(content) {
+  return content
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("## "))
+    .map((line) => line.slice(3));
+}
+
+function renderInsightList(container, items, emptyMessage) {
+  container.innerHTML = "";
+
+  if (!items.length) {
+    const empty = document.createElement("span");
+    empty.className = "pill pill-soft";
+    empty.textContent = emptyMessage;
+    container.appendChild(empty);
+    return;
+  }
+
+  items.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "insight-card";
+    card.innerHTML = `
+      <strong>${escapeHtml(item.title)}</strong>
+      <p>${escapeHtml(item.body)}</p>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function renderDueReviewList() {
+  const dueNotes = getDueNotes().slice(0, 6);
+  elements.dueReviewCount.textContent = `${dueNotes.length} a revoir`;
+  elements.dueReviewList.innerHTML = "";
+
+  if (!dueNotes.length) {
+    const empty = document.createElement("span");
+    empty.className = "pill pill-soft";
+    empty.textContent = "Rien d'urgent pour l'instant";
+    elements.dueReviewList.appendChild(empty);
+    return;
+  }
+
+  dueNotes.forEach((note) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "due-item";
+    button.innerHTML = `
+      <strong>${escapeHtml(note.title)}</strong>
+      <p>${escapeHtml(noteTypeLabels[note.type] || "Concept")} | ${escapeHtml(
+        note.tags.slice(0, 2).join(" | ") || "Sans tag"
+      )}</p>
+    `;
+    button.addEventListener("click", () => {
+      state.activeNoteId = note.id;
+      state.activeTab = "knowledge";
+      renderEverything();
+    });
+    elements.dueReviewList.appendChild(button);
+  });
+}
+
+function syncDynamicControls() {
+  populateSelect(
+    elements.typeFilter,
+    [{ value: "all", label: "Tous les types" }, ...Object.keys(noteTypeLabels).map((type) => ({
+      value: type,
+      label: noteTypeLabels[type],
+    }))],
+    state.typeFilter
+  );
+
+  const tagOptions = [
+    { value: "all", label: "Tous les tags" },
+    ...getAllTags().map((tag) => ({ value: tag, label: tag })),
+  ];
+  populateSelect(elements.tagFilter, tagOptions, state.tagFilter);
+  populateSelect(elements.graphTagFilter, tagOptions, state.graphTagFilter);
+  elements.favoritesFilter.checked = state.favoritesOnly;
+  elements.graphFocusMode.value = state.graphFocusMode;
+}
+
+function populateSelect(select, options, selectedValue) {
+  const previous = selectedValue ?? select.value;
+  select.innerHTML = "";
+  options.forEach((option) => {
+    const node = document.createElement("option");
+    node.value = option.value;
+    node.textContent = option.label;
+    node.selected = option.value === previous;
+    select.appendChild(node);
+  });
 }
 
 function renderNoteHtml(content) {
@@ -611,6 +872,8 @@ function openOrCreateNote(title) {
   const note = {
     id: generateId(title),
     title: title.trim(),
+    type: "concept",
+    favorite: false,
     tags: [],
     content: `# ${title.trim()}
 
@@ -620,6 +883,7 @@ Definition :
 `,
     createdAt: now,
     updatedAt: now,
+    review: createReviewState(),
   };
 
   state.notes.unshift(note);
@@ -630,7 +894,7 @@ Definition :
 }
 
 function drawGraph() {
-  const notes = state.notes;
+  const notes = getGraphNotes();
   const width = 960;
   const height = 620;
   const centerX = width / 2;
@@ -639,7 +903,7 @@ function drawGraph() {
   const edges = [];
 
   notes.forEach((note) => {
-    extractLinks(note.content).forEach((title) => {
+    unique(extractLinks(note.content)).forEach((title) => {
       const target = noteByTitle.get(title);
       if (target) {
         edges.push({ from: note.id, to: target.id });
@@ -708,6 +972,11 @@ function drawGraph() {
 
   elements.graphCanvas.innerHTML = "";
 
+  if (!notes.length) {
+    renderGraphFocus();
+    return;
+  }
+
   edges.forEach((edge) => {
     const from = state.graphPositions.get(edge.from);
     const to = state.graphPositions.get(edge.to);
@@ -723,6 +992,7 @@ function drawGraph() {
   notes.forEach((note) => {
     const position = state.graphPositions.get(note.id);
     const current = note.id === state.activeNoteId;
+    const degree = getNodeDegree(note.id, edges);
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
     group.dataset.nodeId = note.id;
     group.style.cursor = "pointer";
@@ -730,8 +1000,9 @@ function drawGraph() {
     const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     circle.setAttribute("cx", position.x);
     circle.setAttribute("cy", position.y);
-    circle.setAttribute("r", current ? "20" : "16");
+    circle.setAttribute("r", String(current ? 20 + Math.min(degree, 3) : 14 + Math.min(degree, 4)));
     circle.setAttribute("class", `graph-node${current ? " is-current" : ""}`);
+    circle.setAttribute("fill", getTypeColor(note.type));
 
     const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
     label.setAttribute("x", position.x + 24);
@@ -770,6 +1041,7 @@ function renderGraphFocus() {
   elements.graphFocus.innerHTML = `
     <p><strong>${escapeHtml(note.title)}</strong></p>
     <p>${escapeHtml(extractSummary(note.content))}</p>
+    <p><strong>Type :</strong> ${escapeHtml(noteTypeLabels[note.type] || "Concept")}</p>
     <p><strong>Liens sortants :</strong> ${escapeHtml(outgoing.join(", ") || "Aucun")}</p>
     <p><strong>Backlinks :</strong> ${escapeHtml(backlinks.join(", ") || "Aucun")}</p>
     <button type="button" class="button" data-open-active-note>Ouvrir cette page</button>
@@ -787,7 +1059,7 @@ function handleGraphFocusClick(event) {
 }
 
 function buildQuizSession() {
-  const available = generateQuizQuestions(getQuizNotes());
+  const available = generateQuizQuestions(getQuizNotes(), elements.quizMode.value);
   const amount = clamp(Number(elements.quizAmount.value) || 6, 3, 20);
   const picked = shuffle(available).slice(0, amount);
   state.quiz = {
@@ -813,12 +1085,20 @@ function scoreQuiz(isCorrect) {
     return;
   }
 
+  const current = state.quiz.questions[state.quiz.index];
   if (isCorrect) {
     state.quiz.score += 1;
   }
 
+  if (current?.noteId) {
+    updateReviewState(current.noteId, isCorrect);
+  }
+
   state.quiz.index += 1;
   state.quiz.answerVisible = false;
+  saveNotes();
+  renderStats();
+  renderDueReviewList();
   renderQuizCard();
 }
 
@@ -856,6 +1136,7 @@ function renderQuizCard() {
   elements.quizCard.innerHTML = `
     <h4>${escapeHtml(current.question)}</h4>
     <p><strong>Source :</strong> ${escapeHtml(current.source)}</p>
+    <p><strong>Mode :</strong> ${escapeHtml(current.modeLabel)}</p>
     ${
       current.choices.length
         ? `<div class="chip-list">${current.choices
@@ -889,12 +1170,17 @@ function getQuizNotes() {
     );
   }
 
+  if (scope === "due") {
+    return getDueNotes();
+  }
+
   return state.notes;
 }
 
-function generateQuizQuestions(notes) {
+function generateQuizQuestions(notes, mode = "mixed") {
   const questions = [];
   const titlePool = notes.map((note) => note.title);
+  const answerPool = buildAnswerPool(notes);
 
   notes.forEach((note) => {
     const lines = note.content
@@ -910,12 +1196,15 @@ function generateQuizQuestions(notes) {
       if (line.includes(" : ")) {
         const [concept, ...rest] = line.split(" : ");
         const answer = rest.join(" : ").trim();
-        if (concept && answer) {
+        if (concept && answer && (mode === "mixed" || mode === "definition")) {
           questions.push({
+            noteId: note.id,
             source: note.title,
             question: `Que signifie "${concept.trim()}" ?`,
             answer,
-            choices: buildChoices(answer, titlePool),
+            choices: buildChoices(answer, answerPool),
+            mode: "definition",
+            modeLabel: "Definition",
           });
         }
       }
@@ -923,36 +1212,47 @@ function generateQuizQuestions(notes) {
       if (line.startsWith("- ")) {
         const statement = line.slice(2).trim();
         const words = statement.split(" ");
-        if (words.length > 3) {
+        if (words.length > 3 && (mode === "mixed" || mode === "bullet")) {
           const hidden = words[0];
           questions.push({
+            noteId: note.id,
             source: note.title,
             question: `Completez : ${statement.replace(hidden, "...")}`,
             answer: statement,
-            choices: buildChoices(statement, titlePool),
+            choices: buildChoices(statement, answerPool),
+            mode: "bullet",
+            modeLabel: "Phrase a completer",
           });
         }
       }
 
       const relation = line.match(/^(.+?) est (.+)$/i);
-      if (relation) {
+      if (relation && (mode === "mixed" || mode === "definition")) {
         questions.push({
+          noteId: note.id,
           source: note.title,
           question: `Qu'est-ce que "${relation[1].trim()}" ?`,
           answer: relation[2].trim(),
-          choices: buildChoices(relation[2].trim(), titlePool),
+          choices: buildChoices(relation[2].trim(), answerPool),
+          mode: "definition",
+          modeLabel: "Definition",
         });
       }
     });
 
-    unique(extractLinks(note.content)).forEach((linkedTitle) => {
-      questions.push({
-        source: note.title,
-        question: `Quelle page est liee depuis "${note.title}" ?`,
-        answer: linkedTitle,
-        choices: buildChoices(linkedTitle, titlePool),
+    if (mode === "mixed" || mode === "link") {
+      unique(extractLinks(note.content)).forEach((linkedTitle) => {
+        questions.push({
+          noteId: note.id,
+          source: note.title,
+          question: `Quelle page est liee depuis "${note.title}" ?`,
+          answer: linkedTitle,
+          choices: buildChoices(linkedTitle, titlePool),
+          mode: "link",
+          modeLabel: "Lien",
+        });
       });
-    });
+    }
   });
 
   return deduplicateQuestions(questions);
@@ -963,6 +1263,38 @@ function buildChoices(answer, titlePool) {
     titlePool.filter((title) => title.toLowerCase() !== answer.toLowerCase())
   ).slice(0, 3);
   return shuffle([answer, ...others]);
+}
+
+function buildAnswerPool(notes) {
+  const values = [];
+
+  notes.forEach((note) => {
+    values.push(note.title);
+    note.content
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .forEach((line) => {
+        if (line.includes(" : ")) {
+          const [, ...rest] = line.split(" : ");
+          const answer = rest.join(" : ").trim();
+          if (answer) {
+            values.push(answer);
+          }
+        }
+
+        if (line.startsWith("- ")) {
+          values.push(line.slice(2).trim());
+        }
+
+        const relation = line.match(/^(.+?) est (.+)$/i);
+        if (relation) {
+          values.push(relation[2].trim());
+        }
+      });
+  });
+
+  return unique(values.filter(Boolean));
 }
 
 function deduplicateQuestions(questions) {
@@ -986,13 +1318,28 @@ function getFilteredNotes() {
     return left.title.localeCompare(right.title, "fr", { sensitivity: "base" });
   });
 
-  if (!state.filter) {
-    return ordered;
-  }
-
   return ordered.filter((note) => {
     const haystack = `${note.title} ${note.tags.join(" ")} ${note.content}`.toLowerCase();
-    return haystack.includes(state.filter);
+    if (state.filter && !haystack.includes(state.filter)) {
+      return false;
+    }
+
+    if (state.typeFilter !== "all" && note.type !== state.typeFilter) {
+      return false;
+    }
+
+    if (
+      state.tagFilter !== "all" &&
+      !note.tags.some((tag) => tag.toLowerCase() === state.tagFilter.toLowerCase())
+    ) {
+      return false;
+    }
+
+    if (state.favoritesOnly && !note.favorite) {
+      return false;
+    }
+
+    return true;
   });
 }
 
@@ -1014,12 +1361,15 @@ function normalizeImportedNote(note) {
   return {
     id: typeof note.id === "string" && note.id.trim() ? note.id : generateId(title),
     title,
+    type: typeof note.type === "string" && noteTypeLabels[note.type] ? note.type : "concept",
+    favorite: Boolean(note.favorite),
     tags: Array.isArray(note.tags)
       ? note.tags.map(String).map((tag) => tag.trim()).filter(Boolean)
       : [],
     content: typeof note.content === "string" ? note.content : "",
     createdAt: typeof note.createdAt === "string" ? note.createdAt : new Date().toISOString(),
     updatedAt: typeof note.updatedAt === "string" ? note.updatedAt : new Date().toISOString(),
+    review: createReviewState(note.review),
   };
 }
 
@@ -1039,8 +1389,187 @@ function loadNotes() {
   }
 }
 
+async function loadPublishedNotesIfNeeded() {
+  const params = new URLSearchParams(window.location.search);
+  const forcePublished = params.get("source") === "published";
+  const hasLocalData = Boolean(window.localStorage.getItem(storageKey));
+
+  if (hasLocalData && !forcePublished) {
+    return;
+  }
+
+  try {
+    const response = await fetch("./knowledge-base.json", { cache: "no-store" });
+    if (!response.ok) {
+      return;
+    }
+
+    const parsed = await response.json();
+    if (!Array.isArray(parsed) || !parsed.length) {
+      return;
+    }
+
+    state.notes = parsed.map(normalizeImportedNote);
+    if (!forcePublished) {
+      saveNotes();
+    }
+  } catch (error) {
+    // Ignore if no published dataset is available.
+  }
+}
+
 function saveNotes() {
   window.localStorage.setItem(storageKey, JSON.stringify(state.notes));
+}
+
+function createReviewState(review = {}) {
+  return {
+    streak: Number(review?.streak) || 0,
+    lastReviewedAt: typeof review?.lastReviewedAt === "string" ? review.lastReviewedAt : null,
+    nextReviewAt:
+      typeof review?.nextReviewAt === "string"
+        ? review.nextReviewAt
+        : new Date().toISOString(),
+  };
+}
+
+function updateReviewState(noteId, isCorrect) {
+  const note = state.notes.find((candidate) => candidate.id === noteId);
+  if (!note) {
+    return;
+  }
+
+  const review = createReviewState(note.review);
+  const now = new Date();
+
+  if (isCorrect) {
+    review.streak = Math.min(review.streak + 1, reviewIntervalsInHours.length - 1);
+  } else {
+    review.streak = 0;
+  }
+
+  review.lastReviewedAt = now.toISOString();
+  review.nextReviewAt = new Date(
+    now.getTime() + reviewIntervalsInHours[review.streak] * 60 * 60 * 1000
+  ).toISOString();
+  note.review = review;
+  note.updatedAt = now.toISOString();
+}
+
+function getDueNotes(sourceNotes = state.notes) {
+  const now = Date.now();
+  return sourceNotes
+    .filter((note) => {
+      const next = Date.parse(note.review?.nextReviewAt || "");
+      return Number.isNaN(next) || next <= now;
+    })
+    .sort((left, right) => {
+      return Date.parse(left.review?.nextReviewAt || "") - Date.parse(right.review?.nextReviewAt || "");
+    });
+}
+
+function isNoteDue(note) {
+  const next = Date.parse(note.review?.nextReviewAt || "");
+  return Number.isNaN(next) || next <= Date.now();
+}
+
+function describeReviewState(note) {
+  if (isNoteDue(note)) {
+    return "A revoir";
+  }
+
+  return `Prochaine: ${formatDate(note.review?.nextReviewAt)}`;
+}
+
+function getAllTags() {
+  return unique(
+    state.notes.flatMap((note) => note.tags).filter(Boolean).sort((left, right) => {
+      return left.localeCompare(right, "fr", { sensitivity: "base" });
+    })
+  );
+}
+
+function isOrphanNote(note, sourceNotes = state.notes) {
+  const outgoing = unique(extractLinks(note.content));
+  const backlinks = sourceNotes.filter((candidate) => {
+    return candidate.id !== note.id && extractLinks(candidate.content).includes(note.title);
+  });
+  return outgoing.length === 0 && backlinks.length === 0;
+}
+
+function getGraphNotes() {
+  const base = state.graphTagFilter === "all"
+    ? state.notes
+    : state.notes.filter((note) =>
+        note.tags.some((tag) => tag.toLowerCase() === state.graphTagFilter.toLowerCase())
+      );
+
+  if (state.graphFocusMode !== "neighbors") {
+    return base;
+  }
+
+  const active = getActiveNote();
+  if (!active) {
+    return base;
+  }
+
+  const neighborTitles = new Set(unique(extractLinks(active.content)));
+  getBacklinks(active.title, active.id).forEach((title) => neighborTitles.add(title));
+
+  return base.filter((note) => note.id === active.id || neighborTitles.has(note.title));
+}
+
+function getNodeDegree(nodeId, edges) {
+  return edges.filter((edge) => edge.from === nodeId || edge.to === nodeId).length;
+}
+
+function getTypeColor(type) {
+  if (type === "hub") {
+    return "#f2d8a7";
+  }
+
+  if (type === "procedure") {
+    return "#d8ead9";
+  }
+
+  if (type === "question") {
+    return "#f4d5cc";
+  }
+
+  return "#fffaf2";
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "jamais";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "inconnue";
+  }
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  const protocol = window.location.protocol;
+  if (protocol !== "https:" && protocol !== "http:" && !window.location.hostname.includes("localhost")) {
+    return;
+  }
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  });
 }
 
 function generateId(input) {

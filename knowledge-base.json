@@ -1,0 +1,62 @@
+[
+  {
+    "id": "memoire-active",
+    "title": "Memoire active",
+    "type": "concept",
+    "favorite": true,
+    "tags": ["cognition", "memoire", "apprentissage"],
+    "content": "# Memoire active\n\nLa memoire active est l'espace mental qui maintient des informations pendant quelques secondes pour raisonner.\n\n- Elle est limitee en capacite.\n- Elle est soutenue par l'attention.\n- Elle influence directement [[Revision active]] et [[Charge cognitive]].\n\nBoucle phonologique : maintien verbal temporaire.\nCalepin visuo-spatial : maintien des images et positions.\nAdministrateur central : coordination de l'attention.",
+    "createdAt": "2026-03-23T08:00:00.000Z",
+    "updatedAt": "2026-03-23T08:00:00.000Z",
+    "review": {
+      "streak": 2,
+      "lastReviewedAt": "2026-03-22T19:00:00.000Z",
+      "nextReviewAt": "2026-03-23T10:00:00.000Z"
+    }
+  },
+  {
+    "id": "revision-active",
+    "title": "Revision active",
+    "type": "procedure",
+    "favorite": true,
+    "tags": ["memoire", "apprentissage", "quiz"],
+    "content": "# Revision active\n\nLa revision active consiste a recuperer une information sans la relire tout de suite.\n\n- C'est plus efficace qu'une simple relecture passive.\n- Les quiz sont une excellente forme de revision active.\n- Cette pratique renforce [[Memoire active]] et la consolidation.\n\nRecuperation : effort de rappel qui renforce la trace.\nFeedback : correction qui stabilise la bonne reponse.",
+    "createdAt": "2026-03-23T08:10:00.000Z",
+    "updatedAt": "2026-03-23T08:10:00.000Z",
+    "review": {
+      "streak": 1,
+      "lastReviewedAt": "2026-03-22T18:30:00.000Z",
+      "nextReviewAt": "2026-03-23T08:00:00.000Z"
+    }
+  },
+  {
+    "id": "charge-cognitive",
+    "title": "Charge cognitive",
+    "type": "concept",
+    "favorite": false,
+    "tags": ["cognition", "conception", "clarte"],
+    "content": "# Charge cognitive\n\nLa charge cognitive correspond a la quantite d'effort mental necessaire pour traiter une information.\n\n- Une interface claire en reduit le cout.\n- Une structure trop dense nuit a [[Memoire active]].\n- Les liens explicites facilitent la navigation conceptuelle.\n\nCharge intrinsique : difficulte propre au sujet.\nCharge extrinseque : difficulte creee par la presentation.",
+    "createdAt": "2026-03-23T08:20:00.000Z",
+    "updatedAt": "2026-03-23T08:20:00.000Z",
+    "review": {
+      "streak": 0,
+      "lastReviewedAt": null,
+      "nextReviewAt": "2026-03-23T07:00:00.000Z"
+    }
+  },
+  {
+    "id": "systeme-personnel",
+    "title": "Systeme personnel",
+    "type": "hub",
+    "favorite": true,
+    "tags": ["organisation", "meta", "clarte"],
+    "content": "# Systeme personnel\n\nUn systeme de connaissance personnel doit respecter la facon dont vous pensez, pas l'inverse.\n\n- Une page doit representer une idee distincte.\n- Les liens doivent montrer les influences, dependances et contrastes.\n- Le graphe permet de voir la forme globale de la pensee.\n\nArchitecture de pensee : organisation personnelle des concepts.\nBacklink : page qui cite la page actuelle.",
+    "createdAt": "2026-03-23T08:30:00.000Z",
+    "updatedAt": "2026-03-23T08:30:00.000Z",
+    "review": {
+      "streak": 3,
+      "lastReviewedAt": "2026-03-22T17:00:00.000Z",
+      "nextReviewAt": "2026-03-26T17:00:00.000Z"
+    }
+  }
+]

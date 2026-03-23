@@ -1,0 +1,17 @@
+{
+  "name": "Atlas de Connaissance",
+  "short_name": "Atlas",
+  "start_url": "./index.html?source=published",
+  "display": "standalone",
+  "background_color": "#f8f3ea",
+  "theme_color": "#bf5b2c",
+  "description": "Un atlas personnel pour relier, visualiser et reviser vos connaissances.",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
