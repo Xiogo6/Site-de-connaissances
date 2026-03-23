@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atlas de Connaissance</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <p class="eyebrow">Atlas personnel</p>
+          <h1>Connaissances reliees</h1>
+          <p class="brand-copy">
+            Un espace pour penser par liens, reviser et faire emerger les
+            connexions entre vos idees.
+          </p>
+        </div>
+
+        <div class="sidebar-card">
+          <label class="field-label" for="search-input">Recherche</label>
+          <input
+            id="search-input"
+            class="text-input"
+            type="search"
+            placeholder="Titre, tag ou contenu"
+          />
+        </div>
+
+        <div class="sidebar-card">
+          <div class="section-heading">
+            <h2>Pages</h2>
+            <span id="page-count" class="pill"></span>
+          </div>
+          <div id="knowledge-list" class="knowledge-list"></div>
+        </div>
+
+        <div class="sidebar-card">
+          <div class="section-heading">
+            <h2>Actions</h2>
+          </div>
+          <div class="stack-actions">
+            <button id="new-note-button" class="button button-primary">
+              Nouvelle page
+            </button>
+            <button id="duplicate-note-button" class="button">
+              Dupliquer la page
+            </button>
+            <button id="export-button" class="button">Exporter en JSON</button>
+            <label class="button button-ghost file-button" for="import-input">
+              Importer un JSON
+            </label>
+            <input id="import-input" type="file" accept="application/json" />
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-layout">
+        <header class="hero">
+          <div>
+            <p class="eyebrow">Pensee en reseau</p>
+            <h2>Reliez, visualisez, memorisez</h2>
+            <p class="hero-copy">
+              Ecrivez librement, faites des liens avec <code>[[Nom de page]]</code>,
+              observez votre carte mentale et generez des quiz a partir de vos
+              connaissances.
+            </p>
+          </div>
+
+          <div class="hero-stats">
+            <article class="stat-card">
+              <span class="stat-label">Liens detectes</span>
+              <strong id="link-count">0</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Backlinks</span>
+              <strong id="backlink-count">0</strong>
+            </article>
+            <article class="stat-card">
+              <span class="stat-label">Quiz possibles</span>
+              <strong id="quiz-count">0</strong>
+            </article>
+          </div>
+        </header>
+
+        <nav class="tabs" aria-label="Sections principales">
+          <button class="tab is-active" data-tab="knowledge">Pages</button>
+          <button class="tab" data-tab="graph">Graphe</button>
+          <button class="tab" data-tab="quiz">Quiz</button>
+        </nav>
+
+        <section id="knowledge-tab" class="tab-panel is-active">
+          <div class="workspace">
+            <section class="panel panel-editor">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Edition</p>
+                  <h3>Page active</h3>
+                </div>
+                <div class="inline-actions">
+                  <button id="save-button" class="button button-primary">
+                    Enregistrer
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <label>
+                  <span class="field-label">Titre</span>
+                  <input id="note-title" class="text-input" type="text" />
+                </label>
+
+                <label>
+                  <span class="field-label">Tags</span>
+                  <input
+                    id="note-tags"
+                    class="text-input"
+                    type="text"
+                    placeholder="memoire, biologie, projet"
+                  />
+                </label>
+              </div>
+
+              <label class="editor-label">
+                <span class="field-label">Contenu</span>
+                <textarea
+                  id="note-content"
+                  class="editor"
+                  spellcheck="false"
+                  placeholder="Utilisez [[Nom de page]] pour creer un lien."
+                ></textarea>
+              </label>
+
+              <div class="helper-grid">
+                <article class="helper-card">
+                  <h4>Syntaxe utile</h4>
+                  <ul>
+                    <li><code>[[Page cible]]</code> pour lier une idee</li>
+                    <li><code># Titre</code> et <code>## Sous-titre</code></li>
+                    <li><code>- point cle</code> pour les listes</li>
+                    <li><code>Concept : definition</code> pour nourrir les quiz</li>
+                  </ul>
+                </article>
+
+                <article class="helper-card">
+                  <h4>Conseil de structure</h4>
+                  <p>
+                    Une page par idee, une formulation simple, puis des liens
+                    explicites vers ce qui influence, explique ou contredit.
+                  </p>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel panel-preview">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Lecture</p>
+                  <h3 id="preview-title">Apercu</h3>
+                </div>
+                <span id="note-status" class="pill pill-soft">Brouillon</span>
+              </div>
+
+              <div id="preview-tags" class="tag-list"></div>
+              <article id="preview-content" class="rendered-note"></article>
+            </section>
+
+            <section class="panel panel-links">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Connexions</p>
+                  <h3>Liens de la page</h3>
+                </div>
+              </div>
+
+              <div class="link-section">
+                <h4>Liens sortants</h4>
+                <div id="outgoing-links" class="chip-list"></div>
+              </div>
+
+              <div class="link-section">
+                <h4>Backlinks</h4>
+                <div id="backlinks" class="chip-list"></div>
+              </div>
+
+              <div class="link-section">
+                <h4>Liens suggeres</h4>
+                <div id="suggested-links" class="chip-list"></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="graph-tab" class="tab-panel">
+          <div class="graph-layout">
+            <section class="panel graph-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Carte vivante</p>
+                  <h3>Reseau des connaissances</h3>
+                </div>
+                <div class="inline-actions">
+                  <button id="reset-graph-button" class="button">
+                    Recentrer
+                  </button>
+                </div>
+              </div>
+              <svg
+                id="graph-canvas"
+                class="graph-canvas"
+                viewBox="0 0 960 620"
+                role="img"
+                aria-label="Visualisation des liens entre les pages"
+              ></svg>
+            </section>
+
+            <section class="panel graph-sidebar">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Lecture du graphe</p>
+                  <h3>Focus</h3>
+                </div>
+              </div>
+
+              <div id="graph-focus" class="focus-card">
+                <p>
+                  Cliquez un noeud pour voir ses liens directs et naviguer vers
+                  la page correspondante.
+                </p>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="quiz-tab" class="tab-panel">
+          <div class="quiz-layout">
+            <section class="panel quiz-controls">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Revision active</p>
+                  <h3>Generateur de quiz</h3>
+                </div>
+              </div>
+
+              <label>
+                <span class="field-label">Pages a inclure</span>
+                <select id="quiz-scope" class="select-input">
+                  <option value="all">Toutes les pages</option>
+                  <option value="current">Page active</option>
+                  <option value="tag">Par tag</option>
+                </select>
+              </label>
+
+              <label id="quiz-tag-wrapper" class="is-hidden">
+                <span class="field-label">Tag cible</span>
+                <input
+                  id="quiz-tag"
+                  class="text-input"
+                  type="text"
+                  placeholder="ex: memoire"
+                />
+              </label>
+
+              <label>
+                <span class="field-label">Nombre de questions</span>
+                <input
+                  id="quiz-amount"
+                  class="text-input"
+                  type="number"
+                  min="3"
+                  max="20"
+                  value="6"
+                />
+              </label>
+
+              <button id="generate-quiz-button" class="button button-primary">
+                Generer un quiz
+              </button>
+            </section>
+
+            <section class="panel quiz-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Session</p>
+                  <h3 id="quiz-title">Aucun quiz lance</h3>
+                </div>
+                <span id="quiz-progress" class="pill pill-soft">0 / 0</span>
+              </div>
+
+              <article id="quiz-card" class="quiz-card empty-state">
+                Le quiz apparaitra ici a partir de vos connaissances.
+              </article>
+
+              <div class="quiz-actions">
+                <button id="show-answer-button" class="button">
+                  Voir la reponse
+                </button>
+                <button id="mark-correct-button" class="button button-primary">
+                  Je connaissais
+                </button>
+                <button id="mark-wrong-button" class="button button-ghost">
+                  A revoir
+                </button>
+              </div>
+
+              <div id="quiz-summary" class="quiz-summary"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
