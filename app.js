@@ -99,6 +99,9 @@ Backlink : page qui cite la page actuelle.`,
 ];
 
 const storageKey = "atlas-connaissance-notes";
+const appStorageKey = "atlas-connaissance-app";
+const snapshotStorageKey = "atlas-connaissance-snapshots";
+const dataVersion = 3;
 const noteTypeLabels = {
   concept: "Concept",
   hub: "Hub",
@@ -109,6 +112,8 @@ const reviewIntervalsInHours = [0, 12, 24, 72, 168, 336];
 
 const state = {
   notes: loadNotes(),
+  settings: loadSettings(),
+  snapshots: loadSnapshots(),
   activeNoteId: null,
   filter: "",
   typeFilter: "all",
@@ -118,6 +123,8 @@ const state = {
   graphFocusMode: "all",
   graphPositions: new Map(),
   activeTab: "knowledge",
+  sourceMode: getSourceMode(),
+  quickCaptureOpen: false,
   quiz: {
     questions: [],
     index: 0,
@@ -140,11 +147,13 @@ const elements = {
   importInput: document.querySelector("#import-input"),
   dueReviewCount: document.querySelector("#due-review-count"),
   dueReviewList: document.querySelector("#due-review-list"),
+  workspaceBanner: document.querySelector("#workspace-banner"),
   tabs: [...document.querySelectorAll(".tab")],
   panels: {
     knowledge: document.querySelector("#knowledge-tab"),
     graph: document.querySelector("#graph-tab"),
     quiz: document.querySelector("#quiz-tab"),
+    publish: document.querySelector("#publish-tab"),
   },
   titleInput: document.querySelector("#note-title"),
   typeInput: document.querySelector("#note-type"),
@@ -184,6 +193,22 @@ const elements = {
   markCorrectButton: document.querySelector("#mark-correct-button"),
   markWrongButton: document.querySelector("#mark-wrong-button"),
   quizSummary: document.querySelector("#quiz-summary"),
+  publishStatusCopy: document.querySelector("#publish-status-copy"),
+  publishMeta: document.querySelector("#publish-meta"),
+  downloadPublishButton: document.querySelector("#download-publish-button"),
+  downloadBackupButton: document.querySelector("#download-backup-button"),
+  copyPublishedLinkButton: document.querySelector("#copy-published-link-button"),
+  saveSnapshotButton: document.querySelector("#save-snapshot-button"),
+  restoreLatestSnapshotButton: document.querySelector("#restore-latest-snapshot-button"),
+  snapshotList: document.querySelector("#snapshot-list"),
+  quickCaptureToggle: document.querySelector("#quick-capture-toggle"),
+  quickCapturePanel: document.querySelector("#quick-capture-panel"),
+  quickCaptureClose: document.querySelector("#quick-capture-close"),
+  quickTitle: document.querySelector("#quick-title"),
+  quickTags: document.querySelector("#quick-tags"),
+  quickContent: document.querySelector("#quick-content"),
+  quickLinkActive: document.querySelector("#quick-link-active"),
+  quickSaveButton: document.querySelector("#quick-save-button"),
 };
 
 init();
@@ -236,6 +261,9 @@ function bindEvents() {
   });
 
   elements.newNoteButton.addEventListener("click", () => {
+    if (isReadOnlyMode()) {
+      return;
+    }
     const note = createEmptyNote();
     state.notes.unshift(note);
     state.activeNoteId = note.id;
@@ -245,6 +273,9 @@ function bindEvents() {
   });
 
   elements.duplicateNoteButton.addEventListener("click", () => {
+    if (isReadOnlyMode()) {
+      return;
+    }
     const current = getActiveNote();
     if (!current) {
       return;
@@ -273,6 +304,11 @@ function bindEvents() {
 
   elements.exportButton.addEventListener("click", exportNotes);
   elements.importInput.addEventListener("change", importNotes);
+  elements.downloadPublishButton.addEventListener("click", downloadPublishedSnapshot);
+  elements.downloadBackupButton.addEventListener("click", downloadFullBackup);
+  elements.copyPublishedLinkButton.addEventListener("click", copyPublishedLink);
+  elements.saveSnapshotButton.addEventListener("click", saveManualSnapshot);
+  elements.restoreLatestSnapshotButton.addEventListener("click", restoreLatestSnapshot);
 
   elements.tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -319,6 +355,9 @@ function bindEvents() {
   elements.backlinks.addEventListener("click", handleChipClick);
   elements.suggestedLinks.addEventListener("click", handleSuggestedLinkClick);
   elements.graphFocus.addEventListener("click", handleGraphFocusClick);
+  elements.quickCaptureToggle.addEventListener("click", toggleQuickCapture);
+  elements.quickCaptureClose.addEventListener("click", toggleQuickCapture);
+  elements.quickSaveButton?.addEventListener("click", saveQuickCapture);
 
   window.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
@@ -331,14 +370,18 @@ function bindEvents() {
 function renderEverything() {
   syncDynamicControls();
   renderTabs();
+  renderWorkspaceBanner();
   renderKnowledgeList();
   hydrateEditorFromActiveNote();
+  syncEditorAvailability();
   renderPreview();
   renderConnections();
   renderStats();
   renderDueReviewList();
   drawGraph();
   renderQuizCard();
+  renderPublishCenter();
+  renderQuickCapture();
 }
 
 function renderTabs() {
@@ -348,6 +391,56 @@ function renderTabs() {
 
   Object.entries(elements.panels).forEach(([key, panel]) => {
     panel.classList.toggle("is-active", key === state.activeTab);
+  });
+}
+
+function renderWorkspaceBanner() {
+  const publishedUrl = buildPublishedUrl();
+  elements.workspaceBanner.innerHTML = "";
+
+  const callout = document.createElement("div");
+  callout.className = "workspace-callout";
+
+  if (isReadOnlyMode()) {
+    callout.innerHTML = `
+      <strong>Snapshot publie</strong>
+      <span>Lecture seule depuis GitHub Pages.</span>
+      <a class="button" href="./index.html">Ouvrir l'espace local</a>
+    `;
+  } else {
+    callout.innerHTML = `
+      <strong>Espace local editable</strong>
+      <span>Les changements restent sur cet appareil tant qu'ils ne sont pas publies.</span>
+      <a class="button" href="${escapeHtml(publishedUrl)}">Voir la version publiee</a>
+    `;
+  }
+
+  elements.workspaceBanner.appendChild(callout);
+}
+
+function syncEditorAvailability() {
+  const readOnly = isReadOnlyMode();
+  [
+    elements.titleInput,
+    elements.typeInput,
+    elements.tagsInput,
+    elements.favoriteInput,
+    elements.contentInput,
+    elements.saveButton,
+    elements.newNoteButton,
+    elements.duplicateNoteButton,
+    elements.importInput,
+    elements.quickCaptureToggle,
+    elements.quickTitle,
+    elements.quickTags,
+    elements.quickContent,
+    elements.quickLinkActive,
+    elements.quickSaveButton,
+  ].forEach((element) => {
+    if (!element) {
+      return;
+    }
+    element.disabled = readOnly;
   });
 }
 
@@ -518,6 +611,10 @@ function renderStats(draftNote = null) {
 }
 
 function saveCurrentNote() {
+  if (isReadOnlyMode()) {
+    return;
+  }
+
   const current = getActiveNote();
   if (!current) {
     return;
@@ -538,6 +635,7 @@ function saveCurrentNote() {
   }
 
   saveNotes();
+  saveAutomaticSnapshot(`Maj ${current.title}`);
   renderEverything();
 }
 
@@ -555,17 +653,15 @@ function renameLinksAcrossNotes(previousTitle, nextTitle, activeId) {
 }
 
 function exportNotes() {
-  const payload = JSON.stringify(state.notes, null, 2);
-  const blob = new Blob([payload], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = "knowledge-base.json";
-  anchor.click();
-  URL.revokeObjectURL(url);
+  downloadJsonFile("knowledge-base.json", state.notes);
 }
 
 function importNotes(event) {
+  if (isReadOnlyMode()) {
+    event.target.value = "";
+    return;
+  }
+
   const [file] = event.target.files || [];
   if (!file) {
     return;
@@ -582,6 +678,7 @@ function importNotes(event) {
       state.notes = parsed.map(normalizeImportedNote);
       state.activeNoteId = state.notes[0]?.id ?? null;
       saveNotes();
+      saveAutomaticSnapshot("Import JSON");
       renderEverything();
       event.target.value = "";
     } catch (error) {
@@ -734,6 +831,106 @@ function renderDueReviewList() {
   });
 }
 
+function renderPublishCenter() {
+  const lastUpdated = state.notes.reduce((latest, note) => {
+    return Date.parse(note.updatedAt || "") > Date.parse(latest || "") ? note.updatedAt : latest;
+  }, "");
+  const lastSnapshot = state.snapshots[0] ?? null;
+
+  elements.publishStatusCopy.textContent = isReadOnlyMode()
+    ? "Vous consultez le snapshot publie. Pour modifier, basculez vers l'espace local."
+    : "Votre espace local contient vos brouillons, revisions et captures rapides.";
+
+  elements.publishMeta.innerHTML = `
+    <span>Version donnees: v${dataVersion}</span>
+    <span>Pages: ${state.notes.length}</span>
+    <span>Derniere maj locale: ${formatDate(lastUpdated)}</span>
+    <span>Dernier snapshot: ${lastSnapshot ? formatDate(lastSnapshot.createdAt) : "aucun"}</span>
+  `;
+
+  elements.snapshotList.innerHTML = "";
+
+  if (!state.snapshots.length) {
+    const empty = document.createElement("span");
+    empty.className = "pill pill-soft";
+    empty.textContent = "Aucun snapshot local enregistre";
+    elements.snapshotList.appendChild(empty);
+  } else {
+    state.snapshots.slice(0, 6).forEach((snapshot) => {
+      const item = document.createElement("article");
+      item.className = "snapshot-item";
+      item.innerHTML = `
+        <strong>${escapeHtml(snapshot.label)}</strong>
+        <span>${escapeHtml(formatDate(snapshot.createdAt))}</span>
+        <span>${snapshot.noteCount} pages</span>
+      `;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "button";
+      button.textContent = "Restaurer";
+      button.disabled = isReadOnlyMode();
+      button.addEventListener("click", () => restoreSnapshotById(snapshot.id));
+      item.appendChild(button);
+      elements.snapshotList.appendChild(item);
+    });
+  }
+
+  const disableMutating = isReadOnlyMode();
+  elements.saveSnapshotButton.disabled = disableMutating;
+  elements.restoreLatestSnapshotButton.disabled = disableMutating || !state.snapshots.length;
+}
+
+function renderQuickCapture() {
+  elements.quickCapturePanel.classList.toggle("is-hidden", !state.quickCaptureOpen);
+}
+
+function toggleQuickCapture() {
+  if (isReadOnlyMode()) {
+    return;
+  }
+
+  state.quickCaptureOpen = !state.quickCaptureOpen;
+  renderQuickCapture();
+}
+
+function saveQuickCapture() {
+  if (isReadOnlyMode()) {
+    return;
+  }
+
+  const title = elements.quickTitle.value.trim() || generateUntitledName();
+  const active = getActiveNote();
+  const shouldLink = elements.quickLinkActive.checked && active;
+  const tags = parseTags(elements.quickTags.value);
+  const body = elements.quickContent.value.trim();
+  const now = new Date().toISOString();
+  const note = {
+    id: generateId(title),
+    title,
+    type: "concept",
+    favorite: false,
+    tags,
+    content: `# ${title}
+
+${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title}]]` : ""}`,
+    createdAt: now,
+    updatedAt: now,
+    review: createReviewState(),
+  };
+
+  state.notes.unshift(note);
+  state.activeNoteId = note.id;
+  elements.quickTitle.value = "";
+  elements.quickTags.value = "";
+  elements.quickContent.value = "";
+  elements.quickLinkActive.checked = true;
+  state.quickCaptureOpen = false;
+  saveNotes();
+  saveAutomaticSnapshot("Capture rapide");
+  renderEverything();
+}
+
 function syncDynamicControls() {
   populateSelect(
     elements.typeFilter,
@@ -839,6 +1036,10 @@ function handleChipClick(event) {
 }
 
 function handleSuggestedLinkClick(event) {
+  if (isReadOnlyMode()) {
+    return;
+  }
+
   const chip = event.target.closest("[data-link-title]");
   if (!chip) {
     return;
@@ -865,6 +1066,10 @@ function openOrCreateNote(title) {
     state.activeNoteId = existing.id;
     state.activeTab = "knowledge";
     renderEverything();
+    return;
+  }
+
+  if (isReadOnlyMode()) {
     return;
   }
 
@@ -1375,12 +1580,15 @@ function normalizeImportedNote(note) {
 
 function loadNotes() {
   try {
-    const raw = window.localStorage.getItem(storageKey);
+    const raw = window.localStorage.getItem(appStorageKey) || window.localStorage.getItem(storageKey);
     if (!raw) {
       return structuredClone(defaultKnowledge);
     }
 
     const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed?.notes)) {
+      return parsed.notes.map(normalizeImportedNote);
+    }
     return Array.isArray(parsed)
       ? parsed.map(normalizeImportedNote)
       : structuredClone(defaultKnowledge);
@@ -1419,7 +1627,56 @@ async function loadPublishedNotesIfNeeded() {
 }
 
 function saveNotes() {
+  const payload = {
+    version: dataVersion,
+    updatedAt: new Date().toISOString(),
+    settings: state.settings,
+    notes: state.notes,
+  };
+  window.localStorage.setItem(appStorageKey, JSON.stringify(payload));
   window.localStorage.setItem(storageKey, JSON.stringify(state.notes));
+}
+
+function loadSettings() {
+  try {
+    const raw = window.localStorage.getItem(appStorageKey);
+    if (!raw) {
+      return {
+        publishedUrl: "",
+        lastPublishAt: null,
+      };
+    }
+
+    const parsed = JSON.parse(raw);
+    return {
+      publishedUrl: typeof parsed?.settings?.publishedUrl === "string" ? parsed.settings.publishedUrl : "",
+      lastPublishAt:
+        typeof parsed?.settings?.lastPublishAt === "string" ? parsed.settings.lastPublishAt : null,
+    };
+  } catch (error) {
+    return {
+      publishedUrl: "",
+      lastPublishAt: null,
+    };
+  }
+}
+
+function loadSnapshots() {
+  try {
+    const raw = window.localStorage.getItem(snapshotStorageKey);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveSnapshots() {
+  window.localStorage.setItem(snapshotStorageKey, JSON.stringify(state.snapshots));
 }
 
 function createReviewState(review = {}) {
@@ -1431,6 +1688,117 @@ function createReviewState(review = {}) {
         ? review.nextReviewAt
         : new Date().toISOString(),
   };
+}
+
+function getSourceMode() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("source") === "published" ? "published" : "workspace";
+}
+
+function isReadOnlyMode() {
+  return state.sourceMode === "published";
+}
+
+function buildPublishedUrl() {
+  if (state.settings.publishedUrl) {
+    return state.settings.publishedUrl;
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("source", "published");
+  return url.toString();
+}
+
+function downloadJsonFile(filename, payload) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadPublishedSnapshot() {
+  const payload = state.notes.map((note) => normalizeImportedNote(note));
+  state.settings.lastPublishAt = new Date().toISOString();
+  state.settings.publishedUrl = buildPublishedUrl();
+  saveNotes();
+  downloadJsonFile("knowledge-base.json", payload);
+  renderPublishCenter();
+}
+
+function downloadFullBackup() {
+  const payload = {
+    version: dataVersion,
+    exportedAt: new Date().toISOString(),
+    settings: state.settings,
+    notes: state.notes,
+    snapshots: state.snapshots,
+  };
+  downloadJsonFile("atlas-connaissance-backup.json", payload);
+}
+
+async function copyPublishedLink() {
+  const url = buildPublishedUrl();
+  state.settings.publishedUrl = url;
+  saveNotes();
+
+  try {
+    await navigator.clipboard.writeText(url);
+    elements.publishStatusCopy.textContent = "Lien publie copie dans le presse-papiers.";
+  } catch (error) {
+    elements.publishStatusCopy.textContent = `Lien publie: ${url}`;
+  }
+}
+
+function saveManualSnapshot() {
+  if (isReadOnlyMode()) {
+    return;
+  }
+
+  saveAutomaticSnapshot("Snapshot manuel");
+  renderPublishCenter();
+}
+
+function saveAutomaticSnapshot(label) {
+  const now = new Date().toISOString();
+  const snapshot = {
+    id: `${Date.now()}`,
+    label,
+    createdAt: now,
+    noteCount: state.notes.length,
+    notes: state.notes.map((note) => normalizeImportedNote(note)),
+  };
+  state.snapshots.unshift(snapshot);
+  state.snapshots = state.snapshots.slice(0, 12);
+  saveSnapshots();
+}
+
+function restoreLatestSnapshot() {
+  if (!state.snapshots.length || isReadOnlyMode()) {
+    return;
+  }
+
+  restoreSnapshotById(state.snapshots[0].id);
+}
+
+function restoreSnapshotById(snapshotId) {
+  if (isReadOnlyMode()) {
+    return;
+  }
+
+  const snapshot = state.snapshots.find((item) => item.id === snapshotId);
+  if (!snapshot) {
+    return;
+  }
+
+  state.notes = snapshot.notes.map(normalizeImportedNote);
+  state.activeNoteId = state.notes[0]?.id ?? null;
+  saveNotes();
+  renderEverything();
 }
 
 function updateReviewState(noteId, isCorrect) {
