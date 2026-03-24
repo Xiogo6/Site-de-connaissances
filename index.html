@@ -106,6 +106,7 @@
               observez votre carte mentale et generez des quiz a partir de vos
               connaissances.
             </p>
+            <div id="workspace-banner" class="workspace-banner"></div>
           </div>
 
           <div class="hero-stats">
@@ -132,6 +133,7 @@
           <button class="tab is-active" data-tab="knowledge">Pages</button>
           <button class="tab" data-tab="graph">Graphe</button>
           <button class="tab" data-tab="quiz">Quiz</button>
+          <button class="tab" data-tab="publish">Publication</button>
         </nav>
 
         <section id="knowledge-tab" class="tab-panel is-active">
@@ -398,8 +400,115 @@
             </section>
           </div>
         </section>
+
+        <section id="publish-tab" class="tab-panel">
+          <div class="publish-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Workflow</p>
+                  <h3>Centre de publication</h3>
+                </div>
+              </div>
+
+              <div class="helper-grid">
+                <article class="helper-card">
+                  <h4>Etat local</h4>
+                  <p id="publish-status-copy">
+                    Votre espace local contient les brouillons et revisions en cours.
+                  </p>
+                  <div id="publish-meta" class="meta-row"></div>
+                </article>
+
+                <article class="helper-card">
+                  <h4>Version en ligne</h4>
+                  <p>
+                    Publiez un snapshot via <code>knowledge-base.json</code>, puis poussez-le sur GitHub Pages.
+                  </p>
+                  <div class="stack-actions compact-actions">
+                    <button id="download-publish-button" class="button button-primary">
+                      Telecharger le snapshot publie
+                    </button>
+                    <button id="download-backup-button" class="button">
+                      Telecharger la sauvegarde complete
+                    </button>
+                    <button id="copy-published-link-button" class="button button-ghost">
+                      Copier le lien publie
+                    </button>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Protection</p>
+                  <h3>Snapshots locaux</h3>
+                </div>
+              </div>
+
+              <div class="inline-actions">
+                <button id="save-snapshot-button" class="button button-primary">
+                  Enregistrer un snapshot local
+                </button>
+                <button id="restore-latest-snapshot-button" class="button">
+                  Restaurer le dernier snapshot
+                </button>
+              </div>
+
+              <div id="snapshot-list" class="snapshot-list"></div>
+            </section>
+          </div>
+        </section>
       </main>
     </div>
+
+    <button id="quick-capture-toggle" class="quick-capture-toggle" type="button">
+      Capture rapide
+    </button>
+
+    <section id="quick-capture-panel" class="quick-capture-panel is-hidden">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Mobile</p>
+          <h3>Nouvelle idee</h3>
+        </div>
+        <button id="quick-capture-close" class="button" type="button">
+          Fermer
+        </button>
+      </div>
+
+      <label>
+        <span class="field-label">Titre</span>
+        <input id="quick-title" class="text-input" type="text" placeholder="Idee ou question" />
+      </label>
+
+      <label>
+        <span class="field-label">Tags</span>
+        <input id="quick-tags" class="text-input" type="text" placeholder="idee, capture" />
+      </label>
+
+      <label>
+        <span class="field-label">Contenu</span>
+        <textarea
+          id="quick-content"
+          class="editor quick-editor"
+          placeholder="Capturez l'essentiel, vous structurerez ensuite."
+        ></textarea>
+      </label>
+
+      <label class="toggle-row" for="quick-link-active">
+        <input id="quick-link-active" type="checkbox" checked />
+        <span>Lier a la page active</span>
+      </label>
+
+      <div class="stack-actions compact-actions">
+        <button id="quick-save-button" class="button button-primary" type="button">
+          Enregistrer la capture
+        </button>
+      </div>
+    </section>
 
     <script src="./app.js"></script>
   </body>

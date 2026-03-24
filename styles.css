@@ -285,6 +285,24 @@ code {
   grid-template-columns: repeat(4, 1fr);
 }
 
+.workspace-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.workspace-callout {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--text);
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
 .stat-card {
   background: rgba(255, 255, 255, 0.62);
   border: 1px solid var(--line);
@@ -337,7 +355,8 @@ code {
 
 .workspace,
 .graph-layout,
-.quiz-layout {
+.quiz-layout,
+.publish-layout {
   display: grid;
   gap: 18px;
 }
@@ -573,6 +592,10 @@ code {
   grid-template-columns: 320px minmax(0, 1fr);
 }
 
+.publish-layout {
+  grid-template-columns: 1.1fr 0.9fr;
+}
+
 .quiz-card {
   min-height: 260px;
 }
@@ -593,6 +616,25 @@ code {
 .quiz-summary {
   margin-top: 18px;
   min-height: 70px;
+}
+
+.snapshot-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.snapshot-item {
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.compact-actions {
+  margin-top: 12px;
 }
 
 .is-hidden {
@@ -624,6 +666,40 @@ code {
   margin-top: 14px;
 }
 
+.quick-capture-toggle {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  border: 0;
+  border-radius: 999px;
+  bottom: 24px;
+  box-shadow: var(--shadow);
+  color: #fff9f1;
+  cursor: pointer;
+  min-height: 52px;
+  padding: 0 18px;
+  position: fixed;
+  right: 24px;
+  z-index: 20;
+}
+
+.quick-capture-panel {
+  background: rgba(255, 249, 240, 0.98);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  bottom: 88px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  position: fixed;
+  right: 24px;
+  width: min(420px, calc(100vw - 28px));
+  z-index: 20;
+}
+
+.quick-editor {
+  min-height: 180px;
+}
+
 .fade-in {
   animation: rise-in 300ms ease;
 }
@@ -653,6 +729,7 @@ code {
   .workspace,
   .graph-layout,
   .quiz-layout,
+  .publish-layout,
   .hero {
     grid-template-columns: 1fr;
   }
@@ -687,5 +764,16 @@ code {
 
   .select-inline {
     width: 100%;
+  }
+
+  .quick-capture-panel,
+  .quick-capture-toggle {
+    bottom: 14px;
+    right: 14px;
+  }
+
+  .quick-capture-panel {
+    bottom: 78px;
+    width: calc(100vw - 28px);
   }
 }

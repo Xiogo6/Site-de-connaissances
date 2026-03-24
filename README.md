@@ -19,6 +19,9 @@ Ouvrez simplement `index.html` dans votre navigateur.
 - mode publie via `knowledge-base.json`
 - quiz generes depuis les definitions, relations, listes et liens
 - sauvegarde locale automatique dans le navigateur
+- snapshots locaux de secours
+- centre de publication GitHub Pages
+- capture rapide pour mobile
 - import / export en JSON
 - base PWA pour une installation sur telephone une fois le site heberge
 
@@ -34,6 +37,22 @@ Ouvrez simplement `index.html` dans votre navigateur.
 - le site peut charger un snapshot publie depuis `knowledge-base.json`
 - le bouton d'export genere justement ce fichier
 - une fois heberge, ouvrez `?source=published` pour forcer le chargement du snapshot publie
+
+## Workflow V3
+
+1. travaillez dans l'espace local editable
+2. capturez rapidement une idee si besoin
+3. enregistrez un snapshot local avant une grosse modification
+4. quand vous etes satisfait, telechargez `knowledge-base.json` depuis l'onglet `Publication`
+5. remplacez le fichier du depot GitHub par ce nouveau snapshot
+6. poussez sur GitHub Pages
+7. consultez la version en ligne avec `?source=published`
+
+## Modes
+
+- `espace local editable` : vos changements sont stockes sur l'appareil courant
+- `snapshot publie` : lecture seule de la version poussee sur GitHub Pages
+- `capture rapide` : creation ultra rapide d'une note depuis mobile ou desktop
 
 ## Limite actuelle
 
