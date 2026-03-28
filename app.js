@@ -355,14 +355,18 @@ function bindEvents() {
   elements.backlinks.addEventListener("click", handleChipClick);
   elements.suggestedLinks.addEventListener("click", handleSuggestedLinkClick);
   elements.graphFocus.addEventListener("click", handleGraphFocusClick);
-  elements.quickCaptureToggle.addEventListener("click", toggleQuickCapture);
-  elements.quickCaptureClose.addEventListener("click", toggleQuickCapture);
+  elements.quickCaptureToggle.addEventListener("click", openQuickCapture);
+  elements.quickCaptureClose.addEventListener("click", closeQuickCapture);
   elements.quickSaveButton?.addEventListener("click", saveQuickCapture);
 
   window.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
       event.preventDefault();
       saveCurrentNote();
+    }
+
+    if (event.key === "Escape" && state.quickCaptureOpen) {
+      closeQuickCapture();
     }
   });
 }
@@ -885,12 +889,18 @@ function renderQuickCapture() {
   elements.quickCapturePanel.classList.toggle("is-hidden", !state.quickCaptureOpen);
 }
 
-function toggleQuickCapture() {
+function openQuickCapture() {
   if (isReadOnlyMode()) {
     return;
   }
 
-  state.quickCaptureOpen = !state.quickCaptureOpen;
+  state.quickCaptureOpen = true;
+  renderQuickCapture();
+  elements.quickTitle.focus();
+}
+
+function closeQuickCapture() {
+  state.quickCaptureOpen = false;
   renderQuickCapture();
 }
 
@@ -925,7 +935,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
   elements.quickTags.value = "";
   elements.quickContent.value = "";
   elements.quickLinkActive.checked = true;
-  state.quickCaptureOpen = false;
+  closeQuickCapture();
   saveNotes();
   saveAutomaticSnapshot("Capture rapide");
   renderEverything();
