@@ -58,6 +58,20 @@
         <span>Lecture seule depuis GitHub Pages.</span>
         <a class="button" href="./index.html">Ouvrir l'espace local</a>
       `;
+    } else if (context.data.isRemoteConfigured()) {
+      const remoteMeta = context.state.remote.lastSyncedAt
+        ? `Derniere sync: ${escapeHtml(context.helpers.formatDate(context.state.remote.lastSyncedAt))}.`
+        : "La base distante devient la source principale de l'espace de travail.";
+      const errorCopy =
+        context.state.remote.status === "error" && context.state.remote.lastError
+          ? `<span>${escapeHtml(context.state.remote.lastError)}</span>`
+          : "";
+      callout.innerHTML = `
+        <strong>${escapeHtml(context.data.getRemoteStatusLabel())}</strong>
+        <span>${escapeHtml(remoteMeta)}</span>
+        ${errorCopy}
+        <a class="button" href="${escapeHtml(publishedUrl)}">Voir la version publiee</a>
+      `;
     } else {
       callout.innerHTML = `
         <strong>Espace local editable</strong>
@@ -233,7 +247,7 @@
     context.elements.previewTags.innerHTML = "";
     context.elements.previewMeta.innerHTML = "";
     context.elements.previewContent.innerHTML = renderNoteHtml(note.content);
-    context.elements.noteStatus.textContent = isDraft ? "Brouillon" : "Synchronise";
+    context.elements.noteStatus.textContent = context.data.getSaveStatusLabel(isDraft);
 
     const typeTag = document.createElement("span");
     typeTag.className = "tag tag-type";
@@ -529,7 +543,9 @@
 
     context.elements.publishStatusCopy.textContent = context.data.isReadOnlyMode()
       ? "Vous consultez le snapshot publie. Pour modifier, basculez vers l'espace local."
-      : "Votre espace local contient vos brouillons, revisions et captures rapides.";
+      : context.data.isRemoteConfigured()
+        ? `${context.data.getRemoteStatusLabel()}. Vos sauvegardes locales restent disponibles en secours.`
+        : "Votre espace local contient vos brouillons, revisions et captures rapides.";
 
     context.elements.publishMeta.innerHTML = `
       <span>Version donnees: v${context.data.dataVersion}</span>
