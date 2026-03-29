@@ -8,7 +8,7 @@ const outputPath = resolve(rootDir, "supabase", "seed.sql");
 const raw = readFileSync(sourcePath, "utf8");
 const sourceNotes = JSON.parse(raw);
 
-const noteTypes = new Set(["concept", "hub", "procedure", "question"]);
+const noteTypes = new Set(["concept", "person", "event", "folder", "hub", "procedure", "question"]);
 
 function slugify(value) {
   return String(value ?? "")
@@ -34,6 +34,10 @@ function sqlBoolean(value) {
 function sqlNumber(value, fallback = 0) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? String(numeric) : String(fallback);
+}
+
+function sqlJson(value) {
+  return `'${JSON.stringify(value ?? {}).replace(/'/g, "''")}'::jsonb`;
 }
 
 function extractLinks(content) {
@@ -67,6 +71,7 @@ const normalizedNotes = sourceNotes.map((note, index) => {
     title,
     type,
     content: String(note?.content ?? ""),
+    metadata: note?.metadata ?? {},
     isFavorite: Boolean(note?.favorite),
     reviewStreak: Number(review?.streak) || 0,
     lastReviewedAt: typeof review?.lastReviewedAt === "string" ? review.lastReviewedAt : null,
@@ -88,6 +93,7 @@ const noteRows = normalizedNotes.map(
   ${sqlString(note.title)},
   ${sqlString(note.type)},
   ${sqlString(note.content)},
+  ${sqlJson(note.metadata)},
   ${sqlBoolean(note.isFavorite)},
   ${sqlNumber(note.reviewStreak)},
   ${sqlString(note.lastReviewedAt)},
@@ -140,6 +146,7 @@ insert into public.notes (
   title,
   type,
   content_md,
+  metadata,
   is_favorite,
   review_streak,
   last_reviewed_at,
@@ -154,6 +161,7 @@ set
   title = excluded.title,
   type = excluded.type,
   content_md = excluded.content_md,
+  metadata = excluded.metadata,
   is_favorite = excluded.is_favorite,
   review_streak = excluded.review_streak,
   last_reviewed_at = excluded.last_reviewed_at,
