@@ -11,3 +11,18 @@
   --content-font: "Georgia", "Palatino Linotype", serif;
   --ui-font: "Trebuchet MS", "Segoe UI", sans-serif;
 }
+
+:root[data-theme="dark"],
+html.theme-dark,
+body.theme-dark,
+body[data-theme="dark"] {
+  --surface: rgba(29, 33, 37, 0.92);
+  --line: rgba(215, 201, 185, 0.12);
+  --line-strong: rgba(215, 201, 185, 0.28);
+  --text: #f3eadf;
+  --text-soft: #c3b4a3;
+  --accent: #d07a4c;
+  --accent-strong: #f0a06f;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
+}

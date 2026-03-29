@@ -104,7 +104,7 @@ Backlink : page qui cite la page actuelle.`,
     storageKey: "atlas-connaissance-notes",
     appStorageKey: "atlas-connaissance-app",
     snapshotStorageKey: "atlas-connaissance-snapshots",
-    dataVersion: 5,
+    dataVersion: 9,
     supabase: {
       url: "https://cmmlgojptwolqbriexse.supabase.co",
       publishableKey: "sb_publishable_zoF-bkuVgEm9e7cbFG8lwA_kxRIHoPk",
@@ -112,6 +112,8 @@ Backlink : page qui cite la page actuelle.`,
     },
     noteTypeLabels: {
       concept: "Concept",
+      person: "Personne",
+      event: "Evenement",
       folder: "Dossier",
       hub: "Hub",
       procedure: "Procedure",
@@ -125,6 +127,44 @@ Definition :
 - Idee centrale :
 - Ce que cela influence :
 - Voir aussi :
+`,
+      person: `# {{title}}
+
+Naissance :
+Deces :
+
+## Qui est cette personne ?
+
+- Role :
+- Domaine :
+
+## Ce qu'elle a fait
+
+- Realisation 1 :
+- Realisation 2 :
+
+## Pages liees
+
+- 
+`,
+      event: `# {{title}}
+
+Date :
+Lieu :
+
+## Resume
+
+- 
+
+## Chronologie
+
+- Avant :
+- Pendant :
+- Apres :
+
+## Consequences
+
+- 
 `,
       folder: `# {{title}}
 

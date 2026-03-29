@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-connaissance-v3";
+const CACHE_NAME = "atlas-connaissance-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -21,7 +21,6 @@ const ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",
   "./knowledge-base.json",
-  "./README.md",
 ];
 
 self.addEventListener("install", (event) => {
