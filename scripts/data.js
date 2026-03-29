@@ -11,7 +11,112 @@
       reviewIntervalsInHours,
       snapshotStorageKey,
       storageKey,
+      supabase,
     } = AtlasApp.config;
+
+    const remoteConfig = {
+      url: String(supabase?.url || "").trim(),
+      publishableKey: String(supabase?.publishableKey || "").trim(),
+      syncEnabled: Boolean(supabase?.syncEnabled),
+    };
+
+    let remoteSyncQueue = Promise.resolve();
+
+    function getDefaultRemoteState() {
+      return {
+        enabled: isRemoteConfigured(),
+        status: isRemoteConfigured() ? "idle" : "local",
+        lastSyncedAt: null,
+        lastError: "",
+      };
+    }
+
+    function setRemoteState(patch = {}) {
+      context.state.remote = {
+        ...getDefaultRemoteState(),
+        ...context.state.remote,
+        ...patch,
+      };
+    }
+
+    function isRemoteConfigured() {
+      return (
+        remoteConfig.syncEnabled &&
+        Boolean(remoteConfig.url) &&
+        Boolean(remoteConfig.publishableKey)
+      );
+    }
+
+    function getRemoteHeaders() {
+      return {
+        apikey: remoteConfig.publishableKey,
+        Authorization: `Bearer ${remoteConfig.publishableKey}`,
+        "Content-Type": "application/json",
+      };
+    }
+
+    async function callRemoteRpc(functionName, payload = {}) {
+      const response = await fetch(`${remoteConfig.url}/rest/v1/rpc/${functionName}`, {
+        method: "POST",
+        headers: getRemoteHeaders(),
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `Remote call failed: ${response.status}`);
+      }
+
+      const text = await response.text();
+      return text ? JSON.parse(text) : null;
+    }
+
+    function getRemoteStatusLabel() {
+      if (context.data.isReadOnlyMode()) {
+        return "Snapshot publie";
+      }
+
+      if (!isRemoteConfigured()) {
+        return "Espace local";
+      }
+
+      switch (context.state.remote.status) {
+        case "loading":
+          return "Connexion Supabase...";
+        case "syncing":
+          return "Synchronisation Supabase...";
+        case "synced":
+          return "Synchronise avec Supabase";
+        case "error":
+          return "Supabase indisponible";
+        default:
+          return "Espace relie a Supabase";
+      }
+    }
+
+    function getSaveStatusLabel(isDraft = false) {
+      if (isDraft) {
+        return "Brouillon";
+      }
+
+      if (context.data.isReadOnlyMode()) {
+        return "Lecture seule";
+      }
+
+      if (!isRemoteConfigured()) {
+        return "Enregistre localement";
+      }
+
+      if (context.state.remote.status === "error") {
+        return "Sauvegarde locale";
+      }
+
+      if (context.state.remote.status === "syncing") {
+        return "Synchronisation...";
+      }
+
+      return "Synchronise";
+    }
 
     function generateId(input, notes = context.state.notes) {
       const base =
@@ -75,6 +180,29 @@
       return normalized;
     }
 
+    function normalizeSnapshot(rawSnapshot) {
+      return {
+        id:
+          typeof rawSnapshot?.id === "string" && rawSnapshot.id.trim()
+            ? rawSnapshot.id
+            : `${Date.now()}`,
+        label:
+          typeof rawSnapshot?.label === "string" && rawSnapshot.label.trim()
+            ? rawSnapshot.label.trim()
+            : "Snapshot",
+        createdAt:
+          typeof rawSnapshot?.createdAt === "string"
+            ? rawSnapshot.createdAt
+            : new Date().toISOString(),
+        noteCount: Number(rawSnapshot?.noteCount) || 0,
+        notes: Array.isArray(rawSnapshot?.notes) ? normalizeNoteCollection(rawSnapshot.notes) : [],
+      };
+    }
+
+    function normalizeSnapshotCollection(rawSnapshots) {
+      return Array.isArray(rawSnapshots) ? rawSnapshots.map(normalizeSnapshot) : [];
+    }
+
     function loadNotes() {
       try {
         const raw =
@@ -117,6 +245,20 @@
       return templates;
     }
 
+    function normalizeSettings(rawSettings = {}) {
+      return {
+        ...getDefaultSettings(),
+        publishedUrl:
+          typeof rawSettings?.publishedUrl === "string" ? rawSettings.publishedUrl : "",
+        lastPublishAt:
+          typeof rawSettings?.lastPublishAt === "string" ? rawSettings.lastPublishAt : null,
+        templates: normalizeTemplates(rawSettings?.templates),
+        collapsedFolders: Array.isArray(rawSettings?.collapsedFolders)
+          ? rawSettings.collapsedFolders.filter((value) => typeof value === "string")
+          : [],
+      };
+    }
+
     function loadSettings() {
       try {
         const raw = window.localStorage.getItem(appStorageKey);
@@ -125,19 +267,7 @@
         }
 
         const parsed = JSON.parse(raw);
-        return {
-          ...getDefaultSettings(),
-          publishedUrl:
-            typeof parsed?.settings?.publishedUrl === "string" ? parsed.settings.publishedUrl : "",
-          lastPublishAt:
-            typeof parsed?.settings?.lastPublishAt === "string"
-              ? parsed.settings.lastPublishAt
-              : null,
-          templates: normalizeTemplates(parsed?.settings?.templates),
-          collapsedFolders: Array.isArray(parsed?.settings?.collapsedFolders)
-            ? parsed.settings.collapsedFolders.filter((value) => typeof value === "string")
-            : [],
-        };
+        return normalizeSettings(parsed?.settings);
       } catch (error) {
         return getDefaultSettings();
       }
@@ -151,13 +281,54 @@
         }
 
         const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
+        return normalizeSnapshotCollection(parsed);
       } catch (error) {
         return [];
       }
     }
 
-    function saveNotes() {
+    function createRemotePayload({ includeSnapshots = false } = {}) {
+      const payload = {
+        settings: {
+          siteName: document.title || "Atlas de Connaissance",
+          publishedUrl: context.state.settings.publishedUrl,
+          lastPublishAt: context.state.settings.lastPublishAt,
+          templates: context.state.settings.templates || {},
+          collapsedFolders: context.state.settings.collapsedFolders || [],
+        },
+        notes: context.state.notes.map((note) => ({
+          id: note.id,
+          title: note.title,
+          type: note.type,
+          parentId: note.parentId,
+          favorite: Boolean(note.favorite),
+          tags: [...note.tags],
+          content: note.content,
+          createdAt: note.createdAt,
+          updatedAt: note.updatedAt,
+          review: {
+            streak: Number(note.review?.streak) || 0,
+            lastReviewedAt: note.review?.lastReviewedAt || null,
+            nextReviewAt: note.review?.nextReviewAt || null,
+          },
+        })),
+      };
+
+      if (includeSnapshots) {
+        payload.snapshots = context.state.snapshots.map((snapshot) => ({
+          id: snapshot.id,
+          label: snapshot.label,
+          createdAt: snapshot.createdAt,
+          noteCount: snapshot.noteCount,
+          notes: snapshot.notes,
+        }));
+      }
+
+      return payload;
+    }
+
+    function saveNotes(options = {}) {
+      const { skipRemote = false } = options;
       const payload = {
         version: dataVersion,
         updatedAt: new Date().toISOString(),
@@ -166,10 +337,19 @@
       };
       window.localStorage.setItem(appStorageKey, JSON.stringify(payload));
       window.localStorage.setItem(storageKey, JSON.stringify(context.state.notes));
+
+      if (!skipRemote) {
+        queueRemoteSync({ includeSnapshots: false });
+      }
     }
 
-    function saveSnapshots() {
+    function saveSnapshots(options = {}) {
+      const { skipRemote = false } = options;
       window.localStorage.setItem(snapshotStorageKey, JSON.stringify(context.state.snapshots));
+
+      if (!skipRemote) {
+        queueRemoteSync({ includeSnapshots: true });
+      }
     }
 
     function getTemplates() {
@@ -234,10 +414,107 @@
 
         context.state.notes = normalizeNoteCollection(parsed);
         if (!forcePublished) {
-          saveNotes();
+          saveNotes({ skipRemote: true });
         }
       } catch (error) {
         // Ignore if no published dataset is available.
+      }
+    }
+
+    async function loadWorkspaceFromRemote() {
+      if (isReadOnlyMode() || !isRemoteConfigured()) {
+        return false;
+      }
+
+      setRemoteState({ status: "loading", lastError: "" });
+
+      try {
+        const payload = await callRemoteRpc("get_app_payload");
+        const remoteNotes = normalizeNoteCollection(payload?.notes || []);
+        const remoteSnapshots = normalizeSnapshotCollection(payload?.snapshots || []);
+        const remoteSettings = normalizeSettings(payload?.settings || {});
+        const hasRemoteData =
+          remoteNotes.length > 0 ||
+          remoteSnapshots.length > 0 ||
+          Boolean(remoteSettings.publishedUrl) ||
+          Boolean(remoteSettings.lastPublishAt);
+
+        if (hasRemoteData) {
+          context.state.notes = remoteNotes;
+          context.state.settings = remoteSettings;
+          context.state.snapshots = remoteSnapshots;
+          saveNotes({ skipRemote: true });
+          saveSnapshots({ skipRemote: true });
+          setRemoteState({
+            status: "synced",
+            lastSyncedAt: new Date().toISOString(),
+            lastError: "",
+          });
+          return true;
+        }
+
+        setRemoteState({
+          status: "idle",
+          lastError: "",
+        });
+        return false;
+      } catch (error) {
+        setRemoteState({
+          status: "error",
+          lastError: error.message || "Connexion impossible",
+        });
+        return false;
+      }
+    }
+
+    function queueRemoteSync({ includeSnapshots = false } = {}) {
+      if (isReadOnlyMode() || !isRemoteConfigured()) {
+        return remoteSyncQueue;
+      }
+
+      const payload = createRemotePayload({ includeSnapshots });
+      setRemoteState({ status: "syncing", lastError: "" });
+
+      remoteSyncQueue = remoteSyncQueue
+        .catch(() => {})
+        .then(async () => {
+          try {
+            await callRemoteRpc("sync_app_payload", { payload });
+            setRemoteState({
+              status: "synced",
+              lastSyncedAt: new Date().toISOString(),
+              lastError: "",
+            });
+          } catch (error) {
+            setRemoteState({
+              status: "error",
+              lastError: error.message || "Synchronisation impossible",
+            });
+          } finally {
+            context.renderers?.renderWorkspaceBanner();
+            context.renderers?.renderPublishCenter();
+            context.renderers?.renderPreview();
+          }
+        });
+
+      return remoteSyncQueue;
+    }
+
+    async function bootstrapWorkspace() {
+      if (isReadOnlyMode()) {
+        await loadPublishedNotesIfNeeded();
+        setRemoteState({ status: "published" });
+        return;
+      }
+
+      if (!isRemoteConfigured()) {
+        setRemoteState({ status: "local" });
+        return;
+      }
+
+      const loaded = await loadWorkspaceFromRemote();
+      if (!loaded && context.state.notes.length) {
+        queueRemoteSync({ includeSnapshots: true });
       }
     }
 
@@ -365,6 +642,7 @@
     }
 
     return {
+      bootstrapWorkspace,
       buildPublishedUrl,
       buildTemplateContent,
       copyPublishedLink,
@@ -374,17 +652,25 @@
       downloadJsonFile,
       downloadPublishedSnapshot,
       generateId,
+      getDefaultRemoteState,
       getDefaultSettings,
+      getRemoteStatusLabel,
+      getSaveStatusLabel,
       getSourceMode,
       getTemplates,
       isReadOnlyMode,
+      isRemoteConfigured,
       loadNotes,
       loadPublishedNotesIfNeeded,
       loadSettings,
       loadSnapshots,
       normalizeImportedNote,
       normalizeNoteCollection,
+      normalizeSettings,
+      normalizeSnapshot,
+      normalizeSnapshotCollection,
       normalizeTemplates,
+      queueRemoteSync,
       registerServiceWorker,
       restoreLatestSnapshot,
       restoreSnapshotById,
@@ -392,6 +678,7 @@
       saveManualSnapshot,
       saveNotes,
       saveSnapshots,
+      setRemoteState,
       updateReviewState,
     };
   };

@@ -1,7 +1,7 @@
 {
   "name": "Atlas de Connaissance",
   "short_name": "Atlas",
-  "start_url": "./index.html?source=published",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f8f3ea",
   "theme_color": "#bf5b2c",

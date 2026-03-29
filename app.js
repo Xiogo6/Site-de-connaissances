@@ -43,6 +43,12 @@
         score: 0,
         answerVisible: false,
       },
+      remote: {
+        enabled: false,
+        status: "local",
+        lastSyncedAt: null,
+        lastError: "",
+      },
     },
   };
 
@@ -60,12 +66,13 @@
   init();
 
   async function init() {
+    await context.data.bootstrapWorkspace();
+
     if (!context.state.notes.length) {
       context.state.notes = structuredClone(defaultKnowledge);
       context.data.saveNotes();
     }
 
-    await context.data.loadPublishedNotesIfNeeded();
     context.state.activeNoteId = context.state.notes[0]?.id ?? null;
     context.renderers.syncDynamicControls();
     context.events.bindEvents();
