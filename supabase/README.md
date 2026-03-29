@@ -42,6 +42,7 @@ Ces elements peuvent etre recalcules a partir de `notes` et `note_links`.
 - `title` -> `notes.title`
 - `type` -> `notes.type`
 - `content` -> `notes.content_md`
+- `metadata.hasDate/dateMode/singleDate/startDate/endDate` -> `notes.metadata`
 - `favorite` -> `notes.is_favorite`
 - `review.streak` -> `notes.review_streak`
 - `review.lastReviewedAt` -> `notes.last_reviewed_at`
@@ -71,6 +72,7 @@ node .\supabase\scripts\generate-seed-from-knowledge.mjs
 Le fichier genere :
 
 - upsert les `notes`
+- conserve `notes.metadata` pour les dates de contenu
 - upsert les `tags`
 - reconstruit `note_tags`
 - reconstruit `note_links`

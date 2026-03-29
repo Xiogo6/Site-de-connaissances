@@ -1,6 +1,6 @@
 -- Generated from knowledge-base.json
 -- Source file: C:/Users/kevin/OneDrive/Bureau/Site de connaissance/knowledge-base.json
--- Output date: 2026-03-29T11:42:05.727Z
+-- Output date: 2026-03-29T16:17:48.878Z
 
 begin;
 
@@ -13,6 +13,7 @@ insert into public.notes (
   title,
   type,
   content_md,
+  metadata,
   is_favorite,
   review_streak,
   last_reviewed_at,
@@ -36,6 +37,7 @@ La memoire active est l''espace mental qui maintient des informations pendant qu
 Boucle phonologique : maintien verbal temporaire.
 Calepin visuo-spatial : maintien des images et positions.
 Administrateur central : coordination de l''attention.',
+  '{}'::jsonb,
   true,
   2,
   '2026-03-22T19:00:00.000Z',
@@ -57,6 +59,7 @@ La revision active consiste a recuperer une information sans la relire tout de s
 
 Recuperation : effort de rappel qui renforce la trace.
 Feedback : correction qui stabilise la bonne reponse.',
+  '{}'::jsonb,
   true,
   1,
   '2026-03-22T18:30:00.000Z',
@@ -78,6 +81,7 @@ La charge cognitive correspond a la quantite d''effort mental necessaire pour tr
 
 Charge intrinsique : difficulte propre au sujet.
 Charge extrinseque : difficulte creee par la presentation.',
+  '{}'::jsonb,
   false,
   0,
   null,
@@ -99,6 +103,7 @@ Un systeme de connaissance personnel doit respecter la facon dont vous pensez, p
 
 Architecture de pensee : organisation personnelle des concepts.
 Backlink : page qui cite la page actuelle.',
+  '{}'::jsonb,
   true,
   3,
   '2026-03-22T17:00:00.000Z',
@@ -111,6 +116,7 @@ set
   title = excluded.title,
   type = excluded.type,
   content_md = excluded.content_md,
+  metadata = excluded.metadata,
   is_favorite = excluded.is_favorite,
   review_streak = excluded.review_streak,
   last_reviewed_at = excluded.last_reviewed_at,
