@@ -10,9 +10,27 @@
       });
     });
 
+    context.elements.sidebarDrawerOpen.addEventListener("click", () => {
+      context.state.sidebarDrawerOpen = true;
+      context.renderers.renderSidebarDrawer();
+    });
+    context.elements.sidebarDrawerClose.addEventListener("click", closeSidebarDrawer);
+    context.elements.sidebarDrawerBackdrop.addEventListener("click", closeSidebarDrawer);
+    context.elements.themeToggleButton.addEventListener("click", () => {
+      context.state.settings.theme =
+        context.state.settings.theme === "dark" ? "light" : "dark";
+      context.data.saveNotes({ skipRemote: true });
+      context.renderers.renderEverything();
+    });
+
     context.elements.searchInput.addEventListener("input", (event) => {
       context.state.filter = event.target.value.trim().toLowerCase();
       context.renderers.renderEverything();
+    });
+
+    context.elements.filtersToggleButton.addEventListener("click", () => {
+      context.state.sidebarFiltersOpen = !context.state.sidebarFiltersOpen;
+      context.renderers.renderFiltersPanel();
     });
 
     context.elements.knowledgeList.addEventListener("click", handleKnowledgeListClick);
@@ -47,33 +65,35 @@
       context.renderers.renderEverything();
     });
 
-    context.elements.newNoteButton.addEventListener("click", () => {
-      if (context.data.isReadOnlyMode()) {
-        return;
+    context.elements.saveButton.addEventListener("click", context.notes.saveCurrentNote);
+    context.elements.noteModeToggle.addEventListener("click", () => {
+      context.state.noteViewMode = context.state.noteViewMode === "edit" ? "read" : "edit";
+      context.renderers.renderKnowledgeMode();
+      if (context.state.noteViewMode === "edit") {
+        context.elements.contentInput.focus();
       }
-
+    });
+    context.elements.cancelNoteButton.addEventListener("click", () => {
+      context.notes.discardPendingNewNote();
+    });
+    context.elements.newFullPageButton.addEventListener("click", () => {
+      if (context.state.pendingNewNoteId) {
+        context.notes.discardPendingNewNote();
+      }
       const note = context.notes.createEmptyNote();
+      context.state.previousActiveNoteId = context.state.activeNoteId;
+      context.state.pendingNewNoteId = note.id;
       context.state.notes.unshift(note);
       context.state.activeNoteId = note.id;
-      context.data.saveNotes();
+      context.state.activeTab = "knowledge";
+      context.state.noteViewMode = "edit";
+      context.state.utilityDrawerOpen = false;
+      context.state.sidebarDrawerOpen = false;
+      context.data.saveNotes({ skipRemote: true });
       context.renderers.renderEverything();
       context.elements.titleInput.focus();
+      context.elements.titleInput.select();
     });
-
-    context.elements.duplicateNoteButton.addEventListener("click", () => {
-      if (context.data.isReadOnlyMode()) {
-        return;
-      }
-
-      const current = context.notes.getActiveNote();
-      if (!current) {
-        return;
-      }
-
-      context.notes.duplicateNoteById(current.id);
-    });
-
-    context.elements.saveButton.addEventListener("click", context.notes.saveCurrentNote);
     context.elements.applyTemplateButton.addEventListener(
       "click",
       context.notes.applyTemplateToActiveNote
@@ -94,8 +114,6 @@
     context.elements.favoriteInput.addEventListener("change", context.renderers.renderLivePreview);
     context.elements.contentInput.addEventListener("input", context.renderers.renderLivePreview);
 
-    context.elements.exportButton.addEventListener("click", context.notes.exportNotes);
-    context.elements.importInput.addEventListener("change", context.notes.importNotes);
     context.elements.downloadPublishButton.addEventListener(
       "click",
       context.data.downloadPublishedSnapshot
@@ -124,19 +142,46 @@
     context.elements.organizationRootDrop.addEventListener("dragleave", handleRootDragLeave);
     context.elements.organizationRootDrop.addEventListener("drop", handleRootDrop);
 
-    context.elements.tabs.forEach((tab) => {
-      tab.addEventListener("click", () => {
-        context.state.activeTab = tab.dataset.tab;
+    context.elements.utilityDrawerOpen.addEventListener("click", () => {
+      context.state.sidebarDrawerOpen = false;
+      context.state.utilityDrawerOpen = true;
+      context.renderers.renderSidebarDrawer();
+      context.renderers.renderTabs();
+    });
+    context.elements.utilityDrawerClose.addEventListener("click", closeUtilityDrawer);
+    context.elements.utilityDrawerBackdrop.addEventListener("click", closeUtilityDrawer);
+    context.elements.utilityLinks.forEach((button) => {
+      button.addEventListener("click", () => {
+        context.state.activeTab = button.dataset.utilityTab;
+        context.state.utilityDrawerOpen = false;
         context.renderers.renderTabs();
-        if (context.state.activeTab === "graph") {
-          context.graph.drawGraph();
-        }
+        renderActiveTabContent();
       });
     });
 
+    context.elements.tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        context.state.activeTab = tab.dataset.tab;
+        context.state.sidebarDrawerOpen = false;
+        context.state.utilityDrawerOpen = false;
+        context.renderers.renderSidebarDrawer();
+        context.renderers.renderTabs();
+        renderActiveTabContent();
+      });
+    });
+
+    context.elements.mobileSearchButton.addEventListener("click", () => {
+      context.state.sidebarTab = "library";
+      context.renderers.renderSidebarTabs();
+      context.state.sidebarDrawerOpen = true;
+      context.renderers.renderSidebarDrawer();
+      window.setTimeout(() => {
+        context.elements.searchInput.focus();
+      }, 120);
+    });
+
     context.elements.resetGraphButton.addEventListener("click", () => {
-      context.state.graphPositions.clear();
-      context.graph.drawGraph();
+      context.graph.recenterGraphLayout();
     });
 
     context.elements.graphCanvas.addEventListener("click", context.graph.handleGraphClick);
@@ -189,6 +234,14 @@
       if (event.key === "Escape" && context.state.quickCaptureOpen) {
         context.notes.closeQuickCapture();
       }
+
+      if (event.key === "Escape" && context.state.sidebarDrawerOpen) {
+        closeSidebarDrawer();
+      }
+
+      if (event.key === "Escape" && context.state.utilityDrawerOpen) {
+        closeUtilityDrawer();
+      }
     });
 
     document.addEventListener("click", (event) => {
@@ -223,6 +276,32 @@
       },
       context.renderers.renderKnowledgeList
     );
+  }
+
+  function closeUtilityDrawer() {
+    context.state.utilityDrawerOpen = false;
+    context.renderers.renderTabs();
+  }
+
+  function closeSidebarDrawer() {
+    context.state.sidebarDrawerOpen = false;
+    context.renderers.renderSidebarDrawer();
+  }
+
+  function renderActiveTabContent() {
+    if (context.state.activeTab === "organisation") {
+      context.renderers.renderOrganization();
+      return;
+    }
+
+    if (context.state.activeTab === "graph") {
+      context.graph.drawGraph();
+      return;
+    }
+
+    if (context.state.activeTab === "quiz") {
+      context.quiz.renderQuizCard();
+    }
   }
 
   function handleKnowledgeListChange(event) {
@@ -260,6 +339,8 @@
     if (openButton) {
       event.stopPropagation();
       context.state.activeNoteId = openButton.dataset[datasetKeys.open];
+      context.state.activeTab = "knowledge";
+      context.state.noteViewMode = "read";
       context.state[menuStateKey] = null;
       context.renderers.renderEverything();
       return;

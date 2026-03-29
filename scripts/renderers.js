@@ -6,9 +6,13 @@
     const { escapeHtml, extractLinks, parseTags, renderNoteHtml, unique } = AtlasApp.helpers;
   function renderEverything() {
     syncDynamicControls();
+    renderTheme();
     renderSidebarTabs();
+    renderSidebarDrawer();
+    renderFiltersPanel();
     renderTabs();
     renderWorkspaceBanner();
+    renderKnowledgeMode();
     renderKnowledgeList();
     hydrateEditorFromActiveNote();
     syncEditorAvailability();
@@ -30,6 +34,23 @@
       tab.classList.toggle("is-active", tab.dataset.tab === context.state.activeTab);
     });
 
+    context.elements.utilityLinks.forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.utilityTab === context.state.activeTab);
+    });
+
+    const utilityActive = ["templates", "publish"].includes(context.state.activeTab);
+    context.elements.utilityDrawerOpen.classList.toggle("is-active", utilityActive);
+    context.elements.utilityDrawerOpen.setAttribute(
+      "aria-expanded",
+      context.state.utilityDrawerOpen ? "true" : "false"
+    );
+    context.elements.utilityDrawer.classList.toggle("is-hidden", !context.state.utilityDrawerOpen);
+    context.elements.utilityDrawer.classList.toggle("is-open", context.state.utilityDrawerOpen);
+    context.elements.utilityDrawer.setAttribute(
+      "aria-hidden",
+      context.state.utilityDrawerOpen ? "false" : "true"
+    );
+
     Object.entries(context.elements.panels).forEach(([key, panel]) => {
       panel.classList.toggle("is-active", key === context.state.activeTab);
     });
@@ -45,42 +66,97 @@
     });
   }
 
+  function renderFiltersPanel() {
+    const hasActiveFilters =
+      context.state.typeFilter !== "all" ||
+      context.state.tagFilter !== "all" ||
+      context.state.favoritesOnly;
+    const isOpen = context.state.sidebarFiltersOpen || hasActiveFilters;
+    context.elements.filtersPanel.classList.toggle("is-hidden", !isOpen);
+    context.elements.filtersToggleButton.textContent = isOpen ? "Masquer" : "Afficher";
+    context.elements.filtersToggleButton.classList.toggle("button-primary", hasActiveFilters);
+  }
+
+  function renderSidebarDrawer() {
+    context.elements.sidebarDrawer.classList.toggle("is-open", context.state.sidebarDrawerOpen);
+    context.elements.sidebarDrawerBackdrop.classList.toggle(
+      "is-hidden",
+      !context.state.sidebarDrawerOpen
+    );
+    context.elements.sidebarDrawerOpen.setAttribute(
+      "aria-expanded",
+      context.state.sidebarDrawerOpen ? "true" : "false"
+    );
+  }
+
   function renderWorkspaceBanner() {
-    const publishedUrl = context.data.buildPublishedUrl();
     context.elements.workspaceBanner.innerHTML = "";
 
     const callout = document.createElement("div");
     callout.className = "workspace-callout";
 
-    if (context.data.isReadOnlyMode()) {
-      callout.innerHTML = `
-        <strong>Snapshot publie</strong>
-        <span>Lecture seule depuis GitHub Pages.</span>
-        <a class="button" href="./index.html">Ouvrir l'espace local</a>
-      `;
-    } else if (context.data.isRemoteConfigured()) {
-      const remoteMeta = context.state.remote.lastSyncedAt
-        ? `Derniere sync: ${escapeHtml(context.helpers.formatDate(context.state.remote.lastSyncedAt))}.`
-        : "La base distante devient la source principale de l'espace de travail.";
-      const errorCopy =
-        context.state.remote.status === "error" && context.state.remote.lastError
-          ? `<span>${escapeHtml(context.state.remote.lastError)}</span>`
-          : "";
-      callout.innerHTML = `
-        <strong>${escapeHtml(context.data.getRemoteStatusLabel())}</strong>
-        <span>${escapeHtml(remoteMeta)}</span>
-        ${errorCopy}
-        <a class="button" href="${escapeHtml(publishedUrl)}">Voir la version publiee</a>
-      `;
-    } else {
-      callout.innerHTML = `
-        <strong>Espace local editable</strong>
-        <span>Les changements restent sur cet appareil tant qu'ils ne sont pas publies.</span>
-        <a class="button" href="${escapeHtml(publishedUrl)}">Voir la version publiee</a>
-      `;
-    }
+    const syncCopy =
+      context.data.isRemoteConfigured() && context.state.remote.lastSyncedAt
+        ? `Synchronise le ${escapeHtml(
+            context.helpers.formatDate(context.state.remote.lastSyncedAt)
+          )}`
+        : context.data.isRemoteConfigured()
+          ? "Synchronisation Supabase en attente"
+          : "Supabase non configure";
+
+    callout.innerHTML = `<span>${syncCopy}</span>`;
 
     context.elements.workspaceBanner.appendChild(callout);
+  }
+
+  function renderTheme() {
+    const isDark = context.state.settings.theme === "dark";
+    document.documentElement.dataset.theme = isDark ? "dark" : "light";
+    document.body.dataset.theme = isDark ? "dark" : "light";
+    document.documentElement.classList.toggle("theme-dark", isDark);
+    document.body.classList.toggle("theme-dark", isDark);
+    if (context.elements.themeToggleButton) {
+      context.elements.themeToggleButton.classList.toggle("is-active", isDark);
+      context.elements.themeToggleButton.querySelector("strong").textContent = isDark
+        ? "Mode clair"
+        : "Mode nuit";
+      context.elements.themeToggleButton.querySelector("span").textContent = isDark
+        ? "Revenir a l'affichage clair."
+        : "Basculer vers un affichage sombre.";
+    }
+  }
+
+  function getNoteTypeIconMarkup(type) {
+    const icons = {
+      concept:
+        '<svg viewBox="0 0 24 24" role="presentation"><path d="M8.5 8.2a2.8 2.8 0 0 1 4.6-2.1 2.8 2.8 0 0 1 4.4 2.8 3 3 0 0 1 1.6 4.8 3 3 0 0 1-2 5.2H9a3 3 0 0 1-2-5.2 3 3 0 0 1 1.5-5.5z"></path><path d="M10 9.5c0 1.1.9 1.5.9 2.5s-.9 1.3-.9 2.4M14 8.8c0 1 .9 1.4.9 2.3s-.9 1.3-.9 2.4M12 7.8v8.4"></path></svg>',
+      person:
+        '<svg viewBox="0 0 24 24" role="presentation"><circle cx="12" cy="8" r="3.2"></circle><path d="M6.5 18c1.6-2.7 3.5-4 5.5-4s3.9 1.3 5.5 4"></path></svg>',
+      event:
+        '<svg viewBox="0 0 24 24" role="presentation"><path d="M7 4v3M17 4v3M5 8h14"></path><rect x="5" y="6" width="14" height="13" rx="2"></rect></svg>',
+      folder:
+        '<svg viewBox="0 0 24 24" role="presentation"><path d="M4 8h6l2 2h8v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path><path d="M4 8V6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2"></path></svg>',
+      hub:
+        '<svg viewBox="0 0 24 24" role="presentation"><circle cx="12" cy="12" r="2.5"></circle><path d="M12 4v3M12 17v3M4 12h3M17 12h3M6.5 6.5l2.1 2.1M15.4 15.4l2.1 2.1M17.5 6.5l-2.1 2.1M8.6 15.4l-2.1 2.1"></path></svg>',
+      procedure:
+        '<svg viewBox="0 0 24 24" role="presentation"><path d="M7 7h10M7 12h7M7 17h5"></path><circle cx="5" cy="7" r="1"></circle><circle cx="5" cy="12" r="1"></circle><circle cx="5" cy="17" r="1"></circle></svg>',
+      question:
+        '<svg viewBox="0 0 24 24" role="presentation"><path d="M9.5 9a2.5 2.5 0 1 1 3.7 2.2c-.9.5-1.2 1-1.2 1.8"></path><path d="M12 17h.01"></path><circle cx="12" cy="12" r="9"></circle></svg>',
+    };
+    return `<span class="note-type-icon note-type-icon-${escapeHtml(type)}" aria-hidden="true">${
+      icons[type] || icons.concept
+    }</span>`;
+  }
+
+  function renderKnowledgeMode() {
+    const isEditing = context.state.noteViewMode === "edit";
+    context.elements.knowledgeWorkspace.classList.toggle("is-editing", isEditing);
+    context.elements.noteModeToggle.textContent = isEditing ? "Fermer l'edition" : "Editer";
+    context.elements.noteModeToggle.classList.toggle("button-primary", isEditing);
+    context.elements.cancelNoteButton.classList.toggle(
+      "is-hidden",
+      context.state.pendingNewNoteId !== context.state.activeNoteId
+    );
   }
 
   function syncEditorAvailability() {
@@ -98,9 +174,7 @@
       context.elements.saveTemplateButton,
       context.elements.resetTemplateButton,
       context.elements.saveButton,
-      context.elements.newNoteButton,
-      context.elements.duplicateNoteButton,
-      context.elements.importInput,
+      context.elements.cancelNoteButton,
       context.elements.quickCaptureToggle,
       context.elements.newFolderButton,
       context.elements.moveRootButton,
@@ -156,6 +230,7 @@
         <div class="knowledge-item-row">
           <div class="knowledge-item-main">
             ${leadingHtml}
+            ${getNoteTypeIconMarkup(note.type)}
             <button type="button" class="knowledge-item-title" ${config.openAttr}="${note.id}">
               ${escapeHtml(note.title)}
             </button>
@@ -243,7 +318,9 @@
       return;
     }
 
-    context.elements.previewTitle.textContent = note.title || "Sans titre";
+    context.elements.previewTitle.innerHTML = `${getNoteTypeIconMarkup(note.type)}<span>${escapeHtml(
+      note.title || "Sans titre"
+    )}</span>`;
     context.elements.previewTags.innerHTML = "";
     context.elements.previewMeta.innerHTML = "";
     context.elements.previewContent.innerHTML = renderNoteHtml(note.content);
@@ -520,6 +597,7 @@
             <div class="knowledge-item-row">
               <div class="knowledge-item-main">
                 <span class="tree-toggle-spacer" aria-hidden="true"></span>
+                ${getNoteTypeIconMarkup(node.type)}
                 <span class="knowledge-item-title is-static">${escapeHtml(node.title)}</span>
               </div>
             </div>
@@ -662,15 +740,18 @@
     renderConnections,
     renderDueReviewList,
     renderEverything,
+    renderFiltersPanel,
     renderHierarchyTree,
     renderInsightList,
     renderKnowledgeList,
+    renderKnowledgeMode,
     renderLivePreview,
     renderOrganization,
     renderOrganizationDropzone,
     renderPreview,
     renderPublishCenter,
     renderQuickCapture,
+    renderSidebarDrawer,
     renderSidebarRecap,
     renderSidebarTabs,
     renderStats,

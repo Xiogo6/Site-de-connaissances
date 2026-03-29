@@ -339,6 +339,30 @@
 
     context.data.saveNotes();
     context.data.saveAutomaticSnapshot(`Maj ${current.title}`);
+    if (context.state.pendingNewNoteId === current.id) {
+      context.state.pendingNewNoteId = null;
+      context.state.previousActiveNoteId = null;
+    }
+    context.renderers.renderEverything();
+  }
+
+  function discardPendingNewNote() {
+    const pendingId = context.state.pendingNewNoteId;
+    if (!pendingId) {
+      return;
+    }
+
+    context.state.notes = context.state.notes.filter((note) => note.id !== pendingId);
+    const fallbackNote =
+      context.state.notes.find((note) => note.id === context.state.previousActiveNoteId) ??
+      context.state.notes[0] ??
+      null;
+
+    context.state.activeNoteId = fallbackNote?.id ?? null;
+    context.state.pendingNewNoteId = null;
+    context.state.previousActiveNoteId = null;
+    context.state.noteViewMode = "read";
+    context.data.saveNotes({ skipRemote: true });
     context.renderers.renderEverything();
   }
 
@@ -682,6 +706,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     if (existing) {
       context.state.activeNoteId = existing.id;
       context.state.activeTab = "knowledge";
+      context.state.noteViewMode = "read";
       context.renderers.renderEverything();
       return;
     }
@@ -708,6 +733,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     context.state.notes.unshift(note);
     context.state.activeNoteId = note.id;
     context.state.activeTab = "knowledge";
+    context.state.noteViewMode = "read";
     context.data.saveNotes();
     context.renderers.renderEverything();
   }
@@ -813,6 +839,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     moveNoteToParent,
     openOrCreateNote,
     openQuickCapture,
+    discardPendingNewNote,
     removeWikiLinkLine,
     resetDragState,
     resetTemplate,

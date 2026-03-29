@@ -228,6 +228,7 @@
       return {
         publishedUrl: "",
         lastPublishAt: null,
+        theme: "light",
         templates: { ...noteTemplates },
         collapsedFolders: [],
       };
@@ -252,6 +253,7 @@
           typeof rawSettings?.publishedUrl === "string" ? rawSettings.publishedUrl : "",
         lastPublishAt:
           typeof rawSettings?.lastPublishAt === "string" ? rawSettings.lastPublishAt : null,
+        theme: rawSettings?.theme === "dark" ? "dark" : "light",
         templates: normalizeTemplates(rawSettings?.templates),
         collapsedFolders: Array.isArray(rawSettings?.collapsedFolders)
           ? rawSettings.collapsedFolders.filter((value) => typeof value === "string")

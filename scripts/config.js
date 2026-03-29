@@ -112,6 +112,8 @@ Backlink : page qui cite la page actuelle.`,
     },
     noteTypeLabels: {
       concept: "Concept",
+      person: "Personne",
+      event: "Evenement",
       folder: "Dossier",
       hub: "Hub",
       procedure: "Procedure",
@@ -125,6 +127,44 @@ Definition :
 - Idee centrale :
 - Ce que cela influence :
 - Voir aussi :
+`,
+      person: `# {{title}}
+
+Naissance :
+Deces :
+
+## Qui est cette personne ?
+
+- Role :
+- Domaine :
+
+## Ce qu'elle a fait
+
+- Realisation 1 :
+- Realisation 2 :
+
+## Pages liees
+
+- 
+`,
+      event: `# {{title}}
+
+Date :
+Lieu :
+
+## Resume
+
+- 
+
+## Chronologie
+
+- Avant :
+- Pendant :
+- Apres :
+
+## Consequences
+
+- 
 `,
       folder: `# {{title}}
 

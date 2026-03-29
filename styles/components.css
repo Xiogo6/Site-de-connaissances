@@ -122,8 +122,27 @@
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto auto minmax(0, 1fr);
   min-width: 0;
+}
+
+.note-type-icon {
+  align-items: center;
+  color: var(--text-soft);
+  display: inline-flex;
+  height: 18px;
+  justify-content: center;
+  width: 18px;
+}
+
+.note-type-icon svg {
+  fill: none;
+  height: 100%;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 100%;
 }
 
 .knowledge-item-title {
@@ -229,6 +248,12 @@
   color: #fff9f1;
 }
 
+.editor-secondary-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
 .button-ghost {
   background: rgba(93, 116, 97, 0.08);
 }
@@ -280,7 +305,72 @@
   display: inline-flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 12px 14px;
+  justify-content: center;
+  width: min(100%, 320px);
+  padding: 8px 12px;
+  box-shadow: 0 10px 24px rgba(81, 55, 30, 0.08);
+  font-size: 0.82rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+#preview-title {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+}
+
+@media (max-width: 780px) {
+  .workspace-callout {
+    white-space: normal;
+  }
+}
+
+:root[data-theme="dark"] .text-input,
+:root[data-theme="dark"] .select-input,
+:root[data-theme="dark"] .editor,
+body[data-theme="dark"] .text-input,
+body[data-theme="dark"] .select-input,
+body[data-theme="dark"] .editor {
+  background: rgba(16, 19, 23, 0.72);
+}
+
+:root[data-theme="dark"] .knowledge-item,
+:root[data-theme="dark"] .helper-card,
+:root[data-theme="dark"] .focus-card,
+:root[data-theme="dark"] .quiz-card,
+:root[data-theme="dark"] .quiz-summary,
+:root[data-theme="dark"] .sidebar-tab,
+:root[data-theme="dark"] .button,
+:root[data-theme="dark"] .utility-launcher,
+:root[data-theme="dark"] .workspace-callout,
+body[data-theme="dark"] .knowledge-item,
+body[data-theme="dark"] .helper-card,
+body[data-theme="dark"] .focus-card,
+body[data-theme="dark"] .quiz-card,
+body[data-theme="dark"] .quiz-summary,
+body[data-theme="dark"] .sidebar-tab,
+body[data-theme="dark"] .button,
+body[data-theme="dark"] .utility-launcher,
+body[data-theme="dark"] .workspace-callout {
+  background: rgba(27, 31, 36, 0.78);
+}
+
+:root[data-theme="dark"] .knowledge-item:hover,
+:root[data-theme="dark"] .knowledge-item.is-active,
+:root[data-theme="dark"] .knowledge-item-shell.is-active,
+:root[data-theme="dark"] .sidebar-tab.is-active,
+body[data-theme="dark"] .knowledge-item:hover,
+body[data-theme="dark"] .knowledge-item.is-active,
+body[data-theme="dark"] .knowledge-item-shell.is-active,
+body[data-theme="dark"] .sidebar-tab.is-active {
+  background: rgba(39, 45, 52, 0.92);
+  border-color: rgba(208, 122, 76, 0.4);
+}
+
+:root[data-theme="dark"] .button-ghost,
+body[data-theme="dark"] .button-ghost {
+  background: rgba(94, 124, 112, 0.14);
 }
 
 .stat-card,

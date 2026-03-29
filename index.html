@@ -10,7 +10,10 @@
   </head>
   <body>
     <div class="shell">
-      <aside class="sidebar">
+      <aside id="mobile-sidebar" class="sidebar">
+        <div class="sidebar-mobile-head">
+          <button id="sidebar-drawer-close" class="button" type="button">Fermer</button>
+        </div>
         <div class="brand">
           <p class="eyebrow">Atlas personnel</p>
           <h1>Connaissances reliees</h1>
@@ -40,12 +43,12 @@
           <div class="sidebar-card">
             <div class="section-heading">
               <h2>Filtres</h2>
-              <button id="clear-filters-button" class="button button-inline">
-                Reinitialiser
+              <button id="filters-toggle-button" class="button button-inline" type="button">
+                Afficher
               </button>
             </div>
 
-            <div class="stack-actions">
+            <div id="filters-panel" class="stack-actions is-hidden">
               <label>
                 <span class="field-label">Type de page</span>
                 <select id="type-filter" class="select-input">
@@ -64,6 +67,10 @@
                 <input id="favorites-filter" type="checkbox" />
                 <span>Favoris seulement</span>
               </label>
+
+              <button id="clear-filters-button" class="button button-inline" type="button">
+                Reinitialiser
+              </button>
             </div>
           </div>
 
@@ -73,25 +80,6 @@
               <span id="page-count" class="pill"></span>
             </div>
             <div id="knowledge-list" class="knowledge-list"></div>
-          </div>
-
-          <div class="sidebar-card">
-            <div class="section-heading">
-              <h2>Actions</h2>
-            </div>
-            <div class="stack-actions">
-              <button id="new-note-button" class="button button-primary">
-                Nouvelle page
-              </button>
-              <button id="duplicate-note-button" class="button">
-                Dupliquer la page
-              </button>
-              <button id="export-button" class="button">Exporter en JSON</button>
-              <label class="button button-ghost file-button" for="import-input">
-                Importer un JSON
-              </label>
-              <input id="import-input" type="file" accept="application/json" />
-            </div>
           </div>
         </section>
 
@@ -121,51 +109,108 @@
           </div>
         </section>
       </aside>
+      <button
+        id="sidebar-drawer-backdrop"
+        class="sidebar-drawer-backdrop is-hidden"
+        type="button"
+        aria-label="Fermer le volet lateral"
+      ></button>
 
       <main class="main-layout">
-        <header class="hero">
-          <div>
-            <p class="eyebrow">Pensee en reseau</p>
-            <h2>Reliez, visualisez, memorisez</h2>
-            <p class="hero-copy">
-              Ecrivez librement, faites des liens avec <code>[[Nom de page]]</code>,
-              observez votre carte mentale et generez des quiz a partir de vos
-              connaissances.
-            </p>
-            <div id="workspace-banner" class="workspace-banner"></div>
-          </div>
+        <div class="top-navigation">
+          <button
+            id="sidebar-drawer-open"
+            class="sidebar-launcher"
+            type="button"
+            aria-expanded="false"
+            aria-controls="mobile-sidebar"
+          >
+            <span class="utility-launcher-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            </span>
+            <span>Bibliotheque</span>
+          </button>
 
-          <div class="hero-stats">
-            <article class="stat-card">
-              <span class="stat-label">Pages</span>
-              <strong id="page-total-count">0</strong>
-            </article>
-            <article class="stat-card">
-              <span class="stat-label">Liens</span>
-              <strong id="link-count">0</strong>
-            </article>
-            <article class="stat-card">
-              <span class="stat-label">Pages isolees</span>
-              <strong id="orphan-count">0</strong>
-            </article>
-            <article class="stat-card">
-              <span class="stat-label">A revoir</span>
-              <strong id="quiz-count">0</strong>
-            </article>
-          </div>
-        </header>
+          <nav class="tabs" aria-label="Sections principales">
+            <button class="tab is-active" data-tab="knowledge" type="button">
+              <span class="tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                  <path d="M6 4h9l3 3v13H6z" />
+                  <path d="M15 4v3h3" />
+                </svg>
+              </span>
+              <span class="tab-label">Pages</span>
+            </button>
+            <button class="tab" data-tab="organisation" type="button">
+              <span class="tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                  <path d="M5 5h14v4H5zM5 11h6v8H5zM13 11h6v8h-6z" />
+                </svg>
+              </span>
+              <span class="tab-label">Organisation</span>
+            </button>
+            <button class="tab" data-tab="graph" type="button">
+              <span class="tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                  <path d="M7 7h.01M17 7h.01M12 17h.01" />
+                  <path d="M7 7l10 0M7 7l5 10M17 7l-5 10" />
+                  <circle cx="7" cy="7" r="2.5" />
+                  <circle cx="17" cy="7" r="2.5" />
+                  <circle cx="12" cy="17" r="2.5" />
+                </svg>
+              </span>
+              <span class="tab-label">Graphe</span>
+            </button>
+            <button class="tab" data-tab="quiz" type="button">
+              <span class="tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                  <path d="M9.5 9a2.5 2.5 0 1 1 3.7 2.2c-.9.5-1.2 1-1.2 1.8" />
+                  <path d="M12 17h.01" />
+                  <circle cx="12" cy="12" r="9" />
+                </svg>
+              </span>
+              <span class="tab-label">Quiz</span>
+            </button>
+            <button id="mobile-search-button" class="tab tab-search" type="button">
+              <span class="tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                  <circle cx="11" cy="11" r="6" />
+                  <path d="M16 16l4 4" />
+                </svg>
+              </span>
+              <span class="tab-label">Recherche</span>
+            </button>
+          </nav>
 
-        <nav class="tabs" aria-label="Sections principales">
-          <button class="tab is-active" data-tab="knowledge">Pages</button>
-          <button class="tab" data-tab="organisation">Organisation</button>
-          <button class="tab" data-tab="graph">Graphe</button>
-          <button class="tab" data-tab="quiz">Quiz</button>
-          <button class="tab" data-tab="templates">Modeles</button>
-          <button class="tab" data-tab="publish">Publication</button>
-        </nav>
+          <button id="new-full-page-button" class="utility-launcher" type="button">
+            <span class="utility-launcher-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </span>
+            <span>Nouvelle page</span>
+          </button>
+
+          <button
+            id="utility-drawer-open"
+            class="utility-launcher"
+            type="button"
+            aria-expanded="false"
+            aria-controls="utility-drawer"
+          >
+            <span class="utility-launcher-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
+            </span>
+            <span>Plus</span>
+          </button>
+        </div>
 
         <section id="knowledge-tab" class="tab-panel is-active">
-          <div class="workspace">
+          <div id="knowledge-workspace" class="workspace">
             <section class="panel panel-editor">
               <div class="panel-header">
                 <div>
@@ -182,6 +227,12 @@
                 </div>
               </div>
 
+              <div class="editor-secondary-actions">
+                <button id="cancel-note-button" class="button button-ghost is-hidden" type="button">
+                  Annuler la creation
+                </button>
+              </div>
+
               <div class="form-grid">
                 <label>
                   <span class="field-label">Titre</span>
@@ -192,6 +243,8 @@
                   <span class="field-label">Type</span>
                   <select id="note-type" class="select-input">
                     <option value="concept">Concept</option>
+                    <option value="person">Personne</option>
+                    <option value="event">Evenement</option>
                     <option value="folder">Dossier</option>
                     <option value="hub">Hub</option>
                     <option value="procedure">Procedure</option>
@@ -263,7 +316,12 @@
                   <p class="eyebrow">Lecture</p>
                   <h3 id="preview-title">Apercu</h3>
                 </div>
-                <span id="note-status" class="pill pill-soft">Brouillon</span>
+                <div class="inline-actions">
+                  <button id="note-mode-toggle" class="button" type="button">
+                    Editer
+                  </button>
+                  <span id="note-status" class="pill pill-soft">Brouillon</span>
+                </div>
               </div>
 
               <div id="preview-tags" class="tag-list"></div>
@@ -636,6 +694,8 @@
             </section>
           </div>
         </section>
+
+        <div id="workspace-banner" class="workspace-banner"></div>
       </main>
     </div>
 
@@ -683,6 +743,34 @@
           Enregistrer la capture
         </button>
       </div>
+    </section>
+
+    <section id="utility-drawer" class="utility-drawer is-hidden" aria-hidden="true">
+      <button id="utility-drawer-backdrop" class="utility-drawer-backdrop" type="button" aria-label="Fermer le volet"></button>
+      <aside class="utility-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="utility-drawer-title">
+        <div class="panel-header utility-drawer-header">
+          <div>
+            <p class="eyebrow">Navigation secondaire</p>
+            <h3 id="utility-drawer-title">Outils du systeme</h3>
+          </div>
+          <button id="utility-drawer-close" class="button" type="button">Fermer</button>
+        </div>
+
+        <div class="stack-actions">
+          <button class="utility-link" data-utility-tab="templates" type="button">
+            <strong>Modeles</strong>
+            <span>Uniformiser vos pages et adapter les structures de redaction.</span>
+          </button>
+          <button class="utility-link" data-utility-tab="publish" type="button">
+            <strong>Publication</strong>
+            <span>Exporter, gerer les snapshots et preparer la version en ligne.</span>
+          </button>
+          <button id="theme-toggle-button" class="utility-link" type="button">
+            <strong>Mode nuit</strong>
+            <span>Basculer entre l'affichage clair et l'affichage sombre.</span>
+          </button>
+        </div>
+      </aside>
     </section>
 
     <script src="./scripts/config.js"></script>
