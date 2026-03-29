@@ -170,6 +170,7 @@
         context.state.utilityDrawerOpen = false;
         context.renderers.renderTabs();
         renderActiveTabContent();
+        scrollToTop();
       });
     });
 
@@ -181,6 +182,7 @@
         context.renderers.renderSidebarDrawer();
         context.renderers.renderTabs();
         renderActiveTabContent();
+        scrollToTop();
       });
     });
 
@@ -189,9 +191,8 @@
       context.renderers.renderSidebarTabs();
       context.state.sidebarDrawerOpen = true;
       context.renderers.renderSidebarDrawer();
-      window.setTimeout(() => {
-        context.elements.searchInput.focus();
-      }, 120);
+      scrollToTop();
+      focusSearchInput();
     });
 
     context.elements.resetGraphButton.addEventListener("click", () => {
@@ -301,6 +302,25 @@
     if (context.state.activeTab === "quiz") {
       context.quiz.renderQuizCard();
     }
+  }
+
+  function scrollToTop() {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function focusSearchInput() {
+    const applyFocus = () => {
+      context.elements.searchInput.focus({ preventScroll: true });
+      context.elements.searchInput.select();
+    };
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(applyFocus);
+    });
+    window.setTimeout(applyFocus, 220);
   }
 
   function handleKnowledgeListChange(event) {
