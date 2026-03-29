@@ -79,6 +79,14 @@
   }
 
   function getTypeColor(type) {
+    if (type === "person") {
+      return "#d9e1f2";
+    }
+
+    if (type === "event") {
+      return "#f2dfd2";
+    }
+
     if (type === "folder") {
       return "#ead7be";
     }
@@ -98,6 +106,225 @@
     return "#fffaf2";
   }
 
+  function buildAdjacency(graph) {
+    const adjacency = new Map(graph.nodes.map((node) => [node.id, new Set()]));
+    graph.edges.forEach((edge) => {
+      adjacency.get(edge.from)?.add(edge.to);
+      adjacency.get(edge.to)?.add(edge.from);
+    });
+    return adjacency;
+  }
+
+  function computeLevels(rootId, adjacency, visited) {
+    const queue = [rootId];
+    const levels = new Map([[rootId, 0]]);
+    visited.add(rootId);
+
+    while (queue.length) {
+      const current = queue.shift();
+      const currentLevel = levels.get(current) || 0;
+      (adjacency.get(current) || []).forEach((neighbor) => {
+        if (visited.has(neighbor)) {
+          return;
+        }
+        visited.add(neighbor);
+        levels.set(neighbor, currentLevel + 1);
+        queue.push(neighbor);
+      });
+    }
+
+    return levels;
+  }
+
+  function segmentIntersects(a, b, c, d) {
+    const cross = (p1, p2, p3) =>
+      (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x);
+
+    const denominator =
+      (b.x - a.x) * (d.y - c.y) - (b.y - a.y) * (d.x - c.x);
+
+    if (Math.abs(denominator) < 0.0001) {
+      return false;
+    }
+
+    const t = ((c.x - a.x) * (d.y - c.y) - (c.y - a.y) * (d.x - c.x)) / denominator;
+    const u = ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x)) / denominator;
+
+    if (t <= 0 || t >= 1 || u <= 0 || u >= 1) {
+      return false;
+    }
+
+    const acb = cross(a, c, b);
+    const adb = cross(a, d, b);
+    const cad = cross(c, a, d);
+    const cbd = cross(c, b, d);
+    return acb * adb < 0 && cad * cbd < 0;
+  }
+
+  function countEdgeCrossings(graph, positions) {
+    let total = 0;
+    for (let i = 0; i < graph.edges.length; i += 1) {
+      for (let j = i + 1; j < graph.edges.length; j += 1) {
+        const first = graph.edges[i];
+        const second = graph.edges[j];
+        if (
+          first.from === second.from ||
+          first.from === second.to ||
+          first.to === second.from ||
+          first.to === second.to
+        ) {
+          continue;
+        }
+
+        const a = positions.get(first.from);
+        const b = positions.get(first.to);
+        const c = positions.get(second.from);
+        const d = positions.get(second.to);
+        if (a && b && c && d && segmentIntersects(a, b, c, d)) {
+          total += 1;
+        }
+      }
+    }
+    return total;
+  }
+
+  function initializeGraphPositions(graph, width, height) {
+    const adjacency = buildAdjacency(graph);
+    const degreeByNode = new Map(
+      graph.nodes.map((node) => [node.id, (adjacency.get(node.id) || new Set()).size])
+    );
+    const activeId = context.notes.getActiveNote()?.id;
+    const remaining = [...graph.nodes].sort((left, right) => {
+      if (left.id === activeId) {
+        return -1;
+      }
+      if (right.id === activeId) {
+        return 1;
+      }
+      return (degreeByNode.get(right.id) || 0) - (degreeByNode.get(left.id) || 0);
+    });
+    const visited = new Set();
+    const components = [];
+
+    remaining.forEach((node) => {
+      if (visited.has(node.id)) {
+        return;
+      }
+      const levels = computeLevels(node.id, adjacency, visited);
+      components.push({ rootId: node.id, levels });
+    });
+
+    const laneCount = Math.max(components.length, 1);
+    const laneHeight = (height - 120) / laneCount;
+    const positions = new Map();
+
+    components.forEach((component, componentIndex) => {
+      const levelsMap = new Map();
+      component.levels.forEach((level, nodeId) => {
+        if (!levelsMap.has(level)) {
+          levelsMap.set(level, []);
+        }
+        levelsMap.get(level).push(nodeId);
+      });
+
+      const maxLevel = Math.max(...levelsMap.keys(), 0);
+      const sortedLevels = [...levelsMap.keys()].sort((left, right) => left - right);
+      const laneTop = 60 + componentIndex * laneHeight;
+      const laneCenter = laneTop + laneHeight / 2;
+
+      sortedLevels.forEach((level, index) => {
+        const ids = levelsMap.get(level);
+        const previousIds = levelsMap.get(level - 1) || [];
+        if (previousIds.length) {
+          ids.sort((leftId, rightId) => {
+            const leftNeighbors = [...(adjacency.get(leftId) || [])].filter((neighbor) =>
+              previousIds.includes(neighbor)
+            );
+            const rightNeighbors = [...(adjacency.get(rightId) || [])].filter((neighbor) =>
+              previousIds.includes(neighbor)
+            );
+            const barycenter = (neighbors) =>
+              neighbors.length
+                ? neighbors.reduce((sum, neighbor) => sum + previousIds.indexOf(neighbor), 0) /
+                  neighbors.length
+                : Number.MAX_SAFE_INTEGER;
+            return barycenter(leftNeighbors) - barycenter(rightNeighbors);
+          });
+        } else {
+          ids.sort((leftId, rightId) =>
+            (degreeByNode.get(rightId) || 0) - (degreeByNode.get(leftId) || 0)
+          );
+        }
+
+        const x =
+          maxLevel === 0
+            ? width / 2
+            : 90 + (index / Math.max(sortedLevels.length - 1, 1)) * (width - 180);
+        const stepY = laneHeight / Math.max(ids.length + 1, 2);
+        ids.forEach((nodeId, nodeIndex) => {
+          positions.set(nodeId, {
+            x,
+            y: laneCenter - (laneHeight / 2) + stepY * (nodeIndex + 1),
+            locked: false,
+          });
+        });
+      });
+    });
+
+    const levelEntries = new Map();
+    components.forEach((component) => {
+      component.levels.forEach((level, nodeId) => {
+        if (!levelEntries.has(level)) {
+          levelEntries.set(level, []);
+        }
+        levelEntries.get(level).push(nodeId);
+      });
+    });
+
+    [...levelEntries.values()].forEach((ids) => {
+      for (let pass = 0; pass < 3; pass += 1) {
+        for (let index = 0; index < ids.length - 1; index += 1) {
+          const firstId = ids[index];
+          const secondId = ids[index + 1];
+          const firstPosition = positions.get(firstId);
+          const secondPosition = positions.get(secondId);
+          const currentCrossings = countEdgeCrossings(graph, positions);
+          positions.set(firstId, { ...firstPosition, y: secondPosition.y });
+          positions.set(secondId, { ...secondPosition, y: firstPosition.y });
+          const swappedCrossings = countEdgeCrossings(graph, positions);
+          if (swappedCrossings <= currentCrossings) {
+            ids[index] = secondId;
+            ids[index + 1] = firstId;
+          } else {
+            positions.set(firstId, firstPosition);
+            positions.set(secondId, secondPosition);
+          }
+        }
+      }
+    });
+
+    graph.nodes.forEach((node) => {
+      const position = positions.get(node.id);
+      if (!position) {
+        positions.set(node.id, {
+          x: width / 2,
+          y: height / 2,
+          locked: false,
+        });
+      }
+    });
+
+    return positions;
+  }
+
+  function recenterGraphLayout() {
+    const graph = buildGraphModel();
+    const width = 960;
+    const height = 620;
+    context.state.graphPositions = initializeGraphPositions(graph, width, height);
+    drawGraph();
+  }
+
   function drawGraph() {
     const graph = buildGraphModel();
     const width = 960;
@@ -105,16 +332,10 @@
     const centerX = width / 2;
     const centerY = height / 2;
 
-    graph.nodes.forEach((node, index) => {
-      if (!context.state.graphPositions.has(node.id)) {
-        const angle = (Math.PI * 2 * index) / Math.max(graph.nodes.length, 1);
-        context.state.graphPositions.set(node.id, {
-          x: centerX + Math.cos(angle) * 180,
-          y: centerY + Math.sin(angle) * 180,
-          locked: false,
-        });
-      }
-    });
+    const hasAllPositions = graph.nodes.every((node) => context.state.graphPositions.has(node.id));
+    if (!hasAllPositions) {
+      context.state.graphPositions = initializeGraphPositions(graph, width, height);
+    }
 
     for (let pass = 0; pass < 180; pass += 1) {
       const forces = new Map(graph.nodes.map((node) => [node.id, { x: 0, y: 0 }]));
@@ -295,6 +516,7 @@
     }
 
     context.state.activeTab = "knowledge";
+    context.state.noteViewMode = "read";
     context.renderers.renderEverything();
   }
 
@@ -360,6 +582,7 @@
     handleGraphMouseDown,
     handleGraphMouseMove,
     handleGraphMouseUp,
+    recenterGraphLayout,
     renderGraphFocus,
   };
   };
