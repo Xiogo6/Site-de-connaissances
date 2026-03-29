@@ -149,6 +149,60 @@
       };
     }
 
+    function getDefaultMetadata() {
+      return {
+        hasDate: false,
+        dateMode: "reference",
+        singleDate: "",
+        startDate: "",
+        endDate: "",
+      };
+    }
+
+    function normalizeMetadata(metadata = {}) {
+      const legacyConceptDate =
+        typeof metadata?.conceptDate === "string" ? metadata.conceptDate : "";
+      const legacyEventMode = metadata?.eventDateMode === "range" ? "range" : "reference";
+      const legacyEventDate = typeof metadata?.eventDate === "string" ? metadata.eventDate : "";
+      const legacyEventStartDate =
+        typeof metadata?.eventStartDate === "string" ? metadata.eventStartDate : "";
+      const legacyEventEndDate =
+        typeof metadata?.eventEndDate === "string" ? metadata.eventEndDate : "";
+      const legacyBirthDate =
+        typeof metadata?.personBirthDate === "string" ? metadata.personBirthDate : "";
+      const legacyDeathDate =
+        typeof metadata?.personDeathDate === "string" ? metadata.personDeathDate : "";
+
+      const hasLegacyRange = Boolean(legacyEventStartDate || legacyEventEndDate);
+      const hasLegacySingle = Boolean(legacyConceptDate || legacyEventDate || legacyBirthDate || legacyDeathDate);
+      const legacySingleDate = legacyConceptDate || legacyEventDate || legacyBirthDate || legacyDeathDate;
+      const legacyMode = hasLegacyRange
+        ? "range"
+        : legacyBirthDate || legacyDeathDate
+          ? "life"
+          : legacyEventDate
+              ? legacyEventMode
+              : legacyConceptDate
+                ? "reference"
+                : "reference";
+
+      return {
+        ...getDefaultMetadata(),
+        hasDate:
+          typeof metadata?.hasDate === "boolean"
+            ? metadata.hasDate
+            : hasLegacyRange || hasLegacySingle,
+        dateMode:
+          typeof metadata?.dateMode === "string" &&
+          ["reference", "life", "range"].includes(metadata.dateMode)
+            ? metadata.dateMode
+            : legacyMode,
+        singleDate: typeof metadata?.singleDate === "string" ? metadata.singleDate : legacySingleDate,
+        startDate: typeof metadata?.startDate === "string" ? metadata.startDate : legacyEventStartDate,
+        endDate: typeof metadata?.endDate === "string" ? metadata.endDate : legacyEventEndDate,
+      };
+    }
+
     function normalizeImportedNote(note, existingNotes = context.state.notes) {
       const title =
         typeof note.title === "string" && note.title.trim() ? note.title.trim() : "Sans titre";
@@ -168,6 +222,7 @@
         content: typeof note.content === "string" ? note.content : "",
         createdAt: typeof note.createdAt === "string" ? note.createdAt : new Date().toISOString(),
         updatedAt: typeof note.updatedAt === "string" ? note.updatedAt : new Date().toISOString(),
+        metadata: normalizeMetadata(note.metadata),
         review: createReviewState(note.review),
       };
     }
@@ -295,6 +350,7 @@
           siteName: document.title || "Atlas de Connaissance",
           publishedUrl: context.state.settings.publishedUrl,
           lastPublishAt: context.state.settings.lastPublishAt,
+          theme: context.state.settings.theme || "light",
           templates: context.state.settings.templates || {},
           collapsedFolders: context.state.settings.collapsedFolders || [],
         },
@@ -306,6 +362,7 @@
           favorite: Boolean(note.favorite),
           tags: [...note.tags],
           content: note.content,
+          metadata: normalizeMetadata(note.metadata),
           createdAt: note.createdAt,
           updatedAt: note.updatedAt,
           review: {

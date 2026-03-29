@@ -31,6 +31,16 @@
 
         <section id="sidebar-library" class="sidebar-panel is-active">
           <div class="sidebar-card">
+            <div class="section-heading">
+              <div>
+                <h2>Pages</h2>
+                <span id="page-count" class="pill"></span>
+              </div>
+              <button id="filters-toggle-button" class="button button-inline button-ghost" type="button">
+                Filtres
+              </button>
+            </div>
+
             <label class="field-label" for="search-input">Recherche</label>
             <input
               id="search-input"
@@ -38,15 +48,6 @@
               type="search"
               placeholder="Titre, tag ou contenu"
             />
-          </div>
-
-          <div class="sidebar-card">
-            <div class="section-heading">
-              <h2>Filtres</h2>
-              <button id="filters-toggle-button" class="button button-inline" type="button">
-                Afficher
-              </button>
-            </div>
 
             <div id="filters-panel" class="stack-actions is-hidden">
               <label>
@@ -71,13 +72,6 @@
               <button id="clear-filters-button" class="button button-inline" type="button">
                 Reinitialiser
               </button>
-            </div>
-          </div>
-
-          <div class="sidebar-card">
-            <div class="section-heading">
-              <h2>Pages</h2>
-              <span id="page-count" class="pill"></span>
             </div>
             <div id="knowledge-list" class="knowledge-list"></div>
           </div>
@@ -277,6 +271,41 @@
                   <input id="note-favorite" type="checkbox" />
                   <span>Page favorite</span>
                 </label>
+
+                <label class="toggle-row toggle-row-editor" for="note-has-date">
+                  <input id="note-has-date" type="checkbox" />
+                  <span>Ajouter une date</span>
+                </label>
+              </div>
+
+              <div id="structured-fields-panel" class="note-detail-panel">
+                <div class="form-grid form-grid-meta">
+                  <label id="note-date-mode-label" class="is-hidden">
+                    <span class="field-label">Type de date</span>
+                    <select id="note-date-mode" class="select-input">
+                      <option value="reference">Date de reference</option>
+                      <option value="life">Naissance et deces</option>
+                      <option value="range">Date debut-fin</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div id="generic-date-fields" class="note-detail-group form-grid form-grid-meta is-hidden">
+                  <label id="note-date-single-label">
+                    <span id="note-date-single-copy" class="field-label">Date</span>
+                    <input id="note-date-single" class="text-input" type="date" />
+                  </label>
+
+                  <label id="note-date-start-label" class="is-hidden">
+                    <span class="field-label">Date de debut</span>
+                    <input id="note-date-start" class="text-input" type="date" />
+                  </label>
+
+                  <label id="note-date-end-label" class="is-hidden">
+                    <span class="field-label">Date de fin</span>
+                    <input id="note-date-end" class="text-input" type="date" />
+                  </label>
+                </div>
               </div>
 
               <label class="editor-label">

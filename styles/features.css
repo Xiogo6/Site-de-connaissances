@@ -13,7 +13,8 @@
 }
 
 .organization-dropzone.is-over,
-.hierarchy-node.is-drop-target {
+.hierarchy-node.is-drop-target,
+.tree-entry-flat.is-drop-target {
   background: rgba(255, 247, 232, 0.95);
   border-color: rgba(191, 91, 44, 0.45);
 }
@@ -257,8 +258,10 @@ body[data-theme="dark"] .quick-capture-panel {
 
 :root[data-theme="dark"] .organization-dropzone.is-over,
 :root[data-theme="dark"] .hierarchy-node.is-drop-target,
+:root[data-theme="dark"] .tree-entry-flat.is-drop-target,
 body[data-theme="dark"] .organization-dropzone.is-over,
-body[data-theme="dark"] .hierarchy-node.is-drop-target {
+body[data-theme="dark"] .hierarchy-node.is-drop-target,
+body[data-theme="dark"] .tree-entry-flat.is-drop-target {
   background: rgba(43, 49, 57, 0.96);
 }
 

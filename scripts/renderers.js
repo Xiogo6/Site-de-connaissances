@@ -15,6 +15,7 @@
     renderKnowledgeMode();
     renderKnowledgeList();
     hydrateEditorFromActiveNote();
+    renderStructuredFields();
     syncEditorAvailability();
     renderPreview();
     renderConnections();
@@ -73,7 +74,7 @@
       context.state.favoritesOnly;
     const isOpen = context.state.sidebarFiltersOpen || hasActiveFilters;
     context.elements.filtersPanel.classList.toggle("is-hidden", !isOpen);
-    context.elements.filtersToggleButton.textContent = isOpen ? "Masquer" : "Afficher";
+    context.elements.filtersToggleButton.textContent = isOpen ? "Masquer" : "Filtres";
     context.elements.filtersToggleButton.classList.toggle("button-primary", hasActiveFilters);
   }
 
@@ -167,6 +168,11 @@
       context.elements.tagsInput,
       context.elements.parentInput,
       context.elements.favoriteInput,
+      context.elements.noteHasDate,
+      context.elements.noteDateMode,
+      context.elements.noteDateSingle,
+      context.elements.noteDateStart,
+      context.elements.noteDateEnd,
       context.elements.contentInput,
       context.elements.applyTemplateButton,
       context.elements.templateType,
@@ -197,23 +203,47 @@
     context.elements.pageCount.textContent = `${filtered.length} page${
       filtered.length > 1 ? "s" : ""
     }`;
-    context.elements.knowledgeList.innerHTML = "";
+    const filteredIds = new Set(filtered.map((note) => note.id));
+    const filterActive =
+      context.state.filter ||
+      context.state.typeFilter !== "all" ||
+      context.state.tagFilter !== "all" ||
+      context.state.favoritesOnly;
+    const forest = context.notes.buildHierarchyForest();
+    const visibleForest = filterActive ? filterHierarchyForest(forest, filteredIds) : forest;
 
-    filtered.forEach((note, index) => {
-      const item = document.createElement("article");
-      item.className = "knowledge-item fade-in";
-      item.style.animationDelay = `${index * 30}ms`;
-      item.innerHTML = buildCompactNoteItem(note, {
-        menuState: context.state.explorerMenuNoteId,
-        openAttr: "data-open-note",
-        toggleAttr: "data-toggle-note-menu",
-        folderAttr: "data-note-folder-select",
-        duplicateAttr: "data-duplicate-note",
-        deleteAttr: "data-delete-note",
-        rootAttr: "data-move-root",
-      });
-      context.elements.knowledgeList.appendChild(item);
+    renderHierarchyTree(context.elements.knowledgeList, visibleForest, 0, {
+      interactive: true,
+      collapsible: true,
+      menuState: context.state.explorerMenuNoteId,
+      openAttr: "data-open-note",
+      toggleAttr: "data-toggle-note-menu",
+      folderAttr: "data-note-folder-select",
+      duplicateAttr: "data-duplicate-note",
+      deleteAttr: "data-delete-note",
+      rootAttr: "data-move-root",
+      variant: "flat",
+      forceExpanded: filterActive,
+      emptyMessage: filterActive
+        ? "Aucune page ne correspond aux filtres"
+        : "Aucune page pour le moment",
     });
+  }
+
+  function filterHierarchyForest(nodes, allowedIds) {
+    return nodes
+      .map((node) => {
+        const children = filterHierarchyForest(node.children, allowedIds);
+        if (!allowedIds.has(node.id) && !children.length) {
+          return null;
+        }
+
+        return {
+          ...node,
+          children,
+        };
+      })
+      .filter(Boolean);
   }
 
   function buildCompactNoteItem(note, config) {
@@ -270,12 +300,52 @@
       return;
     }
 
+    const metadata = note.metadata || {};
     context.elements.titleInput.value = note.title;
     context.elements.typeInput.value = note.type;
     context.elements.tagsInput.value = note.tags.join(", ");
     context.elements.parentInput.value = note.parentId || "";
     context.elements.favoriteInput.checked = Boolean(note.favorite);
+    context.elements.noteHasDate.checked = Boolean(metadata.hasDate);
+    context.elements.noteDateMode.value =
+      ["reference", "life", "range"].includes(metadata.dateMode)
+        ? metadata.dateMode
+        : "reference";
+    context.elements.noteDateSingle.value = metadata.singleDate || "";
+    context.elements.noteDateStart.value = metadata.startDate || "";
+    context.elements.noteDateEnd.value = metadata.endDate || "";
     context.elements.contentInput.value = note.content;
+  }
+
+  function renderStructuredFields() {
+    const hasDate = context.elements.noteHasDate.checked;
+    const mode = context.elements.noteDateMode.value;
+    const isRange = mode === "range";
+    const labels = {
+      reference: "Date de reference",
+      life: "Date de naissance",
+      range: "Date",
+    };
+
+    context.elements.noteDateModeLabel.classList.toggle("is-hidden", !hasDate);
+    context.elements.genericDateFields.classList.toggle("is-hidden", !hasDate);
+    context.elements.noteDateSingleLabel.classList.toggle(
+      "is-hidden",
+      !hasDate || isRange || mode === "life"
+    );
+    context.elements.noteDateStartLabel.classList.toggle(
+      "is-hidden",
+      !hasDate || (mode !== "range" && mode !== "life")
+    );
+    context.elements.noteDateEndLabel.classList.toggle(
+      "is-hidden",
+      !hasDate || (mode !== "range" && mode !== "life")
+    );
+    context.elements.noteDateStartLabel.querySelector(".field-label").textContent =
+      mode === "life" ? "Date de naissance" : "Date de debut";
+    context.elements.noteDateEndLabel.querySelector(".field-label").textContent =
+      mode === "life" ? "Date de deces" : "Date de fin";
+    context.elements.noteDateSingleCopy.textContent = labels[mode] || "Date";
   }
 
   function renderLivePreview() {
@@ -294,6 +364,7 @@
         context.elements.parentInput.value || null
       ),
       favorite: context.elements.favoriteInput.checked,
+      metadata: context.notes.collectMetadataFromInputs(),
       content: context.elements.contentInput.value,
     };
 
@@ -318,6 +389,7 @@
       return;
     }
 
+    const metadata = note.metadata || {};
     context.elements.previewTitle.innerHTML = `${getNoteTypeIconMarkup(note.type)}<span>${escapeHtml(
       note.title || "Sans titre"
     )}</span>`;
@@ -357,6 +429,43 @@
     context.elements.previewMeta.appendChild(reviewMeta);
     context.elements.previewMeta.appendChild(parentMeta);
     context.elements.previewMeta.appendChild(childMeta);
+
+    if (metadata.hasDate) {
+      const labels = {
+        reference: "Date de reference",
+        life: "Naissance / deces",
+        range: "Periode",
+      };
+      const dateMeta = document.createElement("span");
+      dateMeta.textContent =
+        metadata.dateMode === "range"
+          ? `${labels.range}: ${formatStructuredDate(metadata.startDate)} -> ${formatStructuredDate(
+              metadata.endDate
+            )}`
+          : metadata.dateMode === "life"
+            ? `${labels.life}: ${formatStructuredDate(metadata.startDate)} -> ${formatStructuredDate(
+                metadata.endDate
+              )}`
+          : `${labels[metadata.dateMode] || "Date"}: ${formatStructuredDate(metadata.singleDate)}`;
+      context.elements.previewMeta.appendChild(dateMeta);
+    }
+  }
+
+  function formatStructuredDate(value) {
+    if (!value) {
+      return "inconnue";
+    }
+
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date);
   }
 
   function renderConnections(note = context.notes.getActiveNote()) {
@@ -509,13 +618,16 @@
       context.elements.sidebarHierarchy,
       context.notes.buildHierarchyForest().slice(0, 8),
       0,
-      { interactive: false, collapsible: false }
+      { interactive: false, collapsible: false, variant: "flat" }
     );
   }
 
   function renderOrganization() {
     renderOrganizationDropzone();
-    renderHierarchyTree(context.elements.organizationTree, context.notes.buildHierarchyForest(), 0);
+    renderHierarchyTree(context.elements.organizationTree, context.notes.buildHierarchyForest(), 0, {
+      variant: "flat",
+      allowDrag: true,
+    });
     renderInsightList(
       context.elements.organizationOrphans,
       context.state.notes
@@ -558,7 +670,7 @@
     if (!nodes.length) {
       const empty = document.createElement("span");
       empty.className = "pill pill-soft";
-      empty.textContent = "Aucune hierarchie definie";
+      empty.textContent = options.emptyMessage || "Aucune hierarchie definie";
       container.appendChild(empty);
       return;
     }
@@ -567,23 +679,26 @@
       const interactive = options.interactive !== false;
       const isCollapsible =
         options.collapsible !== false && (node.type === "folder" || node.children.length > 0);
-      const isCollapsed = isCollapsible && context.notes.isFolderCollapsed(node.id);
+      const isCollapsed =
+        isCollapsible && !options.forceExpanded && context.notes.isFolderCollapsed(node.id);
       const item = document.createElement("article");
-      item.className = "hierarchy-node";
+      const isFlatVariant = options.variant === "flat";
+      item.className = isFlatVariant ? "tree-entry-flat" : "hierarchy-node";
       item.dataset.depth = String(Math.min(currentDepth, 3));
       item.dataset.noteId = node.id;
-      item.draggable = interactive && !context.data.isReadOnlyMode();
+      item.draggable =
+        interactive && !context.data.isReadOnlyMode() && Boolean(options.allowDrag);
       item.classList.toggle("is-drop-target", context.state.dragState.dropTargetId === node.id);
       item.classList.toggle("is-dragging", context.state.dragState.noteId === node.id);
       item.innerHTML = interactive
         ? buildCompactNoteItem(node, {
-            menuState: context.state.organizationMenuNoteId,
-            openAttr: "data-open-organization-note",
-            toggleAttr: "data-toggle-organization-menu",
-            folderAttr: "data-organization-folder-select",
-            duplicateAttr: "data-duplicate-organization-note",
-            deleteAttr: "data-delete-organization-note",
-            rootAttr: "data-move-organization-root",
+            menuState: options.menuState ?? context.state.organizationMenuNoteId,
+            openAttr: options.openAttr || "data-open-organization-note",
+            toggleAttr: options.toggleAttr || "data-toggle-organization-menu",
+            folderAttr: options.folderAttr || "data-organization-folder-select",
+            duplicateAttr: options.duplicateAttr || "data-duplicate-organization-note",
+            deleteAttr: options.deleteAttr || "data-delete-organization-note",
+            rootAttr: options.rootAttr || "data-move-organization-root",
             leadingHtml: isCollapsible
               ? `<button type="button" class="tree-toggle" data-toggle-folder="${node.id}" aria-label="${
                   isCollapsed ? "Deplier" : "Replier"
@@ -755,6 +870,7 @@
     renderSidebarRecap,
     renderSidebarTabs,
     renderStats,
+    renderStructuredFields,
     renderTabs,
     renderTemplateEditor,
     renderWorkspaceBanner,

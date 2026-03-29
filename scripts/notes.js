@@ -49,6 +49,32 @@
     return candidate;
   }
 
+  function createNoteMetadata(overrides = {}) {
+    return {
+      hasDate: false,
+      dateMode: "reference",
+      singleDate: "",
+      startDate: "",
+      endDate: "",
+      ...overrides,
+    };
+  }
+
+  function collectMetadataFromInputs() {
+    const metadata = createNoteMetadata();
+    metadata.hasDate = context.elements.noteHasDate.checked;
+    metadata.dateMode = context.elements.noteDateMode.value;
+
+    if (metadata.dateMode === "range" || metadata.dateMode === "life") {
+      metadata.startDate = context.elements.noteDateStart.value || "";
+      metadata.endDate = context.elements.noteDateEnd.value || "";
+    } else {
+      metadata.singleDate = context.elements.noteDateSingle.value || "";
+    }
+
+    return metadata;
+  }
+
   function createEmptyNote() {
     const title = generateUntitledName();
     const now = new Date().toISOString();
@@ -60,6 +86,7 @@
       favorite: false,
       tags: [],
       content: context.data.buildTemplateContent("concept", title),
+      metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
       review: context.data.createReviewState(),
@@ -271,6 +298,8 @@
     }
 
     context.data.saveNotes();
+    context.renderers.renderKnowledgeList();
+    context.renderers.renderSidebarRecap();
     context.renderers.renderOrganization();
   }
 
@@ -313,6 +342,7 @@
     );
     current.favorite = context.elements.favoriteInput.checked;
     current.content = context.elements.contentInput.value.trim();
+    current.metadata = collectMetadataFromInputs();
     current.updatedAt = new Date().toISOString();
 
     if (previousTitle !== nextTitle) {
@@ -412,43 +442,6 @@
     const type = context.elements.typeInput.value;
     context.elements.contentInput.value = context.data.buildTemplateContent(type, title);
     context.renderers.renderLivePreview();
-  }
-
-  function exportNotes() {
-    context.data.downloadJsonFile("knowledge-base.json", context.state.notes);
-  }
-
-  function importNotes(event) {
-    if (context.data.isReadOnlyMode()) {
-      event.target.value = "";
-      return;
-    }
-
-    const [file] = event.target.files || [];
-    if (!file) {
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(reader.result);
-        if (!Array.isArray(parsed)) {
-          throw new Error("Format invalide");
-        }
-
-        context.state.notes = context.data.normalizeNoteCollection(parsed);
-        context.state.activeNoteId = context.state.notes[0]?.id ?? null;
-        context.data.saveNotes();
-        context.data.saveAutomaticSnapshot("Import JSON");
-        context.renderers.renderEverything();
-        event.target.value = "";
-      } catch (error) {
-        alert("Impossible d'importer ce fichier JSON.");
-      }
-    };
-
-    reader.readAsText(file);
   }
 
   function moveNoteToParent(noteId, parentId) {
@@ -568,7 +561,7 @@
 
   function clearOrganizationDropHighlights() {
     context.elements.organizationTree
-      ?.querySelectorAll(".hierarchy-node.is-drop-target, .hierarchy-node.is-dragging")
+      ?.querySelectorAll("[data-note-id].is-drop-target, [data-note-id].is-dragging")
       .forEach((node) => {
         node.classList.remove("is-drop-target", "is-dragging");
       });
@@ -611,6 +604,7 @@
       favorite: false,
       tags: ["dossier"],
       content: context.data.buildTemplateContent("folder", title),
+      metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
       review: context.data.createReviewState(),
@@ -675,6 +669,7 @@
       content: `# ${title}
 
 ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title}]]` : ""}`,
+      metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
       review: context.data.createReviewState(),
@@ -725,6 +720,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
       favorite: false,
       tags: [],
       content: context.data.buildTemplateContent("concept", trimmedTitle),
+      metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
       review: context.data.createReviewState(),
@@ -813,7 +809,6 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     deleteNoteById,
     describeReviewState,
     duplicateNoteById,
-    exportNotes,
     extractLinkContext,
     extractOutline,
     getActiveNote,
@@ -821,6 +816,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     getBacklinkContexts,
     getBacklinks,
     getChildNotes,
+    collectMetadataFromInputs,
     getConnectionCount,
     getDueNotes,
     getFilteredNotes,
@@ -831,7 +827,6 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     getParentTitle,
     getSuggestedLinks,
     highlightOrganizationTarget,
-    importNotes,
     isFolderCollapsed,
     isNoteDue,
     isOrphanNote,

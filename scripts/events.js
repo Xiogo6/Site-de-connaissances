@@ -108,10 +108,24 @@
     context.elements.saveTemplateButton.addEventListener("click", context.notes.saveTemplate);
     context.elements.resetTemplateButton.addEventListener("click", context.notes.resetTemplate);
     context.elements.titleInput.addEventListener("input", context.renderers.renderLivePreview);
-    context.elements.typeInput.addEventListener("change", context.renderers.renderLivePreview);
+    context.elements.typeInput.addEventListener("change", () => {
+      context.renderers.renderStructuredFields();
+      context.renderers.renderLivePreview();
+    });
     context.elements.tagsInput.addEventListener("input", context.renderers.renderLivePreview);
     context.elements.parentInput.addEventListener("change", context.renderers.renderLivePreview);
     context.elements.favoriteInput.addEventListener("change", context.renderers.renderLivePreview);
+    context.elements.noteHasDate.addEventListener("change", () => {
+      context.renderers.renderStructuredFields();
+      context.renderers.renderLivePreview();
+    });
+    context.elements.noteDateMode.addEventListener("change", () => {
+      context.renderers.renderStructuredFields();
+      context.renderers.renderLivePreview();
+    });
+    context.elements.noteDateSingle.addEventListener("input", context.renderers.renderLivePreview);
+    context.elements.noteDateStart.addEventListener("input", context.renderers.renderLivePreview);
+    context.elements.noteDateEnd.addEventListener("input", context.renderers.renderLivePreview);
     context.elements.contentInput.addEventListener("input", context.renderers.renderLivePreview);
 
     context.elements.downloadPublishButton.addEventListener(
@@ -263,21 +277,6 @@
     });
   }
 
-  function handleKnowledgeListClick(event) {
-    handleCompactListClick(
-      event,
-      "explorerMenuNoteId",
-      {
-        open: "openNote",
-        toggle: "toggleNoteMenu",
-        duplicate: "duplicateNote",
-        remove: "deleteNote",
-        root: "moveRoot",
-      },
-      context.renderers.renderKnowledgeList
-    );
-  }
-
   function closeUtilityDrawer() {
     context.state.utilityDrawerOpen = false;
     context.renderers.renderTabs();
@@ -306,6 +305,28 @@
 
   function handleKnowledgeListChange(event) {
     handleCompactListChange(event, "explorerMenuNoteId");
+  }
+
+  function handleKnowledgeListClick(event) {
+    const toggleFolderButton = event.target.closest("[data-toggle-folder]");
+    if (toggleFolderButton) {
+      event.stopPropagation();
+      context.notes.toggleFolderCollapse(toggleFolderButton.dataset.toggleFolder);
+      return;
+    }
+
+    handleCompactListClick(
+      event,
+      "explorerMenuNoteId",
+      {
+        open: "openNote",
+        toggle: "toggleNoteMenu",
+        duplicate: "duplicateNote",
+        remove: "deleteNote",
+        root: "moveRoot",
+      },
+      context.renderers.renderKnowledgeList
+    );
   }
 
   function handleOrganizationListClick(event) {
