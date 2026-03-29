@@ -1,0 +1,13 @@
+:root {
+  --surface: rgba(255, 248, 238, 0.92);
+  --line: rgba(86, 70, 48, 0.16);
+  --line-strong: rgba(86, 70, 48, 0.3);
+  --text: #2f2418;
+  --text-soft: #66513a;
+  --accent: #bf5b2c;
+  --accent-strong: #8f3914;
+  --shadow: 0 24px 60px rgba(81, 55, 30, 0.12);
+  --radius: 18px;
+  --content-font: "Georgia", "Palatino Linotype", serif;
+  --ui-font: "Trebuchet MS", "Segoe UI", sans-serif;
+}

@@ -2,6 +2,23 @@
 
 Site statique pour organiser vos connaissances en reseau, visualiser les liens entre les pages et generer des quiz a partir de vos notes.
 
+## Structure du projet
+
+Le projet a ete reorganise pour separer les responsabilites sans ajouter de build step.
+
+- `index.html` : structure de la page et points d'ancrage du DOM
+- `app.js` : point d'entree tres court qui assemble les modules
+- `scripts/config.js` : donnees par defaut et constantes globales
+- `scripts/dom.js` : centralisation des selecteurs DOM
+- `scripts/helpers.js` : helpers purs reutilisables
+- `scripts/data.js` : persistance locale, snapshots, publication, templates
+- `scripts/notes.js` : logique metier autour des notes, de l'organisation et de la capture rapide
+- `scripts/renderers.js` : rendu de l'interface hors graphe et quiz
+- `scripts/graph.js` : modele et rendu du graphe
+- `scripts/quiz.js` : generation et rendu des quiz
+- `scripts/events.js` : branchement des interactions utilisateur
+- `styles/` : styles separes par couches (`tokens`, `base`, `layout`, `components`, `features`)
+
 ## Ouvrir le site
 
 Ouvrez simplement `index.html` dans votre navigateur.

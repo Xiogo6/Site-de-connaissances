@@ -20,80 +20,106 @@
           </p>
         </div>
 
-        <div class="sidebar-card">
-          <label class="field-label" for="search-input">Recherche</label>
-          <input
-            id="search-input"
-            class="text-input"
-            type="search"
-            placeholder="Titre, tag ou contenu"
-          />
-        </div>
+        <nav class="sidebar-tabs" aria-label="Navigation laterale">
+          <button class="sidebar-tab is-active" data-sidebar-tab="library">Bibliotheque</button>
+          <button class="sidebar-tab" data-sidebar-tab="reviews">Revisions</button>
+          <button class="sidebar-tab" data-sidebar-tab="recap">Recap</button>
+        </nav>
 
-        <div class="sidebar-card">
-          <div class="section-heading">
-            <h2>Filtres</h2>
-            <button id="clear-filters-button" class="button button-inline">
-              Reinitialiser
-            </button>
+        <section id="sidebar-library" class="sidebar-panel is-active">
+          <div class="sidebar-card">
+            <label class="field-label" for="search-input">Recherche</label>
+            <input
+              id="search-input"
+              class="text-input"
+              type="search"
+              placeholder="Titre, tag ou contenu"
+            />
           </div>
 
-          <div class="stack-actions">
-            <label>
-              <span class="field-label">Type de page</span>
-              <select id="type-filter" class="select-input">
-                <option value="all">Tous les types</option>
-              </select>
-            </label>
+          <div class="sidebar-card">
+            <div class="section-heading">
+              <h2>Filtres</h2>
+              <button id="clear-filters-button" class="button button-inline">
+                Reinitialiser
+              </button>
+            </div>
 
-            <label>
-              <span class="field-label">Tag</span>
-              <select id="tag-filter" class="select-input">
-                <option value="all">Tous les tags</option>
-              </select>
-            </label>
+            <div class="stack-actions">
+              <label>
+                <span class="field-label">Type de page</span>
+                <select id="type-filter" class="select-input">
+                  <option value="all">Tous les types</option>
+                </select>
+              </label>
 
-            <label class="toggle-row" for="favorites-filter">
-              <input id="favorites-filter" type="checkbox" />
-              <span>Favoris seulement</span>
-            </label>
-          </div>
-        </div>
+              <label>
+                <span class="field-label">Tag</span>
+                <select id="tag-filter" class="select-input">
+                  <option value="all">Tous les tags</option>
+                </select>
+              </label>
 
-        <div class="sidebar-card">
-          <div class="section-heading">
-            <h2>Pages</h2>
-            <span id="page-count" class="pill"></span>
+              <label class="toggle-row" for="favorites-filter">
+                <input id="favorites-filter" type="checkbox" />
+                <span>Favoris seulement</span>
+              </label>
+            </div>
           </div>
-          <div id="knowledge-list" class="knowledge-list"></div>
-        </div>
 
-        <div class="sidebar-card">
-          <div class="section-heading">
-            <h2>Actions</h2>
+          <div class="sidebar-card">
+            <div class="section-heading">
+              <h2>Pages</h2>
+              <span id="page-count" class="pill"></span>
+            </div>
+            <div id="knowledge-list" class="knowledge-list"></div>
           </div>
-          <div class="stack-actions">
-            <button id="new-note-button" class="button button-primary">
-              Nouvelle page
-            </button>
-            <button id="duplicate-note-button" class="button">
-              Dupliquer la page
-            </button>
-            <button id="export-button" class="button">Exporter en JSON</button>
-            <label class="button button-ghost file-button" for="import-input">
-              Importer un JSON
-            </label>
-            <input id="import-input" type="file" accept="application/json" />
-          </div>
-        </div>
 
-        <div class="sidebar-card">
-          <div class="section-heading">
-            <h2>Revision du jour</h2>
-            <span id="due-review-count" class="pill"></span>
+          <div class="sidebar-card">
+            <div class="section-heading">
+              <h2>Actions</h2>
+            </div>
+            <div class="stack-actions">
+              <button id="new-note-button" class="button button-primary">
+                Nouvelle page
+              </button>
+              <button id="duplicate-note-button" class="button">
+                Dupliquer la page
+              </button>
+              <button id="export-button" class="button">Exporter en JSON</button>
+              <label class="button button-ghost file-button" for="import-input">
+                Importer un JSON
+              </label>
+              <input id="import-input" type="file" accept="application/json" />
+            </div>
           </div>
-          <div id="due-review-list" class="due-list"></div>
-        </div>
+        </section>
+
+        <section id="sidebar-reviews" class="sidebar-panel">
+          <div class="sidebar-card">
+            <div class="section-heading">
+              <h2>Revision du jour</h2>
+              <span id="due-review-count" class="pill"></span>
+            </div>
+            <div id="due-review-list" class="due-list"></div>
+          </div>
+        </section>
+
+        <section id="sidebar-recap" class="sidebar-panel">
+          <div class="sidebar-card">
+            <div class="section-heading">
+              <h2>Recap global</h2>
+            </div>
+            <div id="sidebar-overview" class="insight-list"></div>
+          </div>
+
+          <div class="sidebar-card">
+            <div class="section-heading">
+              <h2>Hierarchie</h2>
+            </div>
+            <div id="sidebar-hierarchy" class="hierarchy-list"></div>
+          </div>
+        </section>
       </aside>
 
       <main class="main-layout">
@@ -131,8 +157,10 @@
 
         <nav class="tabs" aria-label="Sections principales">
           <button class="tab is-active" data-tab="knowledge">Pages</button>
+          <button class="tab" data-tab="organisation">Organisation</button>
           <button class="tab" data-tab="graph">Graphe</button>
           <button class="tab" data-tab="quiz">Quiz</button>
+          <button class="tab" data-tab="templates">Modeles</button>
           <button class="tab" data-tab="publish">Publication</button>
         </nav>
 
@@ -145,6 +173,9 @@
                   <h3>Page active</h3>
                 </div>
                 <div class="inline-actions">
+                  <button id="apply-template-button" class="button">
+                    Appliquer le modele
+                  </button>
                   <button id="save-button" class="button button-primary">
                     Enregistrer
                   </button>
@@ -161,6 +192,7 @@
                   <span class="field-label">Type</span>
                   <select id="note-type" class="select-input">
                     <option value="concept">Concept</option>
+                    <option value="folder">Dossier</option>
                     <option value="hub">Hub</option>
                     <option value="procedure">Procedure</option>
                     <option value="question">Question</option>
@@ -179,6 +211,15 @@
                   />
                 </label>
 
+                <label>
+                  <span class="field-label">Page parente</span>
+                  <select id="note-parent" class="select-input">
+                    <option value="">Aucune</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="form-grid form-grid-meta">
                 <label class="toggle-row toggle-row-editor" for="note-favorite">
                   <input id="note-favorite" type="checkbox" />
                   <span>Page favorite</span>
@@ -249,6 +290,11 @@
               </div>
 
               <div class="link-section">
+                <h4>Hierarchie</h4>
+                <div id="hierarchy-links" class="chip-list"></div>
+              </div>
+
+              <div class="link-section">
                 <h4>Contexte des backlinks</h4>
                 <div id="backlink-contexts" class="insight-list"></div>
               </div>
@@ -266,6 +312,56 @@
           </div>
         </section>
 
+        <section id="organisation-tab" class="tab-panel">
+          <div class="organization-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Structure</p>
+                  <h3>Arbre des pages</h3>
+                </div>
+                <div class="inline-actions">
+                  <button id="new-folder-button" class="button button-primary" type="button">
+                    Nouveau dossier
+                  </button>
+                  <button id="move-root-button" class="button" type="button">
+                    Remonter a la racine
+                  </button>
+                </div>
+              </div>
+
+              <div id="organization-root-drop" class="organization-dropzone">
+                Deposez ici pour remettre une page a la racine
+              </div>
+              <div id="organization-tree" class="hierarchy-tree"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Second plan</p>
+                  <h3>Pilotage</h3>
+                </div>
+              </div>
+
+              <div class="link-section">
+                <h4>Pages isolees</h4>
+                <div id="organization-orphans" class="insight-list"></div>
+              </div>
+
+              <div class="link-section">
+                <h4>Pages recentes</h4>
+                <div id="organization-recent" class="insight-list"></div>
+              </div>
+
+              <div class="link-section">
+                <h4>Pages les plus liees</h4>
+                <div id="organization-top-links" class="insight-list"></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
         <section id="graph-tab" class="tab-panel">
           <div class="graph-layout">
             <section class="panel graph-panel">
@@ -275,6 +371,10 @@
                   <h3>Reseau des connaissances</h3>
                 </div>
                 <div class="inline-actions">
+                  <label class="toggle-row" for="graph-show-tags">
+                    <input id="graph-show-tags" type="checkbox" />
+                    <span>Tags</span>
+                  </label>
                   <select id="graph-tag-filter" class="select-input select-inline">
                     <option value="all">Tous les tags</option>
                   </select>
@@ -401,6 +501,81 @@
           </div>
         </section>
 
+        <section id="templates-tab" class="tab-panel">
+          <div class="templates-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Uniformisation</p>
+                  <h3>Modeles de page</h3>
+                </div>
+                <div class="inline-actions">
+                  <button id="reset-template-button" class="button" type="button">
+                    Reinitialiser
+                  </button>
+                  <button id="save-template-button" class="button button-primary" type="button">
+                    Enregistrer le modele
+                  </button>
+                </div>
+              </div>
+
+              <label>
+                <span class="field-label">Type de page</span>
+                <select id="template-type" class="select-input"></select>
+              </label>
+
+              <label class="editor-label">
+                <span class="field-label">Modele</span>
+                <textarea
+                  id="template-editor"
+                  class="editor"
+                  spellcheck="false"
+                  placeholder="Ecrivez ici le modele de ce type de page."
+                ></textarea>
+              </label>
+
+              <p class="helper-copy">
+                Utilisez <code>{{title}}</code> pour inserer automatiquement le titre de la page.
+              </p>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Aide</p>
+                  <h3>Comment les adapter</h3>
+                </div>
+              </div>
+
+              <div class="helper-grid">
+                <article class="helper-card">
+                  <h4>Ou ils sont</h4>
+                  <p>
+                    Les modeles sont maintenant modifiables ici dans l'onglet
+                    <strong>Modeles</strong> et sont sauvegardes localement dans votre navigateur.
+                  </p>
+                </article>
+
+                <article class="helper-card">
+                  <h4>Quand ils servent</h4>
+                  <p>
+                    Ils s'appliquent aux nouvelles pages et au bouton
+                    <strong>Appliquer le modele</strong> dans l'editeur.
+                  </p>
+                </article>
+
+                <article class="helper-card">
+                  <h4>Bonne pratique</h4>
+                  <p>
+                    Gardez une structure stable par type pour rendre les liens,
+                    tags et quiz plus coherents dans le temps.
+                  </p>
+                </article>
+              </div>
+            </section>
+          </div>
+        </section>
+
         <section id="publish-tab" class="tab-panel">
           <div class="publish-layout">
             <section class="panel">
@@ -510,6 +685,15 @@
       </div>
     </section>
 
+    <script src="./scripts/config.js"></script>
+    <script src="./scripts/dom.js"></script>
+    <script src="./scripts/helpers.js"></script>
+    <script src="./scripts/data.js"></script>
+    <script src="./scripts/notes.js"></script>
+    <script src="./scripts/graph.js"></script>
+    <script src="./scripts/quiz.js"></script>
+    <script src="./scripts/renderers.js"></script>
+    <script src="./scripts/events.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>
