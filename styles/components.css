@@ -490,7 +490,6 @@ body[data-theme="dark"] .button-ghost {
 .focus-card,
 .quiz-card,
 .quiz-summary {
-  background: rgba(255, 253, 248, 0.7);
   padding: 18px;
 }
 

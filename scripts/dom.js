@@ -136,7 +136,6 @@
       organizationRecent: document.querySelector("#organization-recent"),
       organizationTopLinks: document.querySelector("#organization-top-links"),
       newFolderButton: document.querySelector("#new-folder-button"),
-      moveRootButton: document.querySelector("#move-root-button"),
       quickCaptureToggle: document.querySelector("#quick-capture-toggle"),
       quickCapturePanel: document.querySelector("#quick-capture-panel"),
       quickCaptureClose: document.querySelector("#quick-capture-close"),
