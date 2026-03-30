@@ -12,7 +12,7 @@ Le projet a ete reorganise pour separer les responsabilites sans ajouter de buil
 - `scripts/dom.js` : centralisation des selecteurs DOM
 - `scripts/helpers.js` : helpers purs reutilisables
 - `scripts/data.js` : persistance locale, snapshots, publication, templates
-- `scripts/notes.js` : logique metier autour des notes, de l'organisation et de la capture rapide
+- `scripts/notes.js` : logique metier autour des notes, de l'organisation et de la note rapide
 - `scripts/renderers.js` : rendu de l'interface hors graphe et quiz
 - `scripts/graph.js` : modele et rendu du graphe
 - `scripts/quiz.js` : generation et rendu des quiz
@@ -38,7 +38,7 @@ Ouvrez simplement `index.html` dans votre navigateur.
 - sauvegarde locale automatique dans le navigateur
 - snapshots locaux de secours
 - centre de publication GitHub Pages
-- capture rapide pour mobile
+- note rapide pour mobile
 - import / export en JSON
 - base PWA pour une installation sur telephone une fois le site heberge
 
@@ -69,7 +69,7 @@ Ouvrez simplement `index.html` dans votre navigateur.
 
 - `espace local editable` : vos changements sont stockes sur l'appareil courant
 - `snapshot publie` : lecture seule de la version poussee sur GitHub Pages
-- `capture rapide` : creation ultra rapide d'une note depuis mobile ou desktop
+- `note rapide` : creation ultra rapide d'une note depuis mobile ou desktop
 
 ## Limite actuelle
 
