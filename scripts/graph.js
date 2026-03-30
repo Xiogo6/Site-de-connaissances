@@ -4,6 +4,9 @@
   AtlasApp.createGraphModule = function createGraphModule(context) {
     const { noteTypeLabels } = AtlasApp.config;
     const { escapeHtml, extractLinks, extractSummary, unique } = AtlasApp.helpers;
+    const CANVAS_WIDTH = 960;
+    const CANVAS_HEIGHT = 620;
+
   function getGraphNotes() {
     const base =
       context.state.graphTagFilter === "all"
@@ -319,18 +322,36 @@
 
   function recenterGraphLayout() {
     const graph = buildGraphModel();
-    const width = 960;
-    const height = 620;
+    const width = CANVAS_WIDTH;
+    const height = CANVAS_HEIGHT;
     context.state.graphPositions = initializeGraphPositions(graph, width, height);
     drawGraph();
   }
 
+  function getGraphViewBox() {
+    const zoom = context.helpers.clamp(context.state.graphZoom || 1, 1, 2.8);
+    const width = CANVAS_WIDTH / zoom;
+    const height = CANVAS_HEIGHT / zoom;
+    return {
+      x: (CANVAS_WIDTH - width) / 2,
+      y: (CANVAS_HEIGHT - height) / 2,
+      width,
+      height,
+    };
+  }
+
   function drawGraph() {
     const graph = buildGraphModel();
-    const width = 960;
-    const height = 620;
+    const width = CANVAS_WIDTH;
+    const height = CANVAS_HEIGHT;
     const centerX = width / 2;
     const centerY = height / 2;
+    const viewBox = getGraphViewBox();
+
+    context.elements.graphCanvas.setAttribute(
+      "viewBox",
+      `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`
+    );
 
     const hasAllPositions = graph.nodes.every((node) => context.state.graphPositions.has(node.id));
     if (!hasAllPositions) {
@@ -550,8 +571,16 @@
       return;
     }
 
-    position.x = context.helpers.clamp(point.x - context.state.graphDrag.offsetX, 60, 900);
-    position.y = context.helpers.clamp(point.y - context.state.graphDrag.offsetY, 60, 560);
+    position.x = context.helpers.clamp(
+      point.x - context.state.graphDrag.offsetX,
+      60,
+      CANVAS_WIDTH - 60
+    );
+    position.y = context.helpers.clamp(
+      point.y - context.state.graphDrag.offsetY,
+      60,
+      CANVAS_HEIGHT - 60
+    );
     drawGraph();
   }
 
@@ -565,12 +594,23 @@
 
   function getSvgPoint(event) {
     const rect = context.elements.graphCanvas.getBoundingClientRect();
-    const scaleX = 960 / rect.width;
-    const scaleY = 620 / rect.height;
+    const viewBox = getGraphViewBox();
+    const scaleX = viewBox.width / rect.width;
+    const scaleY = viewBox.height / rect.height;
     return {
-      x: (event.clientX - rect.left) * scaleX,
-      y: (event.clientY - rect.top) * scaleY,
+      x: viewBox.x + (event.clientX - rect.left) * scaleX,
+      y: viewBox.y + (event.clientY - rect.top) * scaleY,
     };
+  }
+
+  function zoomIn() {
+    context.state.graphZoom = context.helpers.clamp((context.state.graphZoom || 1) + 0.2, 1, 2.8);
+    drawGraph();
+  }
+
+  function zoomOut() {
+    context.state.graphZoom = context.helpers.clamp((context.state.graphZoom || 1) - 0.2, 1, 2.8);
+    drawGraph();
   }
 
   return {
@@ -584,6 +624,8 @@
     handleGraphMouseUp,
     recenterGraphLayout,
     renderGraphFocus,
+    zoomIn,
+    zoomOut,
   };
   };
 })(window);

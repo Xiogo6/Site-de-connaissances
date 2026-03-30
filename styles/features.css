@@ -243,6 +243,17 @@
   line-height: 1.5;
 }
 
+:root[data-theme="dark"] .utility-link,
+body[data-theme="dark"] .utility-link {
+  background: rgba(24, 28, 33, 0.96);
+  border-color: rgba(215, 201, 185, 0.16);
+}
+
+:root[data-theme="dark"] .utility-link span,
+body[data-theme="dark"] .utility-link span {
+  color: var(--text-soft);
+}
+
 .quick-editor {
   min-height: 180px;
 }
@@ -311,7 +322,10 @@ body[data-theme="dark"] .graph-label.is-tag-label {
 
   .quick-capture-panel {
     bottom: 156px;
-    width: calc(100vw - 28px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(calc(100vw - 28px), 430px);
   }
 
   .utility-drawer-panel {
