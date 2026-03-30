@@ -124,7 +124,7 @@
                 <path d="M4 7h16M4 12h16M4 17h16" />
               </svg>
             </span>
-            <span>Bibliotheque</span>
+            <span class="utility-launcher-label">Bibliotheque</span>
           </button>
 
           <nav class="tabs" aria-label="Sections principales">
@@ -199,7 +199,7 @@
                 <path d="M4 7h16M4 12h16M4 17h16" />
               </svg>
             </span>
-            <span>Plus</span>
+            <span class="utility-launcher-label">Plus</span>
           </button>
         </div>
 
@@ -310,6 +310,26 @@
 
               <label class="editor-label">
                 <span class="field-label">Contenu</span>
+                <div class="editor-toolbar" role="toolbar" aria-label="Mise en forme">
+                  <button class="button button-inline" data-format-action="heading-1" type="button">
+                    Titre
+                  </button>
+                  <button class="button button-inline" data-format-action="heading-2" type="button">
+                    Sous-titre
+                  </button>
+                  <button class="button button-inline" data-format-action="bullet" type="button">
+                    Puce
+                  </button>
+                  <button class="button button-inline" data-format-action="bold" type="button">
+                    Gras
+                  </button>
+                  <button class="button button-inline" data-format-action="italic" type="button">
+                    Italique
+                  </button>
+                  <button class="button button-inline" data-format-action="link" type="button">
+                    Lien
+                  </button>
+                </div>
                 <textarea
                   id="note-content"
                   class="editor"
@@ -469,6 +489,12 @@
                     <option value="all">Tout le reseau</option>
                     <option value="neighbors">Voisinage actif</option>
                   </select>
+                  <button id="graph-zoom-out-button" class="button" type="button">
+                    -
+                  </button>
+                  <button id="graph-zoom-in-button" class="button" type="button">
+                    +
+                  </button>
                   <button id="reset-graph-button" class="button">
                     Recentrer
                   </button>
@@ -536,6 +562,7 @@
                 <select id="quiz-mode" class="select-input">
                   <option value="mixed">Mixte</option>
                   <option value="definition">Definitions</option>
+                  <option value="date">Dates</option>
                   <option value="link">Liens</option>
                   <option value="bullet">Phrases a completer</option>
                 </select>
@@ -663,6 +690,100 @@
           </div>
         </section>
 
+        <section id="flashcards-tab" class="tab-panel">
+          <div class="quiz-layout">
+            <section class="panel quiz-controls">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Memorisation</p>
+                  <h3>Flashcards</h3>
+                </div>
+              </div>
+
+              <label>
+                <span class="field-label">Pages a inclure</span>
+                <select id="flashcard-scope" class="select-input">
+                  <option value="all">Toutes les pages</option>
+                  <option value="current">Page active</option>
+                  <option value="tag">Par tag</option>
+                  <option value="due">Pages a revoir</option>
+                </select>
+              </label>
+
+              <label id="flashcard-tag-wrapper" class="is-hidden">
+                <span class="field-label">Tag cible</span>
+                <input
+                  id="flashcard-tag"
+                  class="text-input"
+                  type="text"
+                  placeholder="ex: histoire"
+                />
+              </label>
+
+              <label>
+                <span class="field-label">Nombre maximal de cartes</span>
+                <input
+                  id="flashcard-amount"
+                  class="text-input"
+                  type="number"
+                  min="4"
+                  max="30"
+                  value="8"
+                />
+              </label>
+
+              <label class="toggle-row" for="flashcard-reversed">
+                <input id="flashcard-reversed" type="checkbox" />
+                <span>Generer aussi les cartes inversees</span>
+              </label>
+
+              <article class="helper-card flashcard-guide">
+                <h4>Format conseille</h4>
+                <p>Les cartes sont generees a partir de tableaux markdown dans vos pages.</p>
+                <pre><code>| Recto | Verso | Indice |
+| --- | --- | --- |
+| Capitale de l'Italie | Rome | Europe |</code></pre>
+                <p>
+                  Colonnes reconnues: <code>Recto</code>, <code>Verso</code>, <code>Indice</code>,
+                  <code>Exemple</code>, <code>Tags</code>.
+                </p>
+              </article>
+
+              <button id="generate-flashcards-button" class="button button-primary" type="button">
+                Generer le paquet
+              </button>
+            </section>
+
+            <section class="panel quiz-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Carte</p>
+                  <h3 id="flashcard-title">Aucune pile lancee</h3>
+                </div>
+                <span id="flashcard-progress" class="pill pill-soft">0 / 0</span>
+              </div>
+
+              <article id="flashcard-card" class="quiz-card empty-state">
+                Les cartes apparaitront ici a partir des tableaux presents dans vos pages.
+              </article>
+
+              <div class="quiz-actions">
+                <button id="flashcard-flip-button" class="button" type="button">
+                  Retourner
+                </button>
+                <button id="flashcard-prev-button" class="button button-ghost" type="button">
+                  Precedente
+                </button>
+                <button id="flashcard-next-button" class="button button-primary" type="button">
+                  Suivante
+                </button>
+              </div>
+
+              <div id="flashcard-summary" class="quiz-summary"></div>
+            </section>
+          </div>
+        </section>
+
         <section id="publish-tab" class="tab-panel">
           <div class="publish-layout">
             <section class="panel">
@@ -754,6 +875,19 @@
       </label>
 
       <label>
+        <span class="field-label">Type</span>
+        <select id="quick-type" class="select-input">
+          <option value="concept">Concept</option>
+          <option value="person">Personne</option>
+          <option value="event">Evenement</option>
+          <option value="folder">Dossier</option>
+          <option value="hub">Hub</option>
+          <option value="procedure">Procedure</option>
+          <option value="question">Question</option>
+        </select>
+      </label>
+
+      <label>
         <span class="field-label">Contenu</span>
         <textarea
           id="quick-content"
@@ -763,7 +897,7 @@
       </label>
 
       <label class="toggle-row" for="quick-link-active">
-        <input id="quick-link-active" type="checkbox" checked />
+        <input id="quick-link-active" type="checkbox" />
         <span>Lier a la page active</span>
       </label>
 
@@ -786,6 +920,10 @@
         </div>
 
         <div class="stack-actions">
+          <button class="utility-link" data-utility-tab="flashcards" type="button">
+            <strong>Flashcards</strong>
+            <span>Transformer vos connaissances en cartes recto verso pour memoriser plus vite.</span>
+          </button>
           <button class="utility-link" data-utility-tab="templates" type="button">
             <strong>Modeles</strong>
             <span>Uniformiser vos pages et adapter les structures de redaction.</span>

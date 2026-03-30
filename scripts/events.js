@@ -34,9 +34,7 @@
     });
 
     context.elements.knowledgeList.addEventListener("click", handleKnowledgeListClick);
-    context.elements.knowledgeList.addEventListener("change", handleKnowledgeListChange);
     context.elements.organizationTree.addEventListener("click", handleOrganizationListClick);
-    context.elements.organizationTree.addEventListener("change", handleOrganizationListChange);
 
     context.elements.typeFilter.addEventListener("change", (event) => {
       context.state.typeFilter = event.target.value;
@@ -127,6 +125,11 @@
     context.elements.noteDateStart.addEventListener("input", context.renderers.renderLivePreview);
     context.elements.noteDateEnd.addEventListener("input", context.renderers.renderLivePreview);
     context.elements.contentInput.addEventListener("input", context.renderers.renderLivePreview);
+    context.elements.formatButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        applyEditorFormat(button.dataset.formatAction);
+      });
+    });
 
     context.elements.downloadPublishButton.addEventListener(
       "click",
@@ -198,6 +201,8 @@
     context.elements.resetGraphButton.addEventListener("click", () => {
       context.graph.recenterGraphLayout();
     });
+    context.elements.graphZoomInButton.addEventListener("click", context.graph.zoomIn);
+    context.elements.graphZoomOutButton.addEventListener("click", context.graph.zoomOut);
 
     context.elements.graphCanvas.addEventListener("click", context.graph.handleGraphClick);
     context.elements.graphCanvas.addEventListener("mousedown", context.graph.handleGraphMouseDown);
@@ -230,6 +235,22 @@
     context.elements.showAnswerButton.addEventListener("click", context.quiz.showQuizAnswer);
     context.elements.markCorrectButton.addEventListener("click", () => context.quiz.scoreQuiz(true));
     context.elements.markWrongButton.addEventListener("click", () => context.quiz.scoreQuiz(false));
+    context.elements.flashcardScope.addEventListener("change", () => {
+      context.elements.flashcardTagWrapper.classList.toggle(
+        "is-hidden",
+        context.elements.flashcardScope.value !== "tag"
+      );
+    });
+    context.elements.generateFlashcardsButton.addEventListener(
+      "click",
+      context.quiz.buildFlashcardsSession
+    );
+    context.elements.flashcardFlipButton.addEventListener(
+      "click",
+      context.quiz.showFlashcardAnswer
+    );
+    context.elements.flashcardPrevButton.addEventListener("click", context.quiz.previousFlashcard);
+    context.elements.flashcardNextButton.addEventListener("click", context.quiz.nextFlashcard);
 
     context.elements.previewContent.addEventListener("click", handleRenderedLinkClick);
     context.elements.outgoingLinks.addEventListener("click", handleChipClick);
@@ -301,6 +322,11 @@
 
     if (context.state.activeTab === "quiz") {
       context.quiz.renderQuizCard();
+      return;
+    }
+
+    if (context.state.activeTab === "flashcards") {
+      context.quiz.renderFlashcards();
     }
   }
 
@@ -321,10 +347,7 @@
       window.requestAnimationFrame(applyFocus);
     });
     window.setTimeout(applyFocus, 220);
-  }
-
-  function handleKnowledgeListChange(event) {
-    handleCompactListChange(event, "explorerMenuNoteId");
+    window.setTimeout(applyFocus, 420);
   }
 
   function handleKnowledgeListClick(event) {
@@ -340,10 +363,10 @@
       "explorerMenuNoteId",
       {
         open: "openNote",
+        edit: "editNote",
         toggle: "toggleNoteMenu",
         duplicate: "duplicateNote",
         remove: "deleteNote",
-        root: "moveRoot",
       },
       context.renderers.renderKnowledgeList
     );
@@ -362,17 +385,13 @@
       "organizationMenuNoteId",
       {
         open: "openOrganizationNote",
+        edit: "editOrganizationNote",
         toggle: "toggleOrganizationMenu",
         duplicate: "duplicateOrganizationNote",
         remove: "deleteOrganizationNote",
-        root: "moveOrganizationRoot",
       },
       () => context.renderers.renderOrganization()
     );
-  }
-
-  function handleOrganizationListChange(event) {
-    handleCompactListChange(event, "organizationMenuNoteId");
   }
 
   function handleCompactListClick(event, menuStateKey, datasetKeys, rerender) {
@@ -384,6 +403,20 @@
       context.state.noteViewMode = "read";
       context.state[menuStateKey] = null;
       context.renderers.renderEverything();
+      return;
+    }
+
+    const editButton = event.target.closest(`[data-${context.helpers.toKebab(datasetKeys.edit)}]`);
+    if (editButton) {
+      event.stopPropagation();
+      context.state.activeNoteId = editButton.dataset[datasetKeys.edit];
+      context.state.activeTab = "knowledge";
+      context.state.noteViewMode = "edit";
+      context.state[menuStateKey] = null;
+      context.renderers.renderEverything();
+      window.requestAnimationFrame(() => {
+        context.elements.contentInput.focus();
+      });
       return;
     }
 
@@ -417,27 +450,6 @@
       context.notes.deleteNoteById(deleteButton.dataset[datasetKeys.remove]);
       return;
     }
-
-    const rootButton = event.target.closest(`[data-${context.helpers.toKebab(datasetKeys.root)}]`);
-    if (rootButton) {
-      event.stopPropagation();
-      context.state[menuStateKey] = null;
-      context.notes.moveNoteToParent(rootButton.dataset[datasetKeys.root], null);
-    }
-  }
-
-  function handleCompactListChange(event, menuStateKey) {
-    const select = event.target.closest(
-      "[data-note-folder-select], [data-organization-folder-select]"
-    );
-    if (!select || !select.value) {
-      return;
-    }
-
-    event.stopPropagation();
-    const noteId = select.dataset.noteFolderSelect || select.dataset.organizationFolderSelect;
-    context.state[menuStateKey] = null;
-    context.notes.moveNoteToParent(noteId, select.value);
   }
 
   function handleRenderedLinkClick(event) {
@@ -456,6 +468,53 @@
     }
 
     context.notes.openOrCreateNote(chip.dataset.linkTitle);
+  }
+
+  function applyEditorFormat(action) {
+    const textarea = context.elements.contentInput;
+    if (!textarea) {
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    const selection = value.slice(start, end);
+    let replacement = selection;
+    let nextStart = start;
+    let nextEnd = end;
+
+    if (action === "bold") {
+      replacement = `**${selection || "texte important"}**`;
+      nextStart = start + 2;
+      nextEnd = nextStart + (selection || "texte important").length;
+    } else if (action === "italic") {
+      replacement = `*${selection || "texte"}*`;
+      nextStart = start + 1;
+      nextEnd = nextStart + (selection || "texte").length;
+    } else if (action === "bullet") {
+      const lines = (selection || "Point cle").split("\n");
+      replacement = lines.map((line) => `- ${line.replace(/^- /, "")}`).join("\n");
+      nextStart = start;
+      nextEnd = start + replacement.length;
+    } else if (action === "heading-1") {
+      replacement = `# ${selection || "Titre"}`;
+      nextStart = start + 2;
+      nextEnd = nextStart + (selection || "Titre").length;
+    } else if (action === "heading-2") {
+      replacement = `## ${selection || "Sous-titre"}`;
+      nextStart = start + 3;
+      nextEnd = nextStart + (selection || "Sous-titre").length;
+    } else if (action === "link") {
+      replacement = `[[${selection || "Nom de page"}]]`;
+      nextStart = start + 2;
+      nextEnd = nextStart + (selection || "Nom de page").length;
+    }
+
+    textarea.setRangeText(replacement, start, end, "end");
+    textarea.focus();
+    textarea.setSelectionRange(nextStart, nextEnd);
+    context.renderers.renderLivePreview();
   }
 
   function handleSuggestedLinkClick(event) {

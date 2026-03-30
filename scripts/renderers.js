@@ -23,6 +23,7 @@
     renderDueReviewList();
     context.graph.drawGraph();
     context.quiz.renderQuizCard();
+    context.quiz.renderFlashcards();
     renderTemplateEditor();
     renderPublishCenter();
     renderQuickCapture();
@@ -39,7 +40,7 @@
       button.classList.toggle("is-active", button.dataset.utilityTab === context.state.activeTab);
     });
 
-    const utilityActive = ["templates", "publish"].includes(context.state.activeTab);
+    const utilityActive = ["flashcards", "templates", "publish"].includes(context.state.activeTab);
     context.elements.utilityDrawerOpen.classList.toggle("is-active", utilityActive);
     context.elements.utilityDrawerOpen.setAttribute(
       "aria-expanded",
@@ -173,6 +174,7 @@
       context.elements.noteDateSingle,
       context.elements.noteDateStart,
       context.elements.noteDateEnd,
+      ...context.elements.formatButtons,
       context.elements.contentInput,
       context.elements.applyTemplateButton,
       context.elements.templateType,
@@ -186,6 +188,7 @@
       context.elements.moveRootButton,
       context.elements.quickTitle,
       context.elements.quickTags,
+      context.elements.quickType,
       context.elements.quickContent,
       context.elements.quickLinkActive,
       context.elements.quickSaveButton,
@@ -217,11 +220,10 @@
       collapsible: true,
       menuState: context.state.explorerMenuNoteId,
       openAttr: "data-open-note",
+      editAttr: "data-edit-note",
       toggleAttr: "data-toggle-note-menu",
-      folderAttr: "data-note-folder-select",
       duplicateAttr: "data-duplicate-note",
       deleteAttr: "data-delete-note",
-      rootAttr: "data-move-root",
       variant: "flat",
       forceExpanded: filterActive,
       emptyMessage: filterActive
@@ -248,8 +250,6 @@
 
   function buildCompactNoteItem(note, config) {
     const isMenuOpen = config.menuState === note.id;
-    const folderOptions = context.notes.getFolderMoveOptions(note.id);
-    const folderLabel = noteTypeLabels[note.type] || "Page";
     const leadingHtml =
       config.leadingHtml || '<span class="tree-toggle-spacer" aria-hidden="true"></span>';
 
@@ -270,23 +270,9 @@
           </button>
         </div>
         <div class="knowledge-item-menu${isMenuOpen ? "" : " is-hidden"}">
-          <span class="pill pill-soft">${escapeHtml(folderLabel)}</span>
-          <label>
-            <span class="field-label">Deplacer vers un dossier</span>
-            <select class="select-input" ${config.folderAttr}="${note.id}">
-              <option value="">Choisir un dossier</option>
-              ${folderOptions
-                .map((folder) => {
-                  return `<option value="${folder.id}"${
-                    note.parentId === folder.id ? " selected" : ""
-                  }>${escapeHtml(folder.title)}</option>`;
-                })
-                .join("")}
-            </select>
-          </label>
-          <div class="inline-actions">
+          <div class="compact-menu-actions">
+            <button type="button" class="button" ${config.editAttr}="${note.id}">Editer</button>
             <button type="button" class="button" ${config.duplicateAttr}="${note.id}">Dupliquer</button>
-            <button type="button" class="button" ${config.rootAttr}="${note.id}">Racine</button>
             <button type="button" class="button button-ghost" ${config.deleteAttr}="${note.id}">Supprimer</button>
           </div>
         </div>
@@ -694,11 +680,10 @@
         ? buildCompactNoteItem(node, {
             menuState: options.menuState ?? context.state.organizationMenuNoteId,
             openAttr: options.openAttr || "data-open-organization-note",
+            editAttr: options.editAttr || "data-edit-organization-note",
             toggleAttr: options.toggleAttr || "data-toggle-organization-menu",
-            folderAttr: options.folderAttr || "data-organization-folder-select",
             duplicateAttr: options.duplicateAttr || "data-duplicate-organization-note",
             deleteAttr: options.deleteAttr || "data-delete-organization-note",
-            rootAttr: options.rootAttr || "data-move-organization-root",
             leadingHtml: isCollapsible
               ? `<button type="button" class="tree-toggle" data-toggle-folder="${node.id}" aria-label="${
                   isCollapsed ? "Deplier" : "Replier"
