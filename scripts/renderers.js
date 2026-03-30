@@ -113,6 +113,7 @@
 
   function renderTheme() {
     const isDark = context.state.settings.theme === "dark";
+    window.localStorage.setItem("atlas-connaissance-theme", isDark ? "dark" : "light");
     document.documentElement.dataset.theme = isDark ? "dark" : "light";
     document.body.dataset.theme = isDark ? "dark" : "light";
     document.documentElement.classList.toggle("theme-dark", isDark);

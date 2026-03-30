@@ -189,12 +189,12 @@
       });
     });
 
-    context.elements.mobileSearchButton.addEventListener("click", () => {
+    context.elements.mobileSearchButton.addEventListener(() => {
       context.state.sidebarTab = "library";
       context.renderers.renderSidebarTabs();
       context.state.sidebarDrawerOpen = true;
       context.renderers.renderSidebarDrawer();
-      scrollToTop();
+      scrollToTop(false);
       focusSearchInput();
     });
 
@@ -330,27 +330,27 @@
     }
   }
 
-  function scrollToTop() {
+  function scrollToTop(smooth = true) {
     window.scrollTo({
       top: 0,
-      behavior: "smooth",
+      behavior: smooth ? "smooth" : "auto",
     });
   }
 
   function focusSearchInput() {
     const applyFocus = () => {
-      context.elements.searchInput.scrollIntoView({ block: "center", behavior: "smooth" });
-      context.elements.searchInput.focus({ preventScroll: true });
+      context.elements.searchInput.scrollIntoView({ block: "nearest", behavior: "auto" });
+      context.elements.searchInput.focus();
       context.elements.searchInput.click();
       context.elements.searchInput.select();
     };
 
+    applyFocus();
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(applyFocus);
     });
-    window.setTimeout(applyFocus, 220);
-    window.setTimeout(applyFocus, 420);
-    window.setTimeout(applyFocus, 650);
+    window.setTimeout(applyFocus, 120);
+    window.setTimeout(applyFocus, 260);
   }
 
   function handleKnowledgeListClick(event) {
