@@ -186,7 +186,6 @@
       context.elements.cancelNoteButton,
       context.elements.quickCaptureToggle,
       context.elements.newFolderButton,
-      context.elements.moveRootButton,
       context.elements.quickTitle,
       context.elements.quickTags,
       context.elements.quickType,
