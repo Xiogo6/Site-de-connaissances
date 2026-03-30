@@ -149,7 +149,6 @@
       "click",
       context.notes.createFolderFromOrganization
     );
-    context.elements.moveRootButton.addEventListener("click", context.notes.moveActiveNoteToRoot);
     context.elements.organizationTree.addEventListener("dragstart", handleOrganizationDragStart);
     context.elements.organizationTree.addEventListener("dragend", handleOrganizationDragEnd);
     context.elements.organizationTree.addEventListener("dragover", handleOrganizationDragOver);
@@ -189,7 +188,7 @@
       });
     });
 
-    context.elements.mobileSearchButton.addEventListener(() => {
+    context.elements.mobileSearchButton.addEventListener("click", () => {
       context.state.sidebarTab = "library";
       context.renderers.renderSidebarTabs();
       context.state.sidebarDrawerOpen = true;
