@@ -5,6 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Atlas de Connaissance</title>
     <meta name="theme-color" content="#bf5b2c" />
+    <script>
+      (function applyStoredTheme() {
+        try {
+          const themeKey = "atlas-connaissance-theme";
+          const storedTheme = window.localStorage.getItem(themeKey);
+          let theme = storedTheme;
+
+          if (!theme) {
+            const raw = window.localStorage.getItem("atlas-connaissance-app");
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              theme = parsed?.settings?.theme;
+            }
+          }
+
+          const isDark = theme === "dark";
+          document.documentElement.dataset.theme = isDark ? "dark" : "light";
+          document.documentElement.classList.toggle("theme-dark", isDark);
+        } catch (error) {
+          document.documentElement.dataset.theme = "light";
+          document.documentElement.classList.remove("theme-dark");
+        }
+      })();
+    </script>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="stylesheet" href="./styles.css" />
   </head>

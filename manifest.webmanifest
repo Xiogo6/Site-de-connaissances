@@ -6,14 +6,6 @@
   "background_color": "#f8f3ea",
   "theme_color": "#bf5b2c",
   "description": "Un atlas personnel pour relier, visualiser et reviser vos connaissances.",
-  "shortcuts": [
-    {
-      "name": "Note rapide",
-      "short_name": "Note",
-      "description": "Ouvrir directement le panneau de note rapide.",
-      "url": "./index.html?quick=1"
-    }
-  ],
   "icons": [
     {
       "src": "./icon.svg",
