@@ -505,6 +505,8 @@ body[data-theme="dark"] .button-ghost {
   margin: 12px 0;
   overflow: auto;
   padding: 12px;
+  white-space: pre-wrap;
+  width: 100%;
 }
 
 .helper-card ul {
@@ -799,5 +801,20 @@ body[data-theme="dark"] .toggle-row-editor {
     min-width: 0;
     right: auto;
     width: min(220px, calc(100vw - 88px));
+  }
+
+  .flashcard-guide {
+    width: 100%;
+  }
+
+  #flashcard-card,
+  #flashcard-summary,
+  #flashcards-tab .panel-header,
+  #flashcards-tab .quiz-actions {
+    text-align: center;
+  }
+
+  #flashcards-tab .quiz-actions {
+    justify-items: center;
   }
 }
