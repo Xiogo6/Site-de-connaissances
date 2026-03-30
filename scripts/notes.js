@@ -188,13 +188,6 @@
     return sanitizeParentId(noteId, targetId) === targetId;
   }
 
-  function getFolderMoveOptions(noteId) {
-    return context.state.notes
-      .filter((note) => note.id !== noteId && (note.type === "folder" || note.type === "hub"))
-      .filter((note) => canMoveNote(noteId, note.id))
-      .sort((left, right) => left.title.localeCompare(right.title, "fr", { sensitivity: "base" }));
-  }
-
   function generateFolderName() {
     let index = 1;
     let candidate = `Nouveau dossier ${index}`;
@@ -639,6 +632,10 @@
     }
 
     context.state.quickCaptureOpen = true;
+    context.elements.quickLinkActive.checked = false;
+    if (context.elements.quickType) {
+      context.elements.quickType.value = "concept";
+    }
     context.renderers.renderQuickCapture();
     context.elements.quickTitle.focus();
   }
@@ -658,11 +655,12 @@
     const shouldLink = context.elements.quickLinkActive.checked && active;
     const tags = parseTags(context.elements.quickTags.value);
     const body = context.elements.quickContent.value.trim();
+    const type = context.elements.quickType?.value || "concept";
     const now = new Date().toISOString();
     const note = {
       id: context.data.generateId(title),
       title,
-      type: "concept",
+      type,
       parentId: shouldLink ? active.id : null,
       favorite: false,
       tags,
@@ -687,7 +685,10 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     context.elements.quickTitle.value = "";
     context.elements.quickTags.value = "";
     context.elements.quickContent.value = "";
-    context.elements.quickLinkActive.checked = true;
+    context.elements.quickLinkActive.checked = false;
+    if (context.elements.quickType) {
+      context.elements.quickType.value = "concept";
+    }
     closeQuickCapture();
     context.data.saveNotes();
     context.data.saveAutomaticSnapshot("Capture rapide");
@@ -820,7 +821,6 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     getConnectionCount,
     getDueNotes,
     getFilteredNotes,
-    getFolderMoveOptions,
     getHierarchyLinks,
     getMostConnectedNotes,
     getParentNote,

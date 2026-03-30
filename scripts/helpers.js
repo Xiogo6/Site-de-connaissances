@@ -72,10 +72,13 @@
 
   function renderInline(text) {
     const escaped = escapeHtml(text);
-    return escaped.replace(/\[\[([^[\]]+)\]\]/g, (_, title) => {
-      const safeTitle = escapeHtml(title.trim());
-      return `<a class="note-link" data-link-title="${safeTitle}">${safeTitle}</a>`;
-    });
+    return escaped
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[\s(])\*([^*]+)\*(?=[\s).,!?:;]|$)/g, "$1<em>$2</em>")
+      .replace(/\[\[([^[\]]+)\]\]/g, (_, title) => {
+        const safeTitle = escapeHtml(title.trim());
+        return `<a class="note-link" data-link-title="${safeTitle}">${safeTitle}</a>`;
+      });
   }
 
   function renderNoteHtml(content) {

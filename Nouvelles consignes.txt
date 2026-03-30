@@ -1,0 +1,34 @@
+Nous allons développer. Une version plus poussée.
+Voici une liste de toutes les choses à reprendre ou à améliorer ou à intégrer dans l'application.
+
+Les choses à améliorer : 
+1.	Dans le format iPhone il faut centrer les élements, les carrés ne sont pas centrés ainsi que les bulles flottantes. Il faut améliorer la lisibilité sur téléphone, Quitte à réduire les encadrés pour que le visuel soit moins étouffant.
+2.	Dans les bulles permanente retirer l'écriture « Bibliothèque » et » Plus » Ne gardez que les icônes
+3.	En le mode nuit est activé les bulles se trouvant dans la navigation secondaire restent trop clair rend les foncé comme le reste de l'application. Il en est de même pour les bulles se trouvant dans le mode édité d'une page : les bulles « page favorite » et » ajouter une date » sont également claire
+
+4.	dans l'onglet page la bulle connexions ne doit pas apparaître dans la visualisation mobile
+
+5.	dans l'onglet organisation le bulle 2nd plan ne doit pas apparaître dans la visualisation mobile
+
+6.	dans l'onglet graph le bulle lecture du graph ne doit pas apparaître dans la visualisation mobile
+
+7.	Quand j'appuie sur la loupe je dois pouvoir écrire directement dans le champ de recherche, aujourd'hui il manque l'activation de l'écriture, Par conséquent, sur téléphone le clavier n'apparaît pas directement
+
+8.	quand on appuie sur capture rapide il ne faut pas cocher automatiquement lié à la page, Il faut rajouter par contre la possibilité d'inscrire le type de cette page
+
+9.	quand 2 pages ont un lien hiérarchique elles sont automatiquement liées
+
+10.	Quand on appuie sur annuler la création en mode édition le mode édition doit se fermer et on doit revenir au mode lecture sans les modifications
+
+11.	Il faut pouvoir zoomer sur le graphe avec un plus et dézoomer avec un mois
+
+12.	Dans l'onglet organisation ou bibliothèque lorsque l'on appuie sur les 3 points il faut enlever le volet déroulant, faire uniquement à paraître Comme un clic droit d'une souris les options suivantes : dupliquer, éditer, supprimer. Enlevez le reste. 
+
+Dans les choses à rajouter il y a les choses suivantes :
+1.	ajoutez plus de possibilités dans la mise en page pouvoir mettre des puces ajuster la taille du texte ou même pouvoir faire des sous-titres et mettre en gras certaines choses ou en italique et cetera
+
+2.	Pour les quiz rajoute d'autres dynamiques comme celle que tu as déjà fait pour le concept : définition, Par exemple pour les fiches de type événement demander la date correspondante. Trouve d'autres chose comme celle-ci pour faciliter la création de quiz par la suite. Je te laisse libre d'innover sur ce point
+
+3.	Dans la navigation secondaire proposer des flash Cards écrit tout un programme qui permettrait la création de flashcard pour la révision. La dynamique peut être proche que la même réflexion lors de la création de quiz
+
+Question autre, explique-moi comment fonctionnent les snapshots, leur présence demande elle une mémoire démesurée surtout dans le temps quand les données du site vont grandir ?

@@ -96,6 +96,7 @@
 .knowledge-item-shell {
   display: grid;
   gap: 0;
+  position: relative;
 }
 
 .tree-entry-flat {
@@ -137,7 +138,7 @@
 }
 
 .tree-entry-flat .knowledge-item-menu {
-  margin-left: 34px;
+  margin-left: 0;
 }
 
 .tree-entry-flat.is-dragging {
@@ -265,15 +266,33 @@
 }
 
 .knowledge-item-menu {
-  border-top: 1px solid var(--line);
+  background: rgba(255, 249, 240, 0.98);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 14px 28px rgba(81, 55, 30, 0.12);
   display: grid;
-  gap: 10px;
-  margin-top: 10px;
-  padding-top: 10px;
+  gap: 8px;
+  min-width: 168px;
+  padding: 8px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 12;
 }
 
 .knowledge-item-menu.is-hidden {
   display: none;
+}
+
+.compact-menu-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.compact-menu-actions .button {
+  justify-content: flex-start;
+  min-height: 38px;
+  width: 100%;
 }
 
 .knowledge-item-meta {
@@ -472,6 +491,14 @@ body[data-theme="dark"] .button-ghost {
   margin: 0 0 12px;
 }
 
+.flashcard-guide pre {
+  background: rgba(47, 36, 24, 0.08);
+  border-radius: 14px;
+  margin: 12px 0;
+  overflow: auto;
+  padding: 12px;
+}
+
 .helper-card ul {
   color: var(--text-soft);
   margin: 0;
@@ -592,6 +619,38 @@ body[data-theme="dark"] .button-ghost {
   margin: 16px 0 0;
 }
 
+.flashcard-surface {
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  min-height: 180px;
+}
+
+.flashcard-face {
+  font-size: 1.4rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.flashcard-helper {
+  color: var(--text-soft);
+  margin: 0;
+}
+
+.flashcard-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.flashcard-meta span {
+  background: rgba(47, 36, 24, 0.08);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+}
+
 #template-editor {
   min-height: 460px;
 }
@@ -651,6 +710,14 @@ body[data-theme="dark"] .tag.tag-favorite {
   color: #eed28b;
 }
 
+:root[data-theme="dark"] .flashcard-guide pre,
+:root[data-theme="dark"] .flashcard-meta span,
+body[data-theme="dark"] .flashcard-guide pre,
+body[data-theme="dark"] .flashcard-meta span {
+  background: rgba(24, 28, 33, 0.94);
+  border-color: rgba(215, 201, 185, 0.16);
+}
+
 :root[data-theme="dark"] .insight-card p,
 :root[data-theme="dark"] .due-item p,
 body[data-theme="dark"] .insight-card p,
@@ -663,6 +730,14 @@ body[data-theme="dark"] .tree-entry-flat {
   background: transparent;
   border: 0;
   box-shadow: none;
+}
+
+:root[data-theme="dark"] .knowledge-item-menu,
+:root[data-theme="dark"] .toggle-row-editor,
+body[data-theme="dark"] .knowledge-item-menu,
+body[data-theme="dark"] .toggle-row-editor {
+  background: rgba(24, 28, 33, 0.96);
+  border-color: rgba(215, 201, 185, 0.16);
 }
 
 .compact-actions {
@@ -687,6 +762,12 @@ body[data-theme="dark"] .tree-entry-flat {
   padding: 0 14px;
 }
 
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .meta-row {
   color: var(--text-soft);
   flex-wrap: wrap;
@@ -697,5 +778,16 @@ body[data-theme="dark"] .tree-entry-flat {
 @media (max-width: 780px) {
   .select-inline {
     width: 100%;
+  }
+
+  .editor-toolbar {
+    gap: 6px;
+  }
+
+  .knowledge-item-menu {
+    left: 0;
+    min-width: 0;
+    right: auto;
+    width: min(220px, calc(100vw - 88px));
   }
 }

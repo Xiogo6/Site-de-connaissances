@@ -29,6 +29,7 @@
       graphFocusMode: "all",
       graphShowTags: false,
       graphSelection: null,
+      graphZoom: 1,
       graphPositions: new Map(),
       graphDrag: {
         nodeId: null,
@@ -47,6 +48,11 @@
         questions: [],
         index: 0,
         score: 0,
+        answerVisible: false,
+      },
+      flashcards: {
+        cards: [],
+        index: 0,
         answerVisible: false,
       },
       remote: {
