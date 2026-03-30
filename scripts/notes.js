@@ -691,7 +691,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     }
     closeQuickCapture();
     context.data.saveNotes();
-    context.data.saveAutomaticSnapshot("Capture rapide");
+    context.data.saveAutomaticSnapshot("Note rapide");
     context.renderers.renderEverything();
   }
 

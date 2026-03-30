@@ -339,7 +339,9 @@
 
   function focusSearchInput() {
     const applyFocus = () => {
+      context.elements.searchInput.scrollIntoView({ block: "center", behavior: "smooth" });
       context.elements.searchInput.focus({ preventScroll: true });
+      context.elements.searchInput.click();
       context.elements.searchInput.select();
     };
 
@@ -348,6 +350,7 @@
     });
     window.setTimeout(applyFocus, 220);
     window.setTimeout(applyFocus, 420);
+    window.setTimeout(applyFocus, 650);
   }
 
   function handleKnowledgeListClick(event) {

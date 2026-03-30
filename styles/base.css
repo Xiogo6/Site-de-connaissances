@@ -57,6 +57,14 @@ body[data-theme="dark"] code {
   font-family: var(--content-font);
 }
 
+.brand-kicker {
+  font-family: var(--ui-font);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+}
+
 .brand-copy,
 .hero-copy,
 .focus-card p,

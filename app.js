@@ -89,6 +89,19 @@
     context.renderers.syncDynamicControls();
     context.events.bindEvents();
     context.renderers.renderEverything();
+    handleLaunchIntent();
     context.data.registerServiceWorker();
+  }
+
+  function handleLaunchIntent() {
+    const url = new URL(window.location.href);
+    const directQuickNote =
+      url.searchParams.get("quick") === "1" || url.pathname.endsWith("/note-rapide.html");
+
+    if (directQuickNote && !context.data.isReadOnlyMode()) {
+      context.state.activeTab = "knowledge";
+      context.renderers.renderTabs();
+      context.notes.openQuickCapture();
+    }
   }
 })(window);
