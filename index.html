@@ -15,12 +15,7 @@
           <button id="sidebar-drawer-close" class="button" type="button">Fermer</button>
         </div>
         <div class="brand">
-          <p class="eyebrow">Atlas personnel</p>
-          <h1>Connaissances reliees</h1>
-          <p class="brand-copy">
-            Un espace pour penser par liens, reviser et faire emerger les
-            connexions entre vos idees.
-          </p>
+          <h1 class="eyebrow brand-kicker">Atlas personnel</h1>
         </div>
 
         <nav class="sidebar-tabs" aria-label="Navigation laterale">
@@ -30,12 +25,9 @@
         </nav>
 
         <section id="sidebar-library" class="sidebar-panel is-active">
-          <div class="sidebar-card">
+          <div class="sidebar-card sidebar-card-plain">
             <div class="section-heading">
-              <div>
-                <h2>Pages</h2>
-                <span id="page-count" class="pill"></span>
-              </div>
+              <span id="page-count" class="pill"></span>
               <button id="filters-toggle-button" class="button button-inline button-ghost" type="button">
                 Filtres
               </button>
@@ -196,7 +188,9 @@
           >
             <span class="utility-launcher-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" role="presentation">
-                <path d="M4 7h16M4 12h16M4 17h16" />
+                <circle cx="6.5" cy="12" r="1.6" />
+                <circle cx="12" cy="12" r="1.6" />
+                <circle cx="17.5" cy="12" r="1.6" />
               </svg>
             </span>
             <span class="utility-launcher-label">Plus</span>
@@ -477,7 +471,7 @@
                   <p class="eyebrow">Carte vivante</p>
                   <h3>Reseau des connaissances</h3>
                 </div>
-                <div class="inline-actions">
+                <div class="inline-actions graph-controls">
                   <label class="toggle-row" for="graph-show-tags">
                     <input id="graph-show-tags" type="checkbox" />
                     <span>Tags</span>
@@ -489,24 +483,28 @@
                     <option value="all">Tout le reseau</option>
                     <option value="neighbors">Voisinage actif</option>
                   </select>
-                  <button id="graph-zoom-out-button" class="button" type="button">
-                    -
-                  </button>
-                  <button id="graph-zoom-in-button" class="button" type="button">
-                    +
-                  </button>
                   <button id="reset-graph-button" class="button">
                     Recentrer
                   </button>
                 </div>
               </div>
-              <svg
-                id="graph-canvas"
-                class="graph-canvas"
-                viewBox="0 0 960 620"
-                role="img"
-                aria-label="Visualisation des liens entre les pages"
-              ></svg>
+              <div class="graph-stage">
+                <svg
+                  id="graph-canvas"
+                  class="graph-canvas"
+                  viewBox="0 0 960 620"
+                  role="img"
+                  aria-label="Visualisation des liens entre les pages"
+                ></svg>
+                <div class="graph-zoom-stack">
+                  <button id="graph-zoom-in-button" class="button" type="button">
+                    +
+                  </button>
+                  <button id="graph-zoom-out-button" class="button" type="button">
+                    -
+                  </button>
+                </div>
+              </div>
             </section>
 
             <section class="panel graph-sidebar">
@@ -850,7 +848,7 @@
     </div>
 
     <button id="quick-capture-toggle" class="quick-capture-toggle" type="button">
-      Capture rapide
+      Note rapide
     </button>
 
     <section id="quick-capture-panel" class="quick-capture-panel is-hidden">

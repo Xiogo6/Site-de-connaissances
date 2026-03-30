@@ -23,6 +23,10 @@
   min-height: 720px;
 }
 
+.graph-stage {
+  position: relative;
+}
+
 .graph-canvas {
   background:
     radial-gradient(circle at center, rgba(191, 91, 44, 0.08), transparent 36%),
@@ -31,6 +35,25 @@
   border-radius: 24px;
   min-height: 620px;
   width: 100%;
+}
+
+.graph-controls {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.graph-zoom-stack {
+  bottom: 18px;
+  display: grid;
+  gap: 8px;
+  position: absolute;
+  right: 18px;
+  z-index: 2;
+}
+
+.graph-zoom-stack .button {
+  min-height: 42px;
+  width: 42px;
 }
 
 .graph-edge {
@@ -326,6 +349,33 @@ body[data-theme="dark"] .graph-label.is-tag-label {
     right: auto;
     transform: translateX(-50%);
     width: min(calc(100vw - 28px), 430px);
+  }
+
+  body.quick-capture-open .tabs,
+  body.quick-capture-open .quick-capture-toggle {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  body.quick-capture-open .quick-capture-panel {
+    bottom: 22px;
+  }
+
+  .graph-controls {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .graph-controls .toggle-row {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .graph-controls .select-input,
+  .graph-controls .button {
+    width: 100%;
   }
 
   .utility-drawer-panel {

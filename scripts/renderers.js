@@ -723,7 +723,7 @@
       ? "Vous consultez le snapshot publie. Pour modifier, basculez vers l'espace local."
       : context.data.isRemoteConfigured()
         ? `${context.data.getRemoteStatusLabel()}. Vos sauvegardes locales restent disponibles en secours.`
-        : "Votre espace local contient vos brouillons, revisions et captures rapides.";
+        : "Votre espace local contient vos brouillons, revisions et notes rapides.";
 
     context.elements.publishMeta.innerHTML = `
       <span>Version donnees: v${context.data.dataVersion}</span>
@@ -769,6 +769,7 @@
   }
 
   function renderQuickCapture() {
+    document.body.classList.toggle("quick-capture-open", context.state.quickCaptureOpen);
     context.elements.quickCapturePanel.classList.toggle(
       "is-hidden",
       !context.state.quickCaptureOpen

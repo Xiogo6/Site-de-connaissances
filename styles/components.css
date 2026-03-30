@@ -11,6 +11,14 @@
   padding: 20px;
 }
 
+.sidebar-card-plain {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
 .field-label {
   color: var(--text-soft);
   display: block;
@@ -622,8 +630,9 @@ body[data-theme="dark"] .button-ghost {
 .flashcard-surface {
   display: grid;
   gap: 14px;
-  justify-items: start;
+  justify-items: center;
   min-height: 180px;
+  text-align: center;
 }
 
 .flashcard-face {
@@ -641,6 +650,7 @@ body[data-theme="dark"] .button-ghost {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  justify-content: center;
   margin-top: 18px;
 }
 
