@@ -48,8 +48,13 @@
 }
 
 .editor {
-  min-height: 360px;
+  font-family: var(--content-font);
+  min-height: 420px;
   resize: vertical;
+}
+
+.panel-editor .editor {
+  min-height: 540px;
 }
 
 .file-button {
@@ -322,6 +327,24 @@
   padding: 0 16px;
   text-decoration: none;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.button-icon {
+  align-items: center;
+  display: inline-flex;
+  height: 18px;
+  justify-content: center;
+  width: 18px;
+}
+
+.button-icon svg {
+  fill: none;
+  height: 100%;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 100%;
 }
 
 .button:hover {
@@ -791,8 +814,31 @@ body[data-theme="dark"] .toggle-row-editor {
     width: 100%;
   }
 
+  .panel-editor .editor {
+    min-height: 460px;
+  }
+
   .editor-toolbar {
     gap: 6px;
+  }
+
+  .button-mobile-icon {
+    min-width: 44px;
+    padding: 0;
+    width: 44px;
+  }
+
+  .button-mobile-icon .button-label {
+    border: 0;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
   }
 
   .knowledge-item-menu {
@@ -806,6 +852,11 @@ body[data-theme="dark"] .toggle-row-editor {
     width: 100%;
   }
 
+  #flashcards-tab .quiz-panel {
+    margin-inline: auto;
+    width: 100%;
+  }
+
   #flashcard-card,
   #flashcard-summary,
   #flashcards-tab .panel-header,
@@ -815,5 +866,12 @@ body[data-theme="dark"] .toggle-row-editor {
 
   #flashcards-tab .quiz-actions {
     justify-items: center;
+  }
+
+  #flashcard-card,
+  #flashcard-summary {
+    margin-inline: auto;
+    max-width: 390px;
+    width: 100%;
   }
 }

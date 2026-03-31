@@ -86,8 +86,16 @@
       return "#d9e1f2";
     }
 
+    if (type === "definition") {
+      return "#e5e0f7";
+    }
+
     if (type === "event") {
       return "#f2dfd2";
+    }
+
+    if (type === "experience") {
+      return "#d9e8ef";
     }
 
     if (type === "folder") {
@@ -474,6 +482,10 @@
   }
 
   function handleGraphClick(event) {
+    if ((context.state.graphDrag.suppressClickUntil || 0) > Date.now()) {
+      return;
+    }
+
     const group = event.target.closest("[data-graph-node-id]");
     if (!group) {
       return;
@@ -541,7 +553,7 @@
     context.renderers.renderEverything();
   }
 
-  function handleGraphMouseDown(event) {
+  function handleGraphPointerDown(event) {
     const group = event.target.closest("[data-graph-node-id]");
     if (!group) {
       return;
@@ -555,13 +567,16 @@
     }
 
     context.state.graphDrag.nodeId = nodeId;
+    context.state.graphDrag.pointerId = event.pointerId;
     context.state.graphDrag.offsetX = point.x - position.x;
     context.state.graphDrag.offsetY = point.y - position.y;
+    context.state.graphDrag.moved = false;
     position.locked = true;
+    event.preventDefault();
   }
 
-  function handleGraphMouseMove(event) {
-    if (!context.state.graphDrag.nodeId) {
+  function handleGraphPointerMove(event) {
+    if (!context.state.graphDrag.nodeId || context.state.graphDrag.pointerId !== event.pointerId) {
       return;
     }
 
@@ -581,15 +596,22 @@
       60,
       CANVAS_HEIGHT - 60
     );
+    context.state.graphDrag.moved = true;
     drawGraph();
+    event.preventDefault();
   }
 
-  function handleGraphMouseUp() {
-    if (!context.state.graphDrag.nodeId) {
+  function handleGraphPointerUp(event) {
+    if (!context.state.graphDrag.nodeId || context.state.graphDrag.pointerId !== event.pointerId) {
       return;
     }
 
+    if (context.state.graphDrag.moved) {
+      context.state.graphDrag.suppressClickUntil = Date.now() + 280;
+    }
     context.state.graphDrag.nodeId = null;
+    context.state.graphDrag.pointerId = null;
+    context.state.graphDrag.moved = false;
   }
 
   function getSvgPoint(event) {
@@ -619,9 +641,9 @@
     getGraphNotes,
     handleGraphClick,
     handleGraphFocusClick,
-    handleGraphMouseDown,
-    handleGraphMouseMove,
-    handleGraphMouseUp,
+    handleGraphPointerDown,
+    handleGraphPointerMove,
+    handleGraphPointerUp,
     recenterGraphLayout,
     renderGraphFocus,
     zoomIn,

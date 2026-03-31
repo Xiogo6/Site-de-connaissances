@@ -133,10 +133,14 @@
     const icons = {
       concept:
         '<svg viewBox="0 0 24 24" role="presentation"><path d="M8.5 8.2a2.8 2.8 0 0 1 4.6-2.1 2.8 2.8 0 0 1 4.4 2.8 3 3 0 0 1 1.6 4.8 3 3 0 0 1-2 5.2H9a3 3 0 0 1-2-5.2 3 3 0 0 1 1.5-5.5z"></path><path d="M10 9.5c0 1.1.9 1.5.9 2.5s-.9 1.3-.9 2.4M14 8.8c0 1 .9 1.4.9 2.3s-.9 1.3-.9 2.4M12 7.8v8.4"></path></svg>',
+      definition:
+        '<svg viewBox="0 0 24 24" role="presentation"><path d="M6 5h11a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2z"></path><path d="M8 7h7M8 11h8M8 15h5"></path></svg>',
       person:
         '<svg viewBox="0 0 24 24" role="presentation"><circle cx="12" cy="8" r="3.2"></circle><path d="M6.5 18c1.6-2.7 3.5-4 5.5-4s3.9 1.3 5.5 4"></path></svg>',
       event:
         '<svg viewBox="0 0 24 24" role="presentation"><path d="M7 4v3M17 4v3M5 8h14"></path><rect x="5" y="6" width="14" height="13" rx="2"></rect></svg>',
+      experience:
+        '<svg viewBox="0 0 24 24" role="presentation"><path d="M7 5h10M9 5v4l-3 4a4 4 0 0 0 3.3 6h5.4a4 4 0 0 0 3.3-6l-3-4V5"></path><path d="M9 14h6"></path></svg>',
       folder:
         '<svg viewBox="0 0 24 24" role="presentation"><path d="M4 8h6l2 2h8v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path><path d="M4 8V6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2"></path></svg>',
       hub:
@@ -154,12 +158,65 @@
   function renderKnowledgeMode() {
     const isEditing = context.state.noteViewMode === "edit";
     context.elements.knowledgeWorkspace.classList.toggle("is-editing", isEditing);
-    context.elements.noteModeToggle.textContent = isEditing ? "Fermer l'edition" : "Editer";
+    setActionButtonLabel(
+      context.elements.noteModeToggle,
+      isEditing ? "Lecture" : "Editer"
+    );
     context.elements.noteModeToggle.classList.toggle("button-primary", isEditing);
+    context.elements.noteModeToggle.classList.toggle("button-ghost", !isEditing);
     context.elements.cancelNoteButton.classList.toggle(
       "is-hidden",
-      context.state.pendingNewNoteId !== context.state.activeNoteId
+      !isEditing
     );
+    renderPrimaryActionButton(isEditing);
+    renderQuickActionButton(isEditing);
+  }
+
+  function setActionButtonLabel(button, label) {
+    const labelNode = button?.querySelector(".button-label");
+    if (labelNode) {
+      labelNode.textContent = label;
+    } else if (button) {
+      button.textContent = label;
+    }
+  }
+
+  function renderPrimaryActionButton(isEditing) {
+    if (!context.elements.newFullPageButton) {
+      return;
+    }
+
+    if (isEditing && context.state.activeTab === "knowledge" && !context.data.isReadOnlyMode()) {
+      context.elements.newFullPageLabel.textContent = "Enregistrer";
+      context.elements.newFullPageButton.classList.add("button-primary");
+      context.elements.newFullPageIcon.innerHTML = `
+        <svg viewBox="0 0 24 24" role="presentation">
+          <path d="M6 5h10l2 2v12H6z" />
+          <path d="M9 5v5h6V5" />
+          <path d="M9 19v-5h6v5" />
+        </svg>
+      `;
+      return;
+    }
+
+    context.elements.newFullPageLabel.textContent = "Nouvelle page";
+    context.elements.newFullPageButton.classList.remove("button-primary");
+    context.elements.newFullPageIcon.innerHTML = `
+      <svg viewBox="0 0 24 24" role="presentation">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    `;
+  }
+
+  function renderQuickActionButton(isEditing) {
+    if (!context.elements.quickCaptureToggle) {
+      return;
+    }
+
+    const shouldSave =
+      isEditing && context.state.activeTab === "knowledge" && !context.data.isReadOnlyMode();
+    context.elements.quickCaptureToggle.textContent = shouldSave ? "Enregistrer" : "Note rapide";
+    context.elements.quickCaptureToggle.classList.toggle("is-save-mode", shouldSave);
   }
 
   function syncEditorAvailability() {
@@ -177,7 +234,6 @@
       context.elements.noteDateEnd,
       ...context.elements.formatButtons,
       context.elements.contentInput,
-      context.elements.applyTemplateButton,
       context.elements.templateType,
       context.elements.templateEditor,
       context.elements.saveTemplateButton,
@@ -283,6 +339,7 @@
   function hydrateEditorFromActiveNote() {
     const note = context.notes.getActiveNote();
     if (!note) {
+      context.state.editorTemplateSeed = null;
       return;
     }
 
@@ -301,6 +358,16 @@
     context.elements.noteDateStart.value = metadata.startDate || "";
     context.elements.noteDateEnd.value = metadata.endDate || "";
     context.elements.contentInput.value = note.content;
+
+    const templateContent = context.data.buildTemplateContent(note.type, note.title || "Sans titre");
+    context.state.editorTemplateSeed =
+      note.content.trim() === templateContent.trim()
+        ? {
+            type: note.type,
+            title: note.title || "Sans titre",
+            content: templateContent,
+          }
+        : null;
   }
 
   function renderStructuredFields() {
@@ -516,6 +583,19 @@
   }
 
   function renderStats(draftNote = null) {
+    if (context.elements.quizFolderWrapper) {
+      context.elements.quizFolderWrapper.classList.toggle(
+        "is-hidden",
+        context.elements.quizScope.value !== "folder"
+      );
+    }
+    if (context.elements.quizTagWrapper) {
+      context.elements.quizTagWrapper.classList.toggle(
+        "is-hidden",
+        context.elements.quizScope.value !== "tag"
+      );
+    }
+
     const sourceNotes = draftNote
       ? context.state.notes.map((note) => (note.id === draftNote.id ? draftNote : note))
       : context.state.notes;
@@ -804,6 +884,17 @@
     ];
     populateSelect(context.elements.tagFilter, tagOptions, context.state.tagFilter);
     populateSelect(context.elements.graphTagFilter, tagOptions, context.state.graphTagFilter);
+    populateSelect(
+      context.elements.quizFolder,
+      [
+        { value: "", label: "Choisir un dossier" },
+        ...context.state.notes
+          .filter((note) => note.type === "folder")
+          .sort((left, right) => left.title.localeCompare(right.title, "fr", { sensitivity: "base" }))
+          .map((note) => ({ value: note.id, label: note.title })),
+      ],
+      context.elements.quizFolder?.value || ""
+    );
     populateSelect(
       context.elements.parentInput,
       [

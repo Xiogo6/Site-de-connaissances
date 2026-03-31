@@ -195,12 +195,12 @@
           </nav>
 
           <button id="new-full-page-button" class="utility-launcher" type="button">
-            <span class="utility-launcher-icon" aria-hidden="true">
+            <span id="new-full-page-icon" class="utility-launcher-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" role="presentation">
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </span>
-            <span>Nouvelle page</span>
+            <span id="new-full-page-label">Nouvelle page</span>
           </button>
 
           <button
@@ -230,18 +230,27 @@
                   <h3>Page active</h3>
                 </div>
                 <div class="inline-actions">
-                  <button id="apply-template-button" class="button">
-                    Appliquer le modele
-                  </button>
-                  <button id="save-button" class="button button-primary">
-                    Enregistrer
+                  <button id="save-button" class="button button-primary button-mobile-icon" type="button">
+                    <span class="button-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" role="presentation">
+                        <path d="M6 5h10l2 2v12H6z" />
+                        <path d="M9 5v5h6V5" />
+                        <path d="M9 19v-5h6v5" />
+                      </svg>
+                    </span>
+                    <span class="button-label">Enregistrer</span>
                   </button>
                 </div>
               </div>
 
               <div class="editor-secondary-actions">
-                <button id="cancel-note-button" class="button button-ghost is-hidden" type="button">
-                  Annuler la creation
+                <button id="cancel-note-button" class="button button-ghost button-mobile-icon is-hidden" type="button">
+                  <span class="button-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="presentation">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </span>
+                  <span class="button-label">Annuler</span>
                 </button>
               </div>
 
@@ -255,8 +264,10 @@
                   <span class="field-label">Type</span>
                   <select id="note-type" class="select-input">
                     <option value="concept">Concept</option>
+                    <option value="definition">Definition</option>
                     <option value="person">Personne</option>
                     <option value="event">Evenement</option>
+                    <option value="experience">Experience</option>
                     <option value="folder">Dossier</option>
                     <option value="hub">Hub</option>
                     <option value="procedure">Procedure</option>
@@ -366,14 +377,6 @@
                     <li><code>Concept : definition</code> pour nourrir les quiz</li>
                   </ul>
                 </article>
-
-                <article class="helper-card">
-                  <h4>Conseil de structure</h4>
-                  <p>
-                    Une page par idee, une formulation simple, puis des liens
-                    explicites vers ce qui influence, explique ou contredit.
-                  </p>
-                </article>
               </div>
             </section>
 
@@ -384,8 +387,14 @@
                   <h3 id="preview-title">Apercu</h3>
                 </div>
                 <div class="inline-actions">
-                  <button id="note-mode-toggle" class="button" type="button">
-                    Editer
+                  <button id="note-mode-toggle" class="button button-mobile-icon" type="button">
+                    <span class="button-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" role="presentation">
+                        <path d="M4 17.5V20h2.5L17 9.5 14.5 7z" />
+                        <path d="M13.5 8L16 5.5 18.5 8 16 10.5" />
+                      </svg>
+                    </span>
+                    <span class="button-label">Editer</span>
                   </button>
                   <span id="note-status" class="pill pill-soft">Brouillon</span>
                 </div>
@@ -561,8 +570,16 @@
                 <select id="quiz-scope" class="select-input">
                   <option value="all">Toutes les pages</option>
                   <option value="current">Page active</option>
+                  <option value="folder">Un dossier</option>
                   <option value="tag">Par tag</option>
                   <option value="due">Pages a revoir</option>
+                </select>
+              </label>
+
+              <label id="quiz-folder-wrapper" class="is-hidden">
+                <span class="field-label">Dossier cible</span>
+                <select id="quiz-folder" class="select-input">
+                  <option value="">Choisir un dossier</option>
                 </select>
               </label>
 
@@ -692,8 +709,8 @@
                 <article class="helper-card">
                   <h4>Quand ils servent</h4>
                   <p>
-                    Ils s'appliquent aux nouvelles pages et au bouton
-                    <strong>Appliquer le modele</strong> dans l'editeur.
+                    Ils s'appliquent aux nouvelles pages et automatiquement quand vous changez
+                    le type d'une page encore vierge ou basee sur son modele.
                   </p>
                 </article>
 
@@ -897,8 +914,10 @@
         <span class="field-label">Type</span>
         <select id="quick-type" class="select-input">
           <option value="concept">Concept</option>
+          <option value="definition">Definition</option>
           <option value="person">Personne</option>
           <option value="event">Evenement</option>
+          <option value="experience">Experience</option>
           <option value="folder">Dossier</option>
           <option value="hub">Hub</option>
           <option value="procedure">Procedure</option>

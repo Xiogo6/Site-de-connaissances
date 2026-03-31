@@ -65,16 +65,26 @@
 
     context.elements.saveButton.addEventListener("click", context.notes.saveCurrentNote);
     context.elements.noteModeToggle.addEventListener("click", () => {
-      context.state.noteViewMode = context.state.noteViewMode === "edit" ? "read" : "edit";
+      if (context.state.noteViewMode === "edit") {
+        context.notes.cancelEditingNote();
+        return;
+      }
+
+      context.state.noteViewMode = "edit";
       context.renderers.renderKnowledgeMode();
       if (context.state.noteViewMode === "edit") {
         context.elements.contentInput.focus();
       }
     });
     context.elements.cancelNoteButton.addEventListener("click", () => {
-      context.notes.discardPendingNewNote();
+      context.notes.cancelEditingNote();
     });
     context.elements.newFullPageButton.addEventListener("click", () => {
+      if (context.state.activeTab === "knowledge" && context.state.noteViewMode === "edit") {
+        context.notes.saveCurrentNote();
+        return;
+      }
+
       if (context.state.pendingNewNoteId) {
         context.notes.discardPendingNewNote();
       }
@@ -92,10 +102,6 @@
       context.elements.titleInput.focus();
       context.elements.titleInput.select();
     });
-    context.elements.applyTemplateButton.addEventListener(
-      "click",
-      context.notes.applyTemplateToActiveNote
-    );
     context.elements.templateType.addEventListener("change", (event) => {
       context.state.activeTemplateType = event.target.value;
       context.renderers.renderTemplateEditor();
@@ -106,10 +112,7 @@
     context.elements.saveTemplateButton.addEventListener("click", context.notes.saveTemplate);
     context.elements.resetTemplateButton.addEventListener("click", context.notes.resetTemplate);
     context.elements.titleInput.addEventListener("input", context.renderers.renderLivePreview);
-    context.elements.typeInput.addEventListener("change", () => {
-      context.renderers.renderStructuredFields();
-      context.renderers.renderLivePreview();
-    });
+    context.elements.typeInput.addEventListener("change", context.notes.handleEditorTypeChange);
     context.elements.tagsInput.addEventListener("input", context.renderers.renderLivePreview);
     context.elements.parentInput.addEventListener("change", context.renderers.renderLivePreview);
     context.elements.favoriteInput.addEventListener("change", context.renderers.renderLivePreview);
@@ -124,7 +127,10 @@
     context.elements.noteDateSingle.addEventListener("input", context.renderers.renderLivePreview);
     context.elements.noteDateStart.addEventListener("input", context.renderers.renderLivePreview);
     context.elements.noteDateEnd.addEventListener("input", context.renderers.renderLivePreview);
-    context.elements.contentInput.addEventListener("input", context.renderers.renderLivePreview);
+    context.elements.contentInput.addEventListener("input", () => {
+      context.notes.handleEditorContentChange();
+      context.renderers.renderLivePreview();
+    });
     context.elements.formatButtons.forEach((button) => {
       button.addEventListener("click", () => {
         applyEditorFormat(button.dataset.formatAction);
@@ -204,9 +210,10 @@
     context.elements.graphZoomOutButton.addEventListener("click", context.graph.zoomOut);
 
     context.elements.graphCanvas.addEventListener("click", context.graph.handleGraphClick);
-    context.elements.graphCanvas.addEventListener("mousedown", context.graph.handleGraphMouseDown);
-    window.addEventListener("mousemove", context.graph.handleGraphMouseMove);
-    window.addEventListener("mouseup", context.graph.handleGraphMouseUp);
+    context.elements.graphCanvas.addEventListener("pointerdown", context.graph.handleGraphPointerDown);
+    window.addEventListener("pointermove", context.graph.handleGraphPointerMove);
+    window.addEventListener("pointerup", context.graph.handleGraphPointerUp);
+    window.addEventListener("pointercancel", context.graph.handleGraphPointerUp);
     context.elements.graphShowTags.addEventListener("change", (event) => {
       context.state.graphShowTags = event.target.checked;
       context.graph.drawGraph();
@@ -221,6 +228,10 @@
     });
 
     context.elements.quizScope.addEventListener("change", () => {
+      context.elements.quizFolderWrapper.classList.toggle(
+        "is-hidden",
+        context.elements.quizScope.value !== "folder"
+      );
       context.elements.quizTagWrapper.classList.toggle(
         "is-hidden",
         context.elements.quizScope.value !== "tag"
@@ -228,6 +239,7 @@
       context.renderers.renderStats();
     });
 
+    context.elements.quizFolder.addEventListener("change", context.renderers.renderStats);
     context.elements.quizTag.addEventListener("input", context.renderers.renderStats);
     context.elements.quizMode.addEventListener("change", context.renderers.renderStats);
     context.elements.generateQuizButton.addEventListener("click", context.quiz.buildQuizSession);
@@ -256,7 +268,14 @@
     context.elements.backlinks.addEventListener("click", handleChipClick);
     context.elements.suggestedLinks.addEventListener("click", handleSuggestedLinkClick);
     context.elements.graphFocus.addEventListener("click", context.graph.handleGraphFocusClick);
-    context.elements.quickCaptureToggle.addEventListener("click", context.notes.openQuickCapture);
+    context.elements.quickCaptureToggle.addEventListener("click", () => {
+      if (context.state.activeTab === "knowledge" && context.state.noteViewMode === "edit") {
+        context.notes.saveCurrentNote();
+        return;
+      }
+
+      context.notes.openQuickCapture();
+    });
     context.elements.quickCaptureClose.addEventListener("click", context.notes.closeQuickCapture);
     context.elements.quickSaveButton.addEventListener("click", context.notes.saveQuickCapture);
 
@@ -296,6 +315,8 @@
         context.renderers.renderOrganization();
       }
     });
+
+    bindSidebarSwipe();
   }
 
   function closeUtilityDrawer() {
@@ -339,9 +360,14 @@
   function focusSearchInput() {
     const applyFocus = () => {
       context.elements.searchInput.scrollIntoView({ block: "nearest", behavior: "auto" });
-      context.elements.searchInput.focus();
+      context.elements.searchInput.focus({ preventScroll: true });
       context.elements.searchInput.click();
-      context.elements.searchInput.select();
+      if (typeof context.elements.searchInput.setSelectionRange === "function") {
+        context.elements.searchInput.setSelectionRange(
+          context.elements.searchInput.value.length,
+          context.elements.searchInput.value.length
+        );
+      }
     };
 
     applyFocus();
@@ -350,6 +376,69 @@
     });
     window.setTimeout(applyFocus, 120);
     window.setTimeout(applyFocus, 260);
+  }
+
+  function bindSidebarSwipe() {
+    let swipe = null;
+
+    window.addEventListener(
+      "touchstart",
+      (event) => {
+        const touch = event.changedTouches?.[0];
+        if (!touch || window.innerWidth > 780) {
+          swipe = null;
+          return;
+        }
+
+        const target = event.target;
+        if (
+          target instanceof HTMLElement &&
+          target.closest("input, textarea, select, button, .graph-canvas, .quick-capture-panel")
+        ) {
+          swipe = null;
+          return;
+        }
+
+        swipe = {
+          x: touch.clientX,
+          y: touch.clientY,
+          edge: touch.clientX <= 26,
+        };
+      },
+      { passive: true }
+    );
+
+    window.addEventListener(
+      "touchmove",
+      (event) => {
+        if (!swipe?.edge || context.state.sidebarDrawerOpen || context.state.quickCaptureOpen) {
+          return;
+        }
+
+        const touch = event.changedTouches?.[0];
+        if (!touch) {
+          return;
+        }
+
+        const deltaX = touch.clientX - swipe.x;
+        const deltaY = Math.abs(touch.clientY - swipe.y);
+
+        if (deltaX > 72 && deltaY < 40) {
+          context.state.sidebarDrawerOpen = true;
+          context.renderers.renderSidebarDrawer();
+          swipe = null;
+        }
+      },
+      { passive: true }
+    );
+
+    window.addEventListener(
+      "touchend",
+      () => {
+        swipe = null;
+      },
+      { passive: true }
+    );
   }
 
   function handleKnowledgeListClick(event) {

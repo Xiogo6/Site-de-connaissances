@@ -3,7 +3,7 @@
 
   AtlasApp.createQuizModule = function createQuizModule(context) {
     const { escapeHtml, extractLinks, shuffle } = AtlasApp.helpers;
-  function getScopedNotes(scope, tagValue) {
+  function getScopedNotes(scope, tagValue, folderId = "") {
     const active = context.notes.getActiveNote();
 
     if (scope === "current") {
@@ -15,6 +15,10 @@
       return context.state.notes.filter((note) =>
         note.tags.some((candidate) => candidate.toLowerCase() === tag)
       );
+    }
+
+    if (scope === "folder") {
+      return context.notes.getFolderDescendantNotes(folderId);
     }
 
     if (scope === "due") {
@@ -128,6 +132,9 @@
         "Le quiz apparaitra ici a partir de vos connaissances.";
       context.elements.quizSummary.textContent =
         'Ajoutez des definitions, des relations ou des listes pour produire plus de questions.';
+      context.elements.showAnswerButton.disabled = true;
+      context.elements.markCorrectButton.disabled = true;
+      context.elements.markWrongButton.disabled = true;
       return;
     }
 
@@ -141,6 +148,9 @@
       `;
       context.elements.quizSummary.textContent =
         'Conseil : les paires "Concept : definition" donnent les meilleures questions.';
+      context.elements.showAnswerButton.disabled = true;
+      context.elements.markCorrectButton.disabled = true;
+      context.elements.markWrongButton.disabled = true;
       return;
     }
 
@@ -152,13 +162,7 @@
       <h4>${escapeHtml(current.question)}</h4>
       <p><strong>Source :</strong> ${escapeHtml(current.source)}</p>
       <p><strong>Mode :</strong> ${escapeHtml(current.modeLabel)}</p>
-      ${
-        current.choices.length
-          ? `<div class="chip-list">${current.choices
-              .map((choice) => `<span class="pill pill-soft">${escapeHtml(choice)}</span>`)
-              .join("")}</div>`
-          : "<p>Essayez de repondre sans regarder la reponse.</p>"
-      }
+      <p>Essayez de repondre sans regarder la reponse.</p>
       ${
         context.state.quiz.answerVisible
           ? `<p><strong>Reponse :</strong> ${escapeHtml(current.answer)}</p>`
@@ -168,10 +172,17 @@
     context.elements.quizSummary.textContent = context.state.quiz.answerVisible
       ? "Indiquez ensuite si vous connaissiez la reponse."
       : "Repondez mentalement avant de reveler la reponse.";
+    context.elements.showAnswerButton.disabled = context.state.quiz.answerVisible;
+    context.elements.markCorrectButton.disabled = !context.state.quiz.answerVisible;
+    context.elements.markWrongButton.disabled = !context.state.quiz.answerVisible;
   }
 
   function getQuizNotes() {
-    return getScopedNotes(context.elements.quizScope.value, context.elements.quizTag.value);
+    return getScopedNotes(
+      context.elements.quizScope.value,
+      context.elements.quizTag.value,
+      context.elements.quizFolder.value
+    );
   }
 
   function getFlashcardNotes() {
@@ -323,8 +334,6 @@
 
   function generateQuizQuestions(notes, mode = "mixed") {
     const questions = [];
-    const titlePool = notes.map((note) => note.title);
-    const answerPool = buildAnswerPool(notes);
 
     notes.forEach((note) => {
       const lines = note.content
@@ -346,7 +355,6 @@
               source: note.title,
               question: `Que signifie "${concept.trim()}" ?`,
               answer,
-              choices: buildChoices(answer, answerPool),
               mode: "definition",
               modeLabel: "Definition",
             });
@@ -363,7 +371,6 @@
               source: note.title,
               question: `Completez : ${statement.replace(hidden, "...")}`,
               answer: statement,
-              choices: buildChoices(statement, answerPool),
               mode: "bullet",
               modeLabel: "Phrase a completer",
             });
@@ -377,7 +384,6 @@
             source: note.title,
             question: `Qu'est-ce que "${relation[1].trim()}" ?`,
             answer: relation[2].trim(),
-            choices: buildChoices(relation[2].trim(), answerPool),
             mode: "definition",
             modeLabel: "Definition",
           });
@@ -391,7 +397,6 @@
             source: note.title,
             question: `Quelle page est liee depuis "${note.title}" ?`,
             answer: linkedTitle,
-            choices: buildChoices(linkedTitle, titlePool),
             mode: "link",
             modeLabel: "Lien",
           });
@@ -399,14 +404,14 @@
       }
 
       if (note.metadata?.hasDate && (mode === "mixed" || mode === "date")) {
-        questions.push(...generateDateQuestions(note, answerPool));
+        questions.push(...generateDateQuestions(note));
       }
     });
 
     return deduplicateQuestions(questions);
   }
 
-  function generateDateQuestions(note, answerPool) {
+  function generateDateQuestions(note) {
     const metadata = note.metadata || {};
     const questions = [];
 
@@ -417,7 +422,6 @@
         source: note.title,
         question: `Quelle est la date de reference de "${note.title}" ?`,
         answer,
-        choices: buildChoices(answer, answerPool),
         mode: "date",
         modeLabel: "Date",
       });
@@ -431,7 +435,6 @@
           source: note.title,
           question: `Quelle est la date de naissance de "${note.title}" ?`,
           answer,
-          choices: buildChoices(answer, answerPool),
           mode: "date",
           modeLabel: "Date",
         });
@@ -444,7 +447,6 @@
           source: note.title,
           question: `Quelle est la date de deces de "${note.title}" ?`,
           answer,
-          choices: buildChoices(answer, answerPool),
           mode: "date",
           modeLabel: "Date",
         });
@@ -459,7 +461,6 @@
           source: note.title,
           question: `Quand commence "${note.title}" ?`,
           answer,
-          choices: buildChoices(answer, answerPool),
           mode: "date",
           modeLabel: "Date",
         });
@@ -472,7 +473,6 @@
           source: note.title,
           question: `Quand se termine "${note.title}" ?`,
           answer,
-          choices: buildChoices(answer, answerPool),
           mode: "date",
           modeLabel: "Date",
         });
@@ -480,77 +480,6 @@
     }
 
     return questions;
-  }
-
-  function buildChoices(answer, titlePool) {
-    const others = shuffle(
-      titlePool.filter((title) => title.toLowerCase() !== answer.toLowerCase())
-    ).slice(0, 3);
-    return shuffle([answer, ...others]);
-  }
-
-  function buildAnswerPool(notes) {
-    const values = [];
-
-    notes.forEach((note) => {
-      values.push(note.title);
-      note.content
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .forEach((line) => {
-          if (line.includes(" : ")) {
-            const [, ...rest] = line.split(" : ");
-            const answer = rest.join(" : ").trim();
-            if (answer) {
-              values.push(answer);
-            }
-          }
-
-          if (line.startsWith("- ")) {
-            values.push(line.slice(2).trim());
-          }
-
-          const relation = line.match(/^(.+?) est (.+)$/i);
-          if (relation) {
-            values.push(relation[2].trim());
-          }
-        });
-
-      if (note.metadata?.hasDate) {
-        values.push(...extractDateAnswerPool(note.metadata));
-      }
-    });
-
-    return [...new Set(values.filter(Boolean))];
-  }
-
-  function extractDateAnswerPool(metadata = {}) {
-    const values = [];
-
-    if (metadata.dateMode === "reference" && metadata.singleDate) {
-      values.push(formatDateAnswer(metadata.singleDate));
-    }
-
-    if (metadata.dateMode === "life") {
-      if (metadata.startDate) {
-        values.push(formatDateAnswer(metadata.startDate));
-      }
-      if (metadata.endDate) {
-        values.push(formatDateAnswer(metadata.endDate));
-      }
-    }
-
-    if (metadata.dateMode === "range") {
-      if (metadata.startDate) {
-        values.push(formatDateAnswer(metadata.startDate));
-      }
-      if (metadata.endDate) {
-        values.push(formatDateAnswer(metadata.endDate));
-      }
-    }
-
-    return values;
   }
 
   function formatDateAnswer(value) {

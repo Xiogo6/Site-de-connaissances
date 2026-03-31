@@ -8,7 +8,7 @@
   --accent-strong: #8f3914;
   --shadow: 0 24px 60px rgba(81, 55, 30, 0.12);
   --radius: 18px;
-  --content-font: "Georgia", "Palatino Linotype", serif;
+  --content-font: "Poppins", "Aptos", "Trebuchet MS", "Segoe UI", sans-serif;
   --ui-font: "Trebuchet MS", "Segoe UI", sans-serif;
 }
 
