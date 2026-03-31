@@ -93,6 +93,34 @@
     };
   }
 
+  function rememberEditorTemplateSeed(type, title, content) {
+    context.state.editorTemplateSeed = {
+      type,
+      title,
+      content,
+    };
+  }
+
+  function clearEditorTemplateSeed() {
+    context.state.editorTemplateSeed = null;
+  }
+
+  function isEditorUsingAutoTemplate() {
+    const seed = context.state.editorTemplateSeed;
+    if (!seed) {
+      return !context.elements.contentInput.value.trim();
+    }
+
+    return context.elements.contentInput.value.trim() === seed.content.trim();
+  }
+
+  function applyEditorTemplate(type, title) {
+    const content = context.data.buildTemplateContent(type, title || "Sans titre");
+    context.elements.contentInput.value = content;
+    rememberEditorTemplateSeed(type, title || "Sans titre", content);
+    context.renderers.renderLivePreview();
+  }
+
   function getBacklinks(title, excludedId) {
     return context.state.notes
       .filter((note) => note.id !== excludedId && extractLinks(note.content).includes(title))
@@ -366,6 +394,8 @@
       context.state.pendingNewNoteId = null;
       context.state.previousActiveNoteId = null;
     }
+    context.state.noteViewMode = "read";
+    clearEditorTemplateSeed();
     context.renderers.renderEverything();
   }
 
@@ -385,7 +415,19 @@
     context.state.pendingNewNoteId = null;
     context.state.previousActiveNoteId = null;
     context.state.noteViewMode = "read";
+    clearEditorTemplateSeed();
     context.data.saveNotes({ skipRemote: true });
+    context.renderers.renderEverything();
+  }
+
+  function cancelEditingNote() {
+    if (context.state.pendingNewNoteId === context.state.activeNoteId) {
+      discardPendingNewNote();
+      return;
+    }
+
+    context.state.noteViewMode = "read";
+    clearEditorTemplateSeed();
     context.renderers.renderEverything();
   }
 
@@ -421,20 +463,25 @@
     context.renderers.renderTemplateEditor();
   }
 
-  function applyTemplateToActiveNote() {
-    if (context.data.isReadOnlyMode()) {
-      return;
-    }
-
+  function handleEditorTypeChange() {
     const note = getActiveNote();
-    if (!note) {
+    const nextType = context.elements.typeInput.value;
+    const title = context.elements.titleInput.value.trim() || note?.title || "Sans titre";
+
+    context.renderers.renderStructuredFields();
+    if (isEditorUsingAutoTemplate()) {
+      applyEditorTemplate(nextType, title);
       return;
     }
 
-    const title = context.elements.titleInput.value.trim() || note.title || "Sans titre";
-    const type = context.elements.typeInput.value;
-    context.elements.contentInput.value = context.data.buildTemplateContent(type, title);
+    clearEditorTemplateSeed();
     context.renderers.renderLivePreview();
+  }
+
+  function handleEditorContentChange() {
+    if (!isEditorUsingAutoTemplate()) {
+      clearEditorTemplateSeed();
+    }
   }
 
   function moveNoteToParent(noteId, parentId) {
@@ -536,9 +583,13 @@
     context.state.settings.collapsedFolders = context.state.settings.collapsedFolders.filter(
       (id) => id !== noteId
     );
+    context.state.explorerMenuNoteId = null;
+    context.state.organizationMenuNoteId = null;
+    clearEditorTemplateSeed();
 
     if (context.state.activeNoteId === noteId) {
       context.state.activeNoteId = context.state.notes[0]?.id ?? null;
+      context.state.noteViewMode = "read";
     }
 
     context.data.saveNotes();
@@ -589,13 +640,14 @@
     const title = generateFolderName();
     const now = new Date().toISOString();
     const active = getActiveNote();
+    const previousActiveId = context.state.activeNoteId;
     const folder = {
       id: context.data.generateId(title),
       title,
       type: "folder",
       parentId: active?.type === "folder" ? active.id : null,
       favorite: false,
-      tags: ["dossier"],
+      tags: [],
       content: context.data.buildTemplateContent("folder", title),
       metadata: createNoteMetadata(),
       createdAt: now,
@@ -611,10 +663,20 @@
       }
     }
 
+    context.state.previousActiveNoteId = previousActiveId;
+    context.state.pendingNewNoteId = folder.id;
     context.state.activeNoteId = folder.id;
+    context.state.activeTab = "knowledge";
+    context.state.noteViewMode = "edit";
+    context.state.organizationMenuNoteId = null;
+    context.state.explorerMenuNoteId = null;
     context.data.saveNotes();
     context.data.saveAutomaticSnapshot("Creation dossier");
     context.renderers.renderEverything();
+    window.requestAnimationFrame(() => {
+      context.elements.titleInput.focus();
+      context.elements.titleInput.select();
+    });
   }
 
   function moveActiveNoteToRoot() {
@@ -693,6 +755,32 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     context.data.saveNotes();
     context.data.saveAutomaticSnapshot("Note rapide");
     context.renderers.renderEverything();
+  }
+
+  function getFolderDescendantNotes(folderId) {
+    if (!folderId) {
+      return [];
+    }
+
+    const collected = [];
+    const queue = [folderId];
+    const seen = new Set();
+
+    while (queue.length) {
+      const currentId = queue.shift();
+      if (!currentId || seen.has(currentId)) {
+        continue;
+      }
+
+      seen.add(currentId);
+      const note = context.state.notes.find((candidate) => candidate.id === currentId);
+      if (note) {
+        collected.push(note);
+        getChildNotes(note.id).forEach((child) => queue.push(child.id));
+      }
+    }
+
+    return collected;
   }
 
   function openOrCreateNote(title) {
@@ -800,8 +888,8 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
 
   return {
     appendSuggestedLinkToActiveNote,
-    applyTemplateToActiveNote,
     buildHierarchyForest,
+    cancelEditingNote,
     canMoveNote,
     clearOrganizationDropHighlights,
     closeQuickCapture,
@@ -821,12 +909,15 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     getConnectionCount,
     getDueNotes,
     getFilteredNotes,
+    getFolderDescendantNotes,
     getHierarchyLinks,
     getMostConnectedNotes,
     getParentNote,
     getParentTitle,
     getSuggestedLinks,
     highlightOrganizationTarget,
+    handleEditorContentChange,
+    handleEditorTypeChange,
     isFolderCollapsed,
     isNoteDue,
     isOrphanNote,

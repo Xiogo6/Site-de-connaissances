@@ -31,11 +31,44 @@
     return value.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
   }
 
+  function normalizeTag(value) {
+    const normalized = String(value)
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    if (!normalized) {
+      return "";
+    }
+
+    if (normalized.endsWith("aux") && normalized.length > 4) {
+      return `${normalized.slice(0, -1)}`;
+    }
+
+    if (normalized.endsWith("s") && normalized.length > 3) {
+      return normalized.slice(0, -1);
+    }
+
+    return normalized;
+  }
+
+  function normalizeTagList(values) {
+    const seen = new Set();
+    return values
+      .map((value) => normalizeTag(value))
+      .filter(Boolean)
+      .filter((value) => {
+        if (seen.has(value)) {
+          return false;
+        }
+        seen.add(value);
+        return true;
+      });
+  }
+
   function parseTags(value) {
-    return value
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
+    return normalizeTagList(value.split(","));
   }
 
   function extractLinks(content) {
@@ -133,6 +166,8 @@
     extractLinks,
     extractSummary,
     formatDate,
+    normalizeTag,
+    normalizeTagList,
     parseTags,
     renderInline,
     renderNoteHtml,

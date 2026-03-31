@@ -2,6 +2,7 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createDataModule = function createDataModule(context) {
+    const { normalizeTagList } = AtlasApp.helpers;
     const {
       appStorageKey,
       dataVersion,
@@ -216,9 +217,7 @@
         type: typeof note.type === "string" && noteTypeLabels[note.type] ? note.type : "concept",
         parentId: typeof note.parentId === "string" && note.parentId.trim() ? note.parentId : null,
         favorite: Boolean(note.favorite),
-        tags: Array.isArray(note.tags)
-          ? note.tags.map(String).map((tag) => tag.trim()).filter(Boolean)
-          : [],
+        tags: Array.isArray(note.tags) ? normalizeTagList(note.tags.map(String)) : [],
         content: typeof note.content === "string" ? note.content : "",
         createdAt: typeof note.createdAt === "string" ? note.createdAt : new Date().toISOString(),
         updatedAt: typeof note.updatedAt === "string" ? note.updatedAt : new Date().toISOString(),
