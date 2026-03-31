@@ -75,7 +75,7 @@
 }
 
 .workspace {
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) 340px;
 }
 
 .workspace .panel-editor {
@@ -83,7 +83,7 @@
 }
 
 .workspace.is-editing {
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr) 360px;
+  grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.9fr) 320px;
 }
 
 .workspace.is-editing .panel-editor {
