@@ -2,8 +2,15 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createRenderersModule = function createRenderersModule(context) {
-    const { noteTypeLabels } = AtlasApp.config;
-    const { escapeHtml, extractLinks, parseTags, renderNoteHtml, unique } = AtlasApp.helpers;
+    const {
+      escapeHtml,
+      extractLinks,
+      formatFlexibleDate,
+      normalizeTag,
+      parseTags,
+      renderNoteHtml,
+      unique,
+    } = AtlasApp.helpers;
   function renderEverything() {
     syncDynamicControls();
     renderTheme();
@@ -40,7 +47,7 @@
       button.classList.toggle("is-active", button.dataset.utilityTab === context.state.activeTab);
     });
 
-    const utilityActive = ["flashcards", "templates", "publish"].includes(context.state.activeTab);
+    const utilityActive = ["flashcards", "settings", "publish"].includes(context.state.activeTab);
     context.elements.utilityDrawerOpen.classList.toggle("is-active", utilityActive);
     context.elements.utilityDrawerOpen.setAttribute(
       "aria-expanded",
@@ -278,6 +285,7 @@
       openAttr: "data-open-note",
       editAttr: "data-edit-note",
       toggleAttr: "data-toggle-note-menu",
+      rootAttr: "data-root-note",
       duplicateAttr: "data-duplicate-note",
       deleteAttr: "data-delete-note",
       variant: "flat",
@@ -328,6 +336,7 @@
         <div class="knowledge-item-menu${isMenuOpen ? "" : " is-hidden"}">
           <div class="compact-menu-actions">
             <button type="button" class="button" ${config.editAttr}="${note.id}">Editer</button>
+            <button type="button" class="button" ${config.rootAttr}="${note.id}">Racine</button>
             <button type="button" class="button" ${config.duplicateAttr}="${note.id}">Dupliquer</button>
             <button type="button" class="button button-ghost" ${config.deleteAttr}="${note.id}">Supprimer</button>
           </div>
@@ -431,10 +440,59 @@
       return;
     }
 
+    renderTypeSettingsList();
     const templates = context.data.getTemplates();
     const draft = context.state.templateDrafts[context.state.activeTemplateType];
     context.elements.templateEditor.value =
       typeof draft === "string" ? draft : templates[context.state.activeTemplateType] || "";
+  }
+
+  function renderTypeSettingsList() {
+    if (!context.elements.typeSettingsList) {
+      return;
+    }
+
+    const entries = context.data
+      .getNoteTypeEntries()
+      .sort((left, right) => left.label.localeCompare(right.label, "fr", { sensitivity: "base" }));
+
+    context.elements.typeSettingsList.innerHTML = "";
+
+    entries.forEach((entry) => {
+      const canDelete = entry.isCustom && !context.notes.isTypeUsed(entry.id);
+      const row = document.createElement("label");
+      row.className = "settings-type-row";
+      row.innerHTML = `
+        <span class="field-label">${entry.isCustom ? "Type personnalise" : "Type de base"}</span>
+        <div class="settings-type-meta">
+          <input
+            class="text-input"
+            type="text"
+            value="${escapeHtml(entry.label)}"
+            data-type-label-input="${entry.id}"
+          />
+          <span class="pill pill-soft">${escapeHtml(entry.id)}</span>
+          ${
+            entry.isCustom
+              ? `<button
+                  type="button"
+                  class="button button-ghost settings-delete-type"
+                  data-delete-type="${entry.id}"
+                  ${canDelete ? "" : "disabled"}
+                >
+                  Supprimer
+                </button>`
+              : ""
+          }
+        </div>
+        ${
+          entry.isCustom && !canDelete
+            ? '<span class="helper-copy helper-copy-compact">Ce type est utilise par au moins une page.</span>'
+            : ""
+        }
+      `;
+      context.elements.typeSettingsList.appendChild(row);
+    });
   }
 
   function renderPreview(note = context.notes.getActiveNote(), isDraft = false) {
@@ -453,7 +511,7 @@
 
     const typeTag = document.createElement("span");
     typeTag.className = "tag tag-type";
-    typeTag.textContent = noteTypeLabels[note.type] || "Concept";
+    typeTag.textContent = context.data.getNoteTypeLabels()[note.type] || "Concept";
     context.elements.previewTags.appendChild(typeTag);
 
     if (note.favorite) {
@@ -505,20 +563,7 @@
   }
 
   function formatStructuredDate(value) {
-    if (!value) {
-      return "inconnue";
-    }
-
-    const date = new Date(`${value}T00:00:00`);
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
-    return new Intl.DateTimeFormat("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
+    return formatFlexibleDate(value);
   }
 
   function renderConnections(note = context.notes.getActiveNote()) {
@@ -652,7 +697,7 @@
       button.className = "due-item";
       button.innerHTML = `
         <strong>${escapeHtml(note.title)}</strong>
-        <p>${escapeHtml(noteTypeLabels[note.type] || "Concept")} | ${escapeHtml(
+        <p>${escapeHtml(context.data.getNoteTypeLabels()[note.type] || "Concept")} | ${escapeHtml(
           note.tags.slice(0, 2).join(" | ") || "Sans tag"
         )}</p>
       `;
@@ -693,6 +738,7 @@
     renderHierarchyTree(context.elements.organizationTree, context.notes.buildHierarchyForest(), 0, {
       variant: "flat",
       allowDrag: true,
+      rootAttr: "data-root-organization-note",
     });
     renderInsightList(
       context.elements.organizationOrphans,
@@ -762,6 +808,7 @@
             openAttr: options.openAttr || "data-open-organization-note",
             editAttr: options.editAttr || "data-edit-organization-note",
             toggleAttr: options.toggleAttr || "data-toggle-organization-menu",
+            rootAttr: options.rootAttr || "data-root-organization-note",
             duplicateAttr: options.duplicateAttr || "data-duplicate-organization-note",
             deleteAttr: options.deleteAttr || "data-delete-organization-note",
             leadingHtml: isCollapsible
@@ -848,6 +895,41 @@
       disableMutating || !context.state.snapshots.length;
   }
 
+  function renderTagSuggestions(target) {
+    const input =
+      target === "quick" ? context.elements.quickTags : context.elements.tagsInput;
+    const container =
+      target === "quick"
+        ? context.elements.quickTagSuggestions
+        : context.elements.noteTagSuggestions;
+
+    if (!input || !container) {
+      return;
+    }
+
+    const draft = input.value.split(",").pop()?.trim() || "";
+    const normalizedDraft = normalizeTag(draft);
+    const suggestions = normalizedDraft
+      ? context.notes
+          .getAllTags()
+          .filter((tag) => tag.startsWith(normalizedDraft) && tag !== normalizedDraft)
+          .slice(0, 6)
+      : [];
+
+    container.innerHTML = "";
+    container.classList.toggle("is-hidden", !suggestions.length);
+
+    suggestions.forEach((tag) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "tag-suggestion";
+      button.dataset.tagSuggestion = tag;
+      button.dataset.tagSuggestionTarget = target;
+      button.textContent = tag;
+      container.appendChild(button);
+    });
+  }
+
   function renderQuickCapture() {
     document.body.classList.toggle("quick-capture-open", context.state.quickCaptureOpen);
     context.elements.quickCapturePanel.classList.toggle(
@@ -858,10 +940,28 @@
 
   function syncDynamicControls() {
     populateSelect(
+      context.elements.typeInput,
+      context.data.getNoteTypeEntries().map((entry) => ({
+        value: entry.id,
+        label: entry.label,
+      })),
+      context.notes.getActiveNote()?.type || context.elements.typeInput.value
+    );
+
+    populateSelect(
+      context.elements.quickType,
+      context.data.getNoteTypeEntries().map((entry) => ({
+        value: entry.id,
+        label: entry.label,
+      })),
+      context.elements.quickType?.value || "concept"
+    );
+
+    populateSelect(
       context.elements.templateType,
-      Object.keys(noteTypeLabels).map((type) => ({
-        value: type,
-        label: noteTypeLabels[type],
+      context.data.getNoteTypeEntries().map((entry) => ({
+        value: entry.id,
+        label: entry.label,
       })),
       context.state.activeTemplateType
     );
@@ -870,9 +970,9 @@
       context.elements.typeFilter,
       [
         { value: "all", label: "Tous les types" },
-        ...Object.keys(noteTypeLabels).map((type) => ({
-          value: type,
-          label: noteTypeLabels[type],
+        ...context.data.getNoteTypeEntries().map((entry) => ({
+          value: entry.id,
+          label: entry.label,
         })),
       ],
       context.state.typeFilter
@@ -948,6 +1048,7 @@
     renderSidebarTabs,
     renderStats,
     renderStructuredFields,
+    renderTagSuggestions,
     renderTabs,
     renderTemplateEditor,
     renderWorkspaceBanner,

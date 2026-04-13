@@ -111,9 +111,39 @@
     });
     context.elements.saveTemplateButton.addEventListener("click", context.notes.saveTemplate);
     context.elements.resetTemplateButton.addEventListener("click", context.notes.resetTemplate);
-    context.elements.titleInput.addEventListener("input", context.renderers.renderLivePreview);
+    context.elements.addTypeButton?.addEventListener("click", context.notes.addCustomType);
+    context.elements.newTypeLabelInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        context.notes.addCustomType();
+      }
+    });
+    context.elements.typeSettingsList?.addEventListener("change", (event) => {
+      const input = event.target.closest("[data-type-label-input]");
+      if (!input) {
+        return;
+      }
+
+      context.notes.updateTypeLabel(input.dataset.typeLabelInput, input.value);
+      context.renderers.renderEverything();
+    });
+    context.elements.typeSettingsList?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-delete-type]");
+      if (!button) {
+        return;
+      }
+
+      context.notes.deleteCustomType(button.dataset.deleteType);
+    });
+    context.elements.titleInput.addEventListener("input", context.notes.handleEditorTitleChange);
     context.elements.typeInput.addEventListener("change", context.notes.handleEditorTypeChange);
-    context.elements.tagsInput.addEventListener("input", context.renderers.renderLivePreview);
+    context.elements.tagsInput.addEventListener("input", () => {
+      context.renderers.renderTagSuggestions("note");
+      context.renderers.renderLivePreview();
+    });
+    context.elements.tagsInput.addEventListener("blur", () => {
+      window.setTimeout(() => context.renderers.renderTagSuggestions("note"), 80);
+    });
     context.elements.parentInput.addEventListener("change", context.renderers.renderLivePreview);
     context.elements.favoriteInput.addEventListener("change", context.renderers.renderLivePreview);
     context.elements.noteHasDate.addEventListener("change", () => {
@@ -278,6 +308,14 @@
     });
     context.elements.quickCaptureClose.addEventListener("click", context.notes.closeQuickCapture);
     context.elements.quickSaveButton.addEventListener("click", context.notes.saveQuickCapture);
+    context.elements.quickTags.addEventListener("input", () => {
+      context.renderers.renderTagSuggestions("quick");
+    });
+    context.elements.quickTags.addEventListener("blur", () => {
+      window.setTimeout(() => context.renderers.renderTagSuggestions("quick"), 80);
+    });
+    context.elements.noteTagSuggestions?.addEventListener("click", handleTagSuggestionClick);
+    context.elements.quickTagSuggestions?.addEventListener("click", handleTagSuggestionClick);
 
     window.addEventListener("keydown", (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
@@ -314,6 +352,22 @@
         context.state.organizationMenuNoteId = null;
         context.renderers.renderOrganization();
       }
+
+      if (
+        context.elements.noteTagSuggestions &&
+        !context.elements.noteTagSuggestions.contains(event.target) &&
+        event.target !== context.elements.tagsInput
+      ) {
+        context.elements.noteTagSuggestions.classList.add("is-hidden");
+      }
+
+      if (
+        context.elements.quickTagSuggestions &&
+        !context.elements.quickTagSuggestions.contains(event.target) &&
+        event.target !== context.elements.quickTags
+      ) {
+        context.elements.quickTagSuggestions.classList.add("is-hidden");
+      }
     });
 
     bindSidebarSwipe();
@@ -347,6 +401,11 @@
 
     if (context.state.activeTab === "flashcards") {
       context.quiz.renderFlashcards();
+      return;
+    }
+
+    if (context.state.activeTab === "settings") {
+      context.renderers.renderTemplateEditor();
     }
   }
 
@@ -456,6 +515,7 @@
         open: "openNote",
         edit: "editNote",
         toggle: "toggleNoteMenu",
+        root: "rootNote",
         duplicate: "duplicateNote",
         remove: "deleteNote",
       },
@@ -478,6 +538,7 @@
         open: "openOrganizationNote",
         edit: "editOrganizationNote",
         toggle: "toggleOrganizationMenu",
+        root: "rootOrganizationNote",
         duplicate: "duplicateOrganizationNote",
         remove: "deleteOrganizationNote",
       },
@@ -522,6 +583,16 @@
       return;
     }
 
+    const rootButton = event.target.closest(
+      `[data-${context.helpers.toKebab(datasetKeys.root)}]`
+    );
+    if (rootButton) {
+      event.stopPropagation();
+      context.state[menuStateKey] = null;
+      context.notes.moveNoteToRoot(rootButton.dataset[datasetKeys.root]);
+      return;
+    }
+
     const duplicateButton = event.target.closest(
       `[data-${context.helpers.toKebab(datasetKeys.duplicate)}]`
     );
@@ -540,6 +611,32 @@
       context.state[menuStateKey] = null;
       context.notes.deleteNoteById(deleteButton.dataset[datasetKeys.remove]);
       return;
+    }
+  }
+
+  function handleTagSuggestionClick(event) {
+    const button = event.target.closest("[data-tag-suggestion]");
+    if (!button) {
+      return;
+    }
+
+    const target = button.dataset.tagSuggestionTarget;
+    const input =
+      target === "quick" ? context.elements.quickTags : context.elements.tagsInput;
+    const rawParts = input.value.split(",");
+    rawParts[rawParts.length - 1] = ` ${button.dataset.tagSuggestion}`;
+    input.value = rawParts
+      .map((part, index) => (index === 0 ? part.trim() : part.trim()))
+      .filter((part, index, list) => part || index < list.length - 1)
+      .join(", ");
+
+    if (target === "quick") {
+      context.renderers.renderTagSuggestions("quick");
+      context.elements.quickTags.focus();
+    } else {
+      context.renderers.renderTagSuggestions("note");
+      context.renderers.renderLivePreview();
+      context.elements.tagsInput.focus();
     }
   }
 

@@ -192,7 +192,7 @@
   padding: 20px;
   position: fixed;
   right: 24px;
-  width: min(420px, calc(100vw - 28px));
+  width: min(520px, calc(100vw - 28px));
   z-index: 20;
 }
 
@@ -283,7 +283,7 @@ body[data-theme="dark"] .utility-link span {
 }
 
 .quick-editor {
-  min-height: 180px;
+  min-height: 260px;
 }
 
 :root[data-theme="dark"] .organization-dropzone,
@@ -353,7 +353,7 @@ body[data-theme="dark"] .graph-label.is-tag-label {
     left: 50%;
     right: auto;
     transform: translateX(-50%);
-    width: min(calc(100vw - 28px), 430px);
+    width: min(calc(100vw - 24px), 460px);
   }
 
   body.quick-capture-open .tabs,

@@ -35,10 +35,14 @@
 .sidebar-panel {
   display: none;
   gap: 14px;
+  min-height: 0;
 }
 
 .sidebar-panel.is-active {
+  align-content: start;
   display: grid;
+  flex: 1;
+  min-height: 0;
 }
 
 .main-layout {

@@ -66,11 +66,21 @@
 }
 
 .knowledge-list {
+  align-content: start;
   display: grid;
+  flex: 1;
   gap: 4px;
   margin-top: 14px;
-  max-height: 46vh;
+  min-height: 0;
   overflow: auto;
+}
+
+#sidebar-library .sidebar-card-plain {
+  align-content: start;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .due-list,
@@ -651,6 +661,56 @@ body[data-theme="dark"] .button-ghost {
   margin: 16px 0 0;
 }
 
+.settings-type-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.settings-type-row {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-type-meta {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.settings-add-type {
+  align-items: flex-end;
+  display: flex;
+  margin: 0;
+}
+
+.settings-delete-type {
+  min-height: 38px;
+  padding-inline: 12px;
+}
+
+.helper-copy-compact {
+  margin-top: 10px;
+}
+
+.tag-suggestion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tag-suggestion {
+  background: rgba(191, 91, 44, 0.08);
+  border: 1px solid rgba(191, 91, 44, 0.16);
+  border-radius: 999px;
+  color: var(--accent-strong);
+  cursor: pointer;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
 .flashcard-surface {
   display: grid;
   gap: 14px;
@@ -730,9 +790,11 @@ body[data-theme="dark"] .pill {
 :root[data-theme="dark"] .tag.tag-type,
 :root[data-theme="dark"] .chip,
 :root[data-theme="dark"] .pill-due,
+:root[data-theme="dark"] .tag-suggestion,
 body[data-theme="dark"] .tag.tag-type,
 body[data-theme="dark"] .chip,
-body[data-theme="dark"] .pill-due {
+body[data-theme="dark"] .pill-due,
+body[data-theme="dark"] .tag-suggestion {
   background: rgba(208, 122, 76, 0.14);
   border-color: rgba(208, 122, 76, 0.22);
   color: #f0b08a;

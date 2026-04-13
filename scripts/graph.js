@@ -2,7 +2,6 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createGraphModule = function createGraphModule(context) {
-    const { noteTypeLabels } = AtlasApp.config;
     const { escapeHtml, extractLinks, extractSummary, unique } = AtlasApp.helpers;
     const CANVAS_WIDTH = 960;
     const CANVAS_HEIGHT = 620;
@@ -333,6 +332,8 @@
     const width = CANVAS_WIDTH;
     const height = CANVAS_HEIGHT;
     context.state.graphPositions = initializeGraphPositions(graph, width, height);
+    context.state.graphViewport.panX = 0;
+    context.state.graphViewport.panY = 0;
     drawGraph();
   }
 
@@ -340,9 +341,13 @@
     const zoom = context.helpers.clamp(context.state.graphZoom || 1, 1, 2.8);
     const width = CANVAS_WIDTH / zoom;
     const height = CANVAS_HEIGHT / zoom;
+    const centeredX = (CANVAS_WIDTH - width) / 2;
+    const centeredY = (CANVAS_HEIGHT - height) / 2;
+    const maxX = CANVAS_WIDTH - width;
+    const maxY = CANVAS_HEIGHT - height;
     return {
-      x: (CANVAS_WIDTH - width) / 2,
-      y: (CANVAS_HEIGHT - height) / 2,
+      x: context.helpers.clamp(centeredX + (context.state.graphViewport.panX || 0), 0, maxX),
+      y: context.helpers.clamp(centeredY + (context.state.graphViewport.panY || 0), 0, maxY),
       width,
       height,
     };
@@ -535,7 +540,7 @@
     context.elements.graphFocus.innerHTML = `
       <p><strong>${escapeHtml(note.title)}</strong></p>
       <p>${escapeHtml(extractSummary(note.content))}</p>
-      <p><strong>Type :</strong> ${escapeHtml(noteTypeLabels[note.type] || "Concept")}</p>
+      <p><strong>Type :</strong> ${escapeHtml(context.data.getNoteTypeLabels()[note.type] || "Concept")}</p>
       <p><strong>Liens sortants :</strong> ${escapeHtml(outgoing.join(", ") || "Aucun")}</p>
       <p><strong>Backlinks :</strong> ${escapeHtml(backlinks.join(", ") || "Aucun")}</p>
       <button type="button" class="button" data-open-active-note>Ouvrir cette page</button>
@@ -555,28 +560,53 @@
 
   function handleGraphPointerDown(event) {
     const group = event.target.closest("[data-graph-node-id]");
-    if (!group) {
-      return;
-    }
-
-    const point = getSvgPoint(event);
-    const nodeId = group.dataset.graphNodeId;
-    const position = context.state.graphPositions.get(nodeId);
-    if (!position) {
-      return;
-    }
-
-    context.state.graphDrag.nodeId = nodeId;
     context.state.graphDrag.pointerId = event.pointerId;
-    context.state.graphDrag.offsetX = point.x - position.x;
-    context.state.graphDrag.offsetY = point.y - position.y;
     context.state.graphDrag.moved = false;
-    position.locked = true;
+    context.state.graphDrag.startClientX = event.clientX;
+    context.state.graphDrag.startClientY = event.clientY;
+
+    if (group) {
+      const point = getSvgPoint(event);
+      const nodeId = group.dataset.graphNodeId;
+      const position = context.state.graphPositions.get(nodeId);
+      if (!position) {
+        return;
+      }
+
+      context.state.graphDrag.mode = "node";
+      context.state.graphDrag.nodeId = nodeId;
+      context.state.graphDrag.offsetX = point.x - position.x;
+      context.state.graphDrag.offsetY = point.y - position.y;
+      position.locked = true;
+      event.preventDefault();
+      return;
+    }
+
+    context.state.graphDrag.mode = "pan";
+    context.state.graphDrag.nodeId = null;
+    context.state.graphDrag.startPanX = context.state.graphViewport.panX || 0;
+    context.state.graphDrag.startPanY = context.state.graphViewport.panY || 0;
     event.preventDefault();
   }
 
   function handleGraphPointerMove(event) {
-    if (!context.state.graphDrag.nodeId || context.state.graphDrag.pointerId !== event.pointerId) {
+    if (context.state.graphDrag.pointerId !== event.pointerId || !context.state.graphDrag.mode) {
+      return;
+    }
+
+    if (context.state.graphDrag.mode === "pan") {
+      const viewBox = getGraphViewBox();
+      const rect = context.elements.graphCanvas.getBoundingClientRect();
+      const scaleX = viewBox.width / rect.width;
+      const scaleY = viewBox.height / rect.height;
+      const deltaX = event.clientX - context.state.graphDrag.startClientX;
+      const deltaY = event.clientY - context.state.graphDrag.startClientY;
+
+      context.state.graphViewport.panX = context.state.graphDrag.startPanX - deltaX * scaleX;
+      context.state.graphViewport.panY = context.state.graphDrag.startPanY - deltaY * scaleY;
+      context.state.graphDrag.moved = true;
+      drawGraph();
+      event.preventDefault();
       return;
     }
 
@@ -602,13 +632,14 @@
   }
 
   function handleGraphPointerUp(event) {
-    if (!context.state.graphDrag.nodeId || context.state.graphDrag.pointerId !== event.pointerId) {
+    if (context.state.graphDrag.pointerId !== event.pointerId) {
       return;
     }
 
     if (context.state.graphDrag.moved) {
       context.state.graphDrag.suppressClickUntil = Date.now() + 280;
     }
+    context.state.graphDrag.mode = null;
     context.state.graphDrag.nodeId = null;
     context.state.graphDrag.pointerId = null;
     context.state.graphDrag.moved = false;

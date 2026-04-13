@@ -103,6 +103,70 @@
     }).format(date);
   }
 
+  function normalizeFlexibleDateInput(value) {
+    const cleaned = String(value || "")
+      .trim()
+      .replace(/[/.]/g, "-")
+      .replace(/\s+/g, "");
+
+    if (!cleaned) {
+      return "";
+    }
+
+    const parts = cleaned.split("-").filter(Boolean);
+    if (!parts.length) {
+      return "";
+    }
+
+    if (parts.length === 1) {
+      return /^\d{1,4}$/.test(parts[0]) ? parts[0] : cleaned;
+    }
+
+    if (parts.length === 2) {
+      const [first, second] = parts;
+      if (/^\d{4}$/.test(first) && /^\d{1,2}$/.test(second)) {
+        return `${first}-${second.padStart(2, "0")}`;
+      }
+      if (/^\d{1,2}$/.test(first) && /^\d{4}$/.test(second)) {
+        return `${second}-${first.padStart(2, "0")}`;
+      }
+      return cleaned;
+    }
+
+    const [first, second, third] = parts;
+    if (/^\d{4}$/.test(first) && /^\d{1,2}$/.test(second) && /^\d{1,2}$/.test(third)) {
+      return `${first}-${second.padStart(2, "0")}-${third.padStart(2, "0")}`;
+    }
+    if (/^\d{1,2}$/.test(first) && /^\d{1,2}$/.test(second) && /^\d{4}$/.test(third)) {
+      return `${third}-${second.padStart(2, "0")}-${first.padStart(2, "0")}`;
+    }
+
+    return cleaned;
+  }
+
+  function formatFlexibleDate(value) {
+    const normalized = normalizeFlexibleDateInput(value);
+    if (!normalized) {
+      return "inconnue";
+    }
+
+    if (/^\d{1,4}$/.test(normalized)) {
+      return normalized;
+    }
+
+    const monthMatch = normalized.match(/^(\d{1,4})-(\d{2})$/);
+    if (monthMatch) {
+      return `${monthMatch[2]}-${monthMatch[1]}`;
+    }
+
+    const dayMatch = normalized.match(/^(\d{1,4})-(\d{2})-(\d{2})$/);
+    if (dayMatch) {
+      return `${dayMatch[3]}-${dayMatch[2]}-${dayMatch[1]}`;
+    }
+
+    return normalized;
+  }
+
   function renderInline(text) {
     const escaped = escapeHtml(text);
     return escaped
@@ -165,9 +229,11 @@
     escapeHtml,
     extractLinks,
     extractSummary,
+    formatFlexibleDate,
     formatDate,
     normalizeTag,
     normalizeTagList,
+    normalizeFlexibleDateInput,
     parseTags,
     renderInline,
     renderNoteHtml,
