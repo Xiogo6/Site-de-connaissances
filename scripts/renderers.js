@@ -2,8 +2,16 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createRenderersModule = function createRenderersModule(context) {
-    const { noteTypeLabels } = AtlasApp.config;
-    const { escapeHtml, extractLinks, parseTags, renderNoteHtml, unique } = AtlasApp.helpers;
+    const {
+      escapeHtml,
+      extractLinks,
+      formatFlexibleDate,
+      getFlexibleDateTimestamp,
+      normalizeTag,
+      parseTags,
+      renderNoteHtml,
+      unique,
+    } = AtlasApp.helpers;
   function renderEverything() {
     syncDynamicControls();
     renderTheme();
@@ -24,6 +32,7 @@
     context.graph.drawGraph();
     context.quiz.renderQuizCard();
     context.quiz.renderFlashcards();
+    renderTimelineView();
     renderTemplateEditor();
     renderPublishCenter();
     renderQuickCapture();
@@ -40,7 +49,7 @@
       button.classList.toggle("is-active", button.dataset.utilityTab === context.state.activeTab);
     });
 
-    const utilityActive = ["flashcards", "templates", "publish"].includes(context.state.activeTab);
+    const utilityActive = ["flashcards", "timeline", "settings", "publish"].includes(context.state.activeTab);
     context.elements.utilityDrawerOpen.classList.toggle("is-active", utilityActive);
     context.elements.utilityDrawerOpen.setAttribute(
       "aria-expanded",
@@ -278,6 +287,7 @@
       openAttr: "data-open-note",
       editAttr: "data-edit-note",
       toggleAttr: "data-toggle-note-menu",
+      rootAttr: "data-root-note",
       duplicateAttr: "data-duplicate-note",
       deleteAttr: "data-delete-note",
       variant: "flat",
@@ -328,6 +338,7 @@
         <div class="knowledge-item-menu${isMenuOpen ? "" : " is-hidden"}">
           <div class="compact-menu-actions">
             <button type="button" class="button" ${config.editAttr}="${note.id}">Editer</button>
+            <button type="button" class="button" ${config.rootAttr}="${note.id}">Racine</button>
             <button type="button" class="button" ${config.duplicateAttr}="${note.id}">Dupliquer</button>
             <button type="button" class="button button-ghost" ${config.deleteAttr}="${note.id}">Supprimer</button>
           </div>
@@ -431,10 +442,59 @@
       return;
     }
 
+    renderTypeSettingsList();
     const templates = context.data.getTemplates();
     const draft = context.state.templateDrafts[context.state.activeTemplateType];
     context.elements.templateEditor.value =
       typeof draft === "string" ? draft : templates[context.state.activeTemplateType] || "";
+  }
+
+  function renderTypeSettingsList() {
+    if (!context.elements.typeSettingsList) {
+      return;
+    }
+
+    const entries = context.data
+      .getNoteTypeEntries()
+      .sort((left, right) => left.label.localeCompare(right.label, "fr", { sensitivity: "base" }));
+
+    context.elements.typeSettingsList.innerHTML = "";
+
+    entries.forEach((entry) => {
+      const canDelete = entry.isCustom && !context.notes.isTypeUsed(entry.id);
+      const row = document.createElement("label");
+      row.className = "settings-type-row";
+      row.innerHTML = `
+        <span class="field-label">${entry.isCustom ? "Type personnalise" : "Type de base"}</span>
+        <div class="settings-type-meta">
+          <input
+            class="text-input"
+            type="text"
+            value="${escapeHtml(entry.label)}"
+            data-type-label-input="${entry.id}"
+          />
+          <span class="pill pill-soft">${escapeHtml(entry.id)}</span>
+          ${
+            entry.isCustom
+              ? `<button
+                  type="button"
+                  class="button button-ghost settings-delete-type"
+                  data-delete-type="${entry.id}"
+                  ${canDelete ? "" : "disabled"}
+                >
+                  Supprimer
+                </button>`
+              : ""
+          }
+        </div>
+        ${
+          entry.isCustom && !canDelete
+            ? '<span class="helper-copy helper-copy-compact">Ce type est utilise par au moins une page.</span>'
+            : ""
+        }
+      `;
+      context.elements.typeSettingsList.appendChild(row);
+    });
   }
 
   function renderPreview(note = context.notes.getActiveNote(), isDraft = false) {
@@ -453,7 +513,7 @@
 
     const typeTag = document.createElement("span");
     typeTag.className = "tag tag-type";
-    typeTag.textContent = noteTypeLabels[note.type] || "Concept";
+    typeTag.textContent = context.data.getNoteTypeLabels()[note.type] || "Concept";
     context.elements.previewTags.appendChild(typeTag);
 
     if (note.favorite) {
@@ -505,20 +565,7 @@
   }
 
   function formatStructuredDate(value) {
-    if (!value) {
-      return "inconnue";
-    }
-
-    const date = new Date(`${value}T00:00:00`);
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
-    return new Intl.DateTimeFormat("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
+    return formatFlexibleDate(value);
   }
 
   function renderConnections(note = context.notes.getActiveNote()) {
@@ -652,7 +699,7 @@
       button.className = "due-item";
       button.innerHTML = `
         <strong>${escapeHtml(note.title)}</strong>
-        <p>${escapeHtml(noteTypeLabels[note.type] || "Concept")} | ${escapeHtml(
+        <p>${escapeHtml(context.data.getNoteTypeLabels()[note.type] || "Concept")} | ${escapeHtml(
           note.tags.slice(0, 2).join(" | ") || "Sans tag"
         )}</p>
       `;
@@ -693,6 +740,7 @@
     renderHierarchyTree(context.elements.organizationTree, context.notes.buildHierarchyForest(), 0, {
       variant: "flat",
       allowDrag: true,
+      rootAttr: "data-root-organization-note",
     });
     renderInsightList(
       context.elements.organizationOrphans,
@@ -762,6 +810,7 @@
             openAttr: options.openAttr || "data-open-organization-note",
             editAttr: options.editAttr || "data-edit-organization-note",
             toggleAttr: options.toggleAttr || "data-toggle-organization-menu",
+            rootAttr: options.rootAttr || "data-root-organization-note",
             duplicateAttr: options.duplicateAttr || "data-duplicate-organization-note",
             deleteAttr: options.deleteAttr || "data-delete-organization-note",
             leadingHtml: isCollapsible
@@ -791,6 +840,501 @@
     };
 
     nodes.forEach((node) => appendNode(node, depth));
+  }
+
+  function renderTimelineView() {
+    if (!context.elements.timelineCanvas) {
+      return;
+    }
+
+    const folders = context.state.notes
+      .filter((note) => note.type === "folder")
+      .sort((left, right) => left.title.localeCompare(right.title, "fr", { sensitivity: "base" }));
+    const tags = context.notes.getAllTags();
+    const activeNote = context.notes.getActiveNote();
+
+    if (!context.state.timeline.folderId || !folders.some((note) => note.id === context.state.timeline.folderId)) {
+      context.state.timeline.folderId =
+        activeNote?.type === "folder" ? activeNote.id : folders[0]?.id || "";
+    }
+
+    if (!context.state.timeline.tag || !tags.includes(context.state.timeline.tag)) {
+      context.state.timeline.tag = activeNote?.tags?.[0] || tags[0] || "";
+    }
+
+    if (context.state.timeline.scope === "folder" && !folders.length && tags.length) {
+      context.state.timeline.scope = "tag";
+    }
+
+    if (context.elements.timelineScope) {
+      context.elements.timelineScope.value = context.state.timeline.scope;
+    }
+    if (context.elements.timelineFolder) {
+      context.elements.timelineFolder.value = context.state.timeline.folderId;
+    }
+    if (context.elements.timelineTag) {
+      context.elements.timelineTag.value = context.state.timeline.tag;
+    }
+
+    context.elements.timelineFolderWrapper.classList.toggle(
+      "is-hidden",
+      context.state.timeline.scope !== "folder"
+    );
+    context.elements.timelineTagWrapper.classList.toggle(
+      "is-hidden",
+      context.state.timeline.scope !== "tag"
+    );
+
+    const dataset = buildTimelineDataset();
+    context.elements.timelineProgress.textContent = `${dataset.items.length} repere${
+      dataset.items.length > 1 ? "s" : ""
+    }`;
+    context.elements.timelineTitle.textContent = dataset.title;
+
+    if (!dataset.items.length) {
+      context.elements.timelineSummary.innerHTML = `
+        <div class="timeline-summary-card">
+          <strong>Rien a tracer pour l'instant</strong>
+          <p>
+            Choisissez un dossier ou un tag contenant des pages avec une date.
+            Les personnes, evenements, concepts et autres pages datees apparaitront ici.
+          </p>
+        </div>
+      `;
+      context.elements.timelineCanvas.className = "timeline-canvas empty-state";
+      context.elements.timelineCanvas.textContent =
+        "Aucune page datee trouvee pour cette source.";
+      context.elements.timelineFocus.innerHTML = "";
+      context.state.timeline.selectedNoteId = null;
+      return;
+    }
+
+    const counts = dataset.items.reduce(
+      (summary, item) => {
+        summary.total += 1;
+        if (item.note.type === "person") {
+          summary.people += 1;
+        } else if (item.note.type === "event") {
+          summary.events += 1;
+        } else {
+          summary.other += 1;
+        }
+        return summary;
+      },
+      { total: 0, people: 0, events: 0, other: 0 }
+    );
+
+    context.elements.timelineSummary.innerHTML = `
+      <div class="timeline-summary-grid">
+        <article class="timeline-summary-card">
+          <strong>Amplitude</strong>
+          <p>${escapeHtml(dataset.summaryRange)}</p>
+        </article>
+        <article class="timeline-summary-card">
+          <strong>Composition</strong>
+          <p>${counts.people} personne(s), ${counts.events} evenement(s), ${counts.other} autre(s) repere(s).</p>
+        </article>
+        <article class="timeline-summary-card">
+          <strong>Lecture</strong>
+          <p>${escapeHtml(dataset.didacticCopy)}</p>
+        </article>
+      </div>
+    `;
+
+    context.elements.timelineCanvas.className = "timeline-canvas";
+    context.elements.timelineCanvas.innerHTML = dataset.stageHtml;
+    renderTimelineFocus(dataset);
+  }
+
+  function buildTimelineDataset() {
+    const sourceNotes = getTimelineScopeNotes();
+    const items = sourceNotes
+      .map((note) => buildTimelineItem(note))
+      .filter(Boolean)
+      .sort((left, right) => left.sortStart - right.sortStart || left.sortEnd - right.sortEnd);
+
+    const sourceLabel =
+      context.state.timeline.scope === "folder"
+        ? getTimelineFolderLabel()
+        : `#${context.state.timeline.tag || "tag"}`;
+
+    if (!items.length) {
+      return {
+        title:
+          context.state.timeline.scope === "folder"
+            ? `Frise du dossier ${sourceLabel || "non defini"}`
+            : `Frise du tag ${sourceLabel}`,
+        items: [],
+        stageHtml: "",
+        summaryRange: "",
+        didacticCopy: "",
+      };
+    }
+
+    const minTime = Math.min(...items.map((item) => item.startMs));
+    const maxTime = Math.max(...items.map((item) => item.endMs));
+    const oneYear = 365 * 24 * 60 * 60 * 1000;
+    const rawSpan = Math.max(maxTime - minTime, oneYear);
+    const padding = Math.max(rawSpan * 0.08, oneYear * 0.75);
+    const domainStart = minTime - padding;
+    const domainEnd = maxTime + padding;
+    const domainSpan = Math.max(domainEnd - domainStart, oneYear);
+    const stageWidth = Math.max(920, items.length * 130, Math.min(1800, Math.ceil(domainSpan / oneYear) * 12));
+
+    const projectedItems = items.map((item) => {
+      const startX = projectToStage(item.startMs, domainStart, domainSpan, stageWidth);
+      const endX = projectToStage(item.endMs, domainStart, domainSpan, stageWidth);
+      return {
+        ...item,
+        startX,
+        endX,
+        anchorX: item.kind === "point" ? startX : (startX + endX) / 2,
+      };
+    });
+
+    const lifeItems = projectedItems.filter((item) => item.kind === "life");
+    const rangeItems = projectedItems.filter((item) => item.kind === "range");
+    const pointItems = projectedItems.filter((item) => item.kind === "point");
+
+    const topPointItems = [];
+    const bottomPointItems = [];
+    pointItems.forEach((item, index) => {
+      (index % 2 === 0 ? topPointItems : bottomPointItems).push(item);
+    });
+
+    const topBarLayout = assignTimelineRows(lifeItems, 32, 34);
+    const bottomBarLayout = assignTimelineRows(rangeItems, 32, 34);
+    const topPointLayout = assignTimelineRows(topPointItems, 140, 72);
+    const bottomPointLayout = assignTimelineRows(bottomPointItems, 140, 72);
+
+    const topBarRows = Math.max(...topBarLayout.map((item) => item.row), -1) + 1;
+    const bottomBarRows = Math.max(...bottomBarLayout.map((item) => item.row), -1) + 1;
+    const topPointRows = Math.max(...topPointLayout.map((item) => item.row), -1) + 1;
+    const bottomPointRows = Math.max(...bottomPointLayout.map((item) => item.row), -1) + 1;
+
+    const axisY = 110 + topPointRows * 98 + topBarRows * 38;
+    const stageHeight = Math.max(
+      520,
+      axisY + 120 + bottomBarRows * 38 + bottomPointRows * 98
+    );
+
+    const timelineEntries = [
+      ...topBarLayout.map((item) => ({
+        ...item,
+        side: "top",
+        top: axisY - 34 - item.row * 38,
+      })),
+      ...bottomBarLayout.map((item) => ({
+        ...item,
+        side: "bottom",
+        top: axisY + 28 + item.row * 38,
+      })),
+      ...topPointLayout.map((item) => ({
+        ...item,
+        side: "top",
+        top: axisY - 92 - topBarRows * 38 - item.row * 98,
+      })),
+      ...bottomPointLayout.map((item) => ({
+        ...item,
+        side: "bottom",
+        top: axisY + 70 + bottomBarRows * 38 + item.row * 98,
+      })),
+    ].sort((left, right) => left.sortStart - right.sortStart || left.sortEnd - right.sortEnd);
+
+    const selectedItem =
+      timelineEntries.find((item) => item.note.id === context.state.timeline.selectedNoteId) ||
+      timelineEntries[0];
+    context.state.timeline.selectedNoteId = selectedItem?.note.id || null;
+
+    const stageHtml = buildTimelineStageHtml({
+      axisY,
+      domainStart,
+      domainEnd,
+      height: stageHeight,
+      items: timelineEntries,
+      selectedNoteId: context.state.timeline.selectedNoteId,
+      width: stageWidth,
+    });
+
+    const firstLabel = items[0].labelDate;
+    const lastLabel = items[items.length - 1].labelDate;
+    const spanYears = Math.max(
+      0,
+      new Date(maxTime).getUTCFullYear() - new Date(minTime).getUTCFullYear()
+    );
+
+    return {
+      title:
+        context.state.timeline.scope === "folder"
+          ? `Frise du dossier ${sourceLabel || "non defini"}`
+          : `Frise du tag ${sourceLabel}`,
+      items: timelineEntries,
+      stageHtml,
+      summaryRange: `${firstLabel} -> ${lastLabel}`,
+      didacticCopy:
+        spanYears > 120
+          ? "Vue large: les bandes montrent les longues periodes, tandis que les repères isolent les moments clefs."
+          : spanYears > 25
+            ? "Vue intermediaire: on lit les trajectoires humaines, les evenements et les jalons sur un meme axe."
+            : "Vue resserree: la frise laisse voir les successions fines, presque scene par scene.",
+    };
+  }
+
+  function getTimelineScopeNotes() {
+    if (context.state.timeline.scope === "tag") {
+      const targetTag = normalizeTag(context.state.timeline.tag);
+      return context.state.notes.filter((note) => {
+        return targetTag && note.tags.some((tag) => normalizeTag(tag) === targetTag);
+      });
+    }
+
+    return context.notes.getFolderDescendantNotes(context.state.timeline.folderId);
+  }
+
+  function getTimelineFolderLabel() {
+    return (
+      context.state.notes.find((note) => note.id === context.state.timeline.folderId)?.title || ""
+    );
+  }
+
+  function buildTimelineItem(note) {
+    const metadata = note.metadata || {};
+    if (!metadata.hasDate) {
+      return null;
+    }
+
+    const dateLabelByMode = {
+      reference: metadata.singleDate,
+      life: [metadata.startDate, metadata.endDate].filter(Boolean).join(" -> "),
+      range: [metadata.startDate, metadata.endDate].filter(Boolean).join(" -> "),
+    };
+
+    if (metadata.dateMode === "life" || metadata.dateMode === "range") {
+      const fallback = metadata.startDate || metadata.endDate;
+      const startRaw = metadata.startDate || fallback;
+      const endRaw = metadata.endDate || fallback;
+      const startMs = getFlexibleDateTimestamp(startRaw, "start");
+      const endMs = getFlexibleDateTimestamp(endRaw, "end");
+      if (startMs == null && endMs == null) {
+        return null;
+      }
+
+      const safeStart = startMs ?? endMs;
+      const safeEnd = endMs ?? startMs;
+      return {
+        note,
+        kind: safeStart === safeEnd ? "point" : metadata.dateMode,
+        labelDate:
+          metadata.dateMode === "life"
+            ? `${formatFlexibleDate(startRaw)} -> ${formatFlexibleDate(endRaw)}`
+            : `${formatFlexibleDate(startRaw)} -> ${formatFlexibleDate(endRaw)}`,
+        sortStart: Math.min(safeStart, safeEnd),
+        sortEnd: Math.max(safeStart, safeEnd),
+        startMs: Math.min(safeStart, safeEnd),
+        endMs: Math.max(safeStart, safeEnd),
+        summaryDate: dateLabelByMode[metadata.dateMode],
+      };
+    }
+
+    const singleRaw = metadata.singleDate || metadata.startDate || metadata.endDate;
+    const singleMs = getFlexibleDateTimestamp(singleRaw, "center");
+    if (singleMs == null) {
+      return null;
+    }
+
+    return {
+      note,
+      kind: "point",
+      labelDate: formatFlexibleDate(singleRaw),
+      sortStart: singleMs,
+      sortEnd: singleMs,
+      startMs: singleMs,
+      endMs: singleMs,
+      summaryDate: dateLabelByMode.reference,
+    };
+  }
+
+  function projectToStage(value, domainStart, domainSpan, width) {
+    return ((value - domainStart) / domainSpan) * (width - 96) + 48;
+  }
+
+  function assignTimelineRows(items, padding, pointWidth) {
+    const lanes = [];
+    return items
+      .slice()
+      .sort((left, right) => left.startX - right.startX)
+      .map((item) => {
+        const intervalStart = item.kind === "point" ? item.anchorX - pointWidth / 2 : item.startX;
+        const intervalEnd = item.kind === "point" ? item.anchorX + pointWidth / 2 : item.endX;
+        let row = 0;
+
+        while (lanes[row] != null && intervalStart <= lanes[row] + padding) {
+          row += 1;
+        }
+
+        lanes[row] = intervalEnd;
+        return {
+          ...item,
+          row,
+        };
+      });
+  }
+
+  function buildTimelineStageHtml({ axisY, domainStart, domainEnd, height, items, selectedNoteId, width }) {
+    const ticks = buildTimelineTicks(domainStart, domainEnd, width, axisY);
+    const bands = buildTimelineBands(domainStart, domainEnd, width, height);
+    const entries = items
+      .map((item) => {
+        if (item.kind === "point") {
+          return buildPointTimelineEntry(item, axisY, selectedNoteId);
+        }
+
+        return buildRangeTimelineEntry(item, selectedNoteId);
+      })
+      .join("");
+
+    return `
+      <div class="timeline-stage-shell">
+        <div class="timeline-stage" style="width:${Math.round(width)}px;height:${Math.round(height)}px;">
+          ${bands}
+          <div class="timeline-axis" style="top:${Math.round(axisY)}px;"></div>
+          ${ticks}
+          ${entries}
+        </div>
+      </div>
+    `;
+  }
+
+  function buildTimelineBands(domainStart, domainEnd, width, height) {
+    const startYear = new Date(domainStart).getUTCFullYear();
+    const endYear = new Date(domainEnd).getUTCFullYear();
+    const spanYears = Math.max(1, endYear - startYear);
+    const step = spanYears > 300 ? 100 : spanYears > 120 ? 50 : spanYears > 40 ? 10 : 5;
+    const bands = [];
+
+    for (let year = Math.floor(startYear / step) * step; year <= endYear; year += step) {
+      const bandStart = Date.UTC(year, 0, 1);
+      const bandEnd = Date.UTC(year + step, 0, 1);
+      const left = projectToStage(bandStart, domainStart, domainEnd - domainStart, width);
+      const right = projectToStage(bandEnd, domainStart, domainEnd - domainStart, width);
+      bands.push(`
+        <div
+          class="timeline-band${Math.floor(year / step) % 2 === 0 ? " is-alt" : ""}"
+          style="left:${left}px;width:${Math.max(0, right - left)}px;height:${height}px;"
+        ></div>
+      `);
+    }
+
+    return bands.join("");
+  }
+
+  function buildTimelineTicks(domainStart, domainEnd, width, axisY) {
+    const startYear = new Date(domainStart).getUTCFullYear();
+    const endYear = new Date(domainEnd).getUTCFullYear();
+    const spanYears = Math.max(1, endYear - startYear);
+    const step = spanYears > 500 ? 100 : spanYears > 180 ? 50 : spanYears > 70 ? 20 : spanYears > 25 ? 10 : spanYears > 10 ? 5 : 1;
+    const ticks = [];
+
+    for (let year = Math.floor(startYear / step) * step; year <= endYear + step; year += step) {
+      const x = projectToStage(Date.UTC(year, 0, 1), domainStart, domainEnd - domainStart, width);
+      ticks.push(`
+        <div class="timeline-tick" style="left:${x}px;top:${axisY - 18}px;"></div>
+        <div class="timeline-tick-label" style="left:${x}px;top:${axisY + 16}px;">${year}</div>
+      `);
+    }
+
+    return ticks.join("");
+  }
+
+  function buildPointTimelineEntry(item, axisY, selectedNoteId) {
+    const typeLabel = context.data.getNoteTypeLabels()[item.note.type] || "Page";
+    const selectedClass = item.note.id === selectedNoteId ? " is-selected" : "";
+    const stemHeight = Math.max(28, Math.abs(axisY - (item.side === "top" ? item.top + 74 : item.top)) - 10);
+    const stemTop = item.side === "top" ? item.top + 74 : axisY + 10;
+    const dotTop = axisY - 7;
+
+    return `
+      <div class="timeline-entry timeline-entry-${item.side}${selectedClass}" style="left:${item.anchorX}px;top:${item.top}px;">
+        <button type="button" class="timeline-card timeline-card-point timeline-card-${escapeHtml(
+          item.note.type
+        )}" data-select-timeline-note="${item.note.id}">
+          <span class="timeline-card-date">${escapeHtml(item.labelDate)}</span>
+          <strong>${escapeHtml(item.note.title)}</strong>
+          <span class="timeline-card-type">${escapeHtml(typeLabel)}</span>
+        </button>
+        <span class="timeline-entry-stem" style="top:${stemTop - item.top}px;height:${stemHeight}px;"></span>
+        <span class="timeline-entry-dot" style="top:${dotTop - item.top}px;"></span>
+      </div>
+    `;
+  }
+
+  function buildRangeTimelineEntry(item, selectedNoteId) {
+    const typeLabel = context.data.getNoteTypeLabels()[item.note.type] || "Page";
+    const selectedClass = item.note.id === selectedNoteId ? " is-selected" : "";
+    const left = Math.min(item.startX, item.endX);
+    const width = Math.max(24, Math.abs(item.endX - item.startX));
+
+    return `
+      <div class="timeline-range timeline-range-${item.kind} timeline-range-${item.side}${selectedClass}" style="left:${left}px;top:${item.top}px;width:${width}px;">
+        <button type="button" class="timeline-range-bar timeline-card-${escapeHtml(
+          item.note.type
+        )}" data-select-timeline-note="${item.note.id}">
+          <span class="timeline-range-title">${escapeHtml(item.note.title)}</span>
+          <span class="timeline-range-date">${escapeHtml(item.labelDate)}</span>
+          <span class="timeline-range-type">${escapeHtml(typeLabel)}</span>
+        </button>
+      </div>
+    `;
+  }
+
+  function renderTimelineFocus(dataset) {
+    const selectedItem =
+      dataset.items.find((item) => item.note.id === context.state.timeline.selectedNoteId) ||
+      dataset.items[0];
+
+    if (!selectedItem) {
+      context.elements.timelineFocus.innerHTML = "";
+      return;
+    }
+
+    const selectedType = context.data.getNoteTypeLabels()[selectedItem.note.type] || "Page";
+    const relatedItems = dataset.items
+      .filter((item) => item.note.id !== selectedItem.note.id)
+      .slice(0, 5);
+
+    context.elements.timelineFocus.innerHTML = `
+      <div class="timeline-focus-grid">
+        <article class="timeline-focus-card">
+          <p class="eyebrow">Repere selectionne</p>
+          <h4>${escapeHtml(selectedItem.note.title)}</h4>
+          <p class="timeline-focus-meta">${escapeHtml(selectedType)} · ${escapeHtml(
+            selectedItem.labelDate
+          )}</p>
+          <p>${escapeHtml(
+            AtlasApp.helpers.extractSummary(selectedItem.note.content)
+          )}</p>
+          <button type="button" class="button button-primary" data-open-timeline-note="${selectedItem.note.id}">
+            Ouvrir la page
+          </button>
+        </article>
+
+        <article class="timeline-focus-card">
+          <p class="eyebrow">Autres repères</p>
+          <div class="timeline-moment-list">
+            ${relatedItems
+              .map((item) => {
+                return `
+                  <button type="button" class="timeline-moment" data-select-timeline-note="${item.note.id}">
+                    <strong>${escapeHtml(item.note.title)}</strong>
+                    <span>${escapeHtml(item.labelDate)}</span>
+                  </button>
+                `;
+              })
+              .join("")}
+          </div>
+        </article>
+      </div>
+    `;
   }
 
   function renderPublishCenter() {
@@ -848,6 +1392,41 @@
       disableMutating || !context.state.snapshots.length;
   }
 
+  function renderTagSuggestions(target) {
+    const input =
+      target === "quick" ? context.elements.quickTags : context.elements.tagsInput;
+    const container =
+      target === "quick"
+        ? context.elements.quickTagSuggestions
+        : context.elements.noteTagSuggestions;
+
+    if (!input || !container) {
+      return;
+    }
+
+    const draft = input.value.split(",").pop()?.trim() || "";
+    const normalizedDraft = normalizeTag(draft);
+    const suggestions = normalizedDraft
+      ? context.notes
+          .getAllTags()
+          .filter((tag) => tag.startsWith(normalizedDraft) && tag !== normalizedDraft)
+          .slice(0, 6)
+      : [];
+
+    container.innerHTML = "";
+    container.classList.toggle("is-hidden", !suggestions.length);
+
+    suggestions.forEach((tag) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "tag-suggestion";
+      button.dataset.tagSuggestion = tag;
+      button.dataset.tagSuggestionTarget = target;
+      button.textContent = tag;
+      container.appendChild(button);
+    });
+  }
+
   function renderQuickCapture() {
     document.body.classList.toggle("quick-capture-open", context.state.quickCaptureOpen);
     context.elements.quickCapturePanel.classList.toggle(
@@ -858,10 +1437,28 @@
 
   function syncDynamicControls() {
     populateSelect(
+      context.elements.typeInput,
+      context.data.getNoteTypeEntries().map((entry) => ({
+        value: entry.id,
+        label: entry.label,
+      })),
+      context.notes.getActiveNote()?.type || context.elements.typeInput.value
+    );
+
+    populateSelect(
+      context.elements.quickType,
+      context.data.getNoteTypeEntries().map((entry) => ({
+        value: entry.id,
+        label: entry.label,
+      })),
+      context.elements.quickType?.value || "concept"
+    );
+
+    populateSelect(
       context.elements.templateType,
-      Object.keys(noteTypeLabels).map((type) => ({
-        value: type,
-        label: noteTypeLabels[type],
+      context.data.getNoteTypeEntries().map((entry) => ({
+        value: entry.id,
+        label: entry.label,
       })),
       context.state.activeTemplateType
     );
@@ -870,9 +1467,9 @@
       context.elements.typeFilter,
       [
         { value: "all", label: "Tous les types" },
-        ...Object.keys(noteTypeLabels).map((type) => ({
-          value: type,
-          label: noteTypeLabels[type],
+        ...context.data.getNoteTypeEntries().map((entry) => ({
+          value: entry.id,
+          label: entry.label,
         })),
       ],
       context.state.typeFilter
@@ -896,6 +1493,25 @@
       context.elements.quizFolder?.value || ""
     );
     populateSelect(
+      context.elements.timelineFolder,
+      [
+        { value: "", label: "Choisir un dossier" },
+        ...context.state.notes
+          .filter((note) => note.type === "folder")
+          .sort((left, right) => left.title.localeCompare(right.title, "fr", { sensitivity: "base" }))
+          .map((note) => ({ value: note.id, label: note.title })),
+      ],
+      context.state.timeline.folderId
+    );
+    populateSelect(
+      context.elements.timelineTag,
+      [
+        { value: "", label: "Choisir un tag" },
+        ...context.notes.getAllTags().map((tag) => ({ value: tag, label: tag })),
+      ],
+      context.state.timeline.tag
+    );
+    populateSelect(
       context.elements.parentInput,
       [
         { value: "", label: "Aucune" },
@@ -910,6 +1526,9 @@
     context.elements.graphFocusMode.value = context.state.graphFocusMode;
     context.elements.graphShowTags.checked = context.state.graphShowTags;
     context.elements.templateType.value = context.state.activeTemplateType;
+    if (context.elements.timelineScope) {
+      context.elements.timelineScope.value = context.state.timeline.scope;
+    }
   }
 
   function populateSelect(select, options, selectedValue) {
@@ -948,8 +1567,10 @@
     renderSidebarTabs,
     renderStats,
     renderStructuredFields,
+    renderTagSuggestions,
     renderTabs,
     renderTemplateEditor,
+    renderTimelineView,
     renderWorkspaceBanner,
     syncDynamicControls,
     syncEditorAvailability,

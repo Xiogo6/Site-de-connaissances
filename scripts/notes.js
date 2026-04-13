@@ -2,7 +2,7 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createNotesModule = function createNotesModule(context) {
-    const { extractLinks, parseTags, unique } = AtlasApp.helpers;
+    const { extractLinks, normalizeFlexibleDateInput, parseTags, unique } = AtlasApp.helpers;
   function getFilteredNotes() {
     const ordered = [...context.state.notes].sort((left, right) => {
       return left.title.localeCompare(right.title, "fr", { sensitivity: "base" });
@@ -66,10 +66,10 @@
     metadata.dateMode = context.elements.noteDateMode.value;
 
     if (metadata.dateMode === "range" || metadata.dateMode === "life") {
-      metadata.startDate = context.elements.noteDateStart.value || "";
-      metadata.endDate = context.elements.noteDateEnd.value || "";
+      metadata.startDate = normalizeFlexibleDateInput(context.elements.noteDateStart.value);
+      metadata.endDate = normalizeFlexibleDateInput(context.elements.noteDateEnd.value);
     } else {
-      metadata.singleDate = context.elements.noteDateSingle.value || "";
+      metadata.singleDate = normalizeFlexibleDateInput(context.elements.noteDateSingle.value);
     }
 
     return metadata;
@@ -119,6 +119,22 @@
     context.elements.contentInput.value = content;
     rememberEditorTemplateSeed(type, title || "Sans titre", content);
     context.renderers.renderLivePreview();
+  }
+
+  function syncMarkdownHeadingWithTitle(nextTitle) {
+    const content = context.elements.contentInput.value;
+    if (!content) {
+      return;
+    }
+
+    const lines = content.split("\n");
+    const headingIndex = lines.findIndex((line) => line.trim().length > 0);
+    if (headingIndex === -1 || !lines[headingIndex].startsWith("# ")) {
+      return;
+    }
+
+    lines[headingIndex] = `# ${nextTitle || "Sans titre"}`;
+    context.elements.contentInput.value = lines.join("\n");
   }
 
   function getBacklinks(title, excludedId) {
@@ -455,12 +471,118 @@
     context.state.settings.templates = {
       ...context.data.getTemplates(),
       [context.state.activeTemplateType]:
-        context.data.getDefaultSettings().templates[context.state.activeTemplateType],
+        context.data.getDefaultTemplateForType(context.state.activeTemplateType),
     };
     context.state.templateDrafts[context.state.activeTemplateType] =
       context.state.settings.templates[context.state.activeTemplateType];
     context.data.saveNotes();
     context.renderers.renderTemplateEditor();
+  }
+
+  function addCustomType() {
+    if (context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    const label = context.elements.newTypeLabelInput?.value.trim();
+    if (!label) {
+      return;
+    }
+
+    const id = context.data.generateId(`type-${label}`, []).replace(/^type-/, "") || "type";
+    const reserved = new Set(context.data.getNoteTypeEntries().map((entry) => entry.id));
+    let candidate = id;
+    let index = 2;
+
+    while (reserved.has(candidate)) {
+      candidate = `${id}-${index}`;
+      index += 1;
+    }
+
+    context.state.settings.customNoteTypes = [
+      ...(context.state.settings.customNoteTypes || []),
+      { id: candidate, label },
+    ];
+    context.state.settings.templates = {
+      ...context.data.getTemplates(),
+      [candidate]: context.data.getDefaultTemplateForType(candidate).replace("## Page", `## ${label}`),
+    };
+    context.state.activeTemplateType = candidate;
+    context.state.templateDrafts[candidate] = context.state.settings.templates[candidate];
+    context.elements.newTypeLabelInput.value = "";
+    context.data.saveNotes();
+    context.renderers.renderEverything();
+  }
+
+  function updateTypeLabel(type, label) {
+    if (context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    const nextLabel = String(label || "").trim();
+    if (!nextLabel) {
+      return;
+    }
+
+    const customIndex = (context.state.settings.customNoteTypes || []).findIndex(
+      (entry) => entry.id === type
+    );
+
+    if (customIndex >= 0) {
+      context.state.settings.customNoteTypes[customIndex] = {
+        ...context.state.settings.customNoteTypes[customIndex],
+        label: nextLabel,
+      };
+    } else {
+      context.state.settings.typeLabels = {
+        ...(context.state.settings.typeLabels || {}),
+        [type]: nextLabel,
+      };
+    }
+
+    context.data.saveNotes();
+  }
+
+  function isTypeUsed(type) {
+    return context.state.notes.some((note) => note.type === type);
+  }
+
+  function deleteCustomType(type) {
+    if (context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    const customTypes = context.state.settings.customNoteTypes || [];
+    if (!customTypes.some((entry) => entry.id === type)) {
+      return;
+    }
+
+    if (isTypeUsed(type)) {
+      return;
+    }
+
+    context.state.settings.customNoteTypes = customTypes.filter((entry) => entry.id !== type);
+
+    if (context.state.settings.templates?.[type]) {
+      const templates = { ...context.state.settings.templates };
+      delete templates[type];
+      context.state.settings.templates = templates;
+    }
+
+    if (context.state.settings.typeLabels?.[type]) {
+      const typeLabels = { ...context.state.settings.typeLabels };
+      delete typeLabels[type];
+      context.state.settings.typeLabels = typeLabels;
+    }
+
+    delete context.state.templateDrafts[type];
+
+    if (context.state.activeTemplateType === type) {
+      context.state.activeTemplateType = "concept";
+    }
+
+    context.data.saveNotes();
+    context.renderers.renderEverything();
   }
 
   function handleEditorTypeChange() {
@@ -478,9 +600,35 @@
     context.renderers.renderLivePreview();
   }
 
+  function handleEditorTitleChange() {
+    const note = getActiveNote();
+    const title = context.elements.titleInput.value.trim() || note?.title || "Sans titre";
+    const type = context.elements.typeInput.value;
+
+    if (isEditorUsingAutoTemplate()) {
+      applyEditorTemplate(type, title);
+      return;
+    }
+
+    syncMarkdownHeadingWithTitle(title);
+    context.renderers.renderLivePreview();
+  }
+
   function handleEditorContentChange() {
     if (!isEditorUsingAutoTemplate()) {
       clearEditorTemplateSeed();
+    }
+
+    const firstMeaningfulLine = context.elements.contentInput.value
+      .split("\n")
+      .map((line) => line.trim())
+      .find((line) => line.length > 0);
+
+    if (firstMeaningfulLine?.startsWith("# ")) {
+      const nextTitle = firstMeaningfulLine.slice(2).trim() || "Sans titre";
+      if (context.elements.titleInput.value !== nextTitle) {
+        context.elements.titleInput.value = nextTitle;
+      }
     }
   }
 
@@ -524,6 +672,10 @@
     context.data.saveAutomaticSnapshot(`Organisation ${note.title}`);
     resetDragState();
     context.renderers.renderEverything();
+  }
+
+  function moveNoteToRoot(noteId) {
+    moveNoteToParent(noteId, null);
   }
 
   function duplicateNoteById(noteId) {
@@ -887,6 +1039,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
   }
 
   return {
+    addCustomType,
     appendSuggestedLinkToActiveNote,
     buildHierarchyForest,
     cancelEditingNote,
@@ -917,12 +1070,14 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     getSuggestedLinks,
     highlightOrganizationTarget,
     handleEditorContentChange,
+    handleEditorTitleChange,
     handleEditorTypeChange,
     isFolderCollapsed,
     isNoteDue,
     isOrphanNote,
     moveActiveNoteToRoot,
     moveNoteToParent,
+    moveNoteToRoot,
     openOrCreateNote,
     openQuickCapture,
     discardPendingNewNote,
@@ -934,6 +1089,9 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     saveQuickCapture,
     saveTemplate,
     toggleFolderCollapse,
+    deleteCustomType,
+    isTypeUsed,
+    updateTypeLabel,
   };
   };
 })(window);
