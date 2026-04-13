@@ -69,6 +69,12 @@
         index: 0,
         answerVisible: false,
       },
+      timeline: {
+        scope: "folder",
+        folderId: "",
+        tag: "",
+        selectedNoteId: null,
+      },
       remote: {
         enabled: false,
         status: "local",

@@ -292,6 +292,23 @@
     );
     context.elements.flashcardPrevButton.addEventListener("click", context.quiz.previousFlashcard);
     context.elements.flashcardNextButton.addEventListener("click", context.quiz.nextFlashcard);
+    context.elements.timelineScope?.addEventListener("change", (event) => {
+      context.state.timeline.scope = event.target.value;
+      context.state.timeline.selectedNoteId = null;
+      context.renderers.renderTimelineView();
+    });
+    context.elements.timelineFolder?.addEventListener("change", (event) => {
+      context.state.timeline.folderId = event.target.value;
+      context.state.timeline.selectedNoteId = null;
+      context.renderers.renderTimelineView();
+    });
+    context.elements.timelineTag?.addEventListener("change", (event) => {
+      context.state.timeline.tag = event.target.value;
+      context.state.timeline.selectedNoteId = null;
+      context.renderers.renderTimelineView();
+    });
+    context.elements.timelineCanvas?.addEventListener("click", handleTimelineClick);
+    context.elements.timelineFocus?.addEventListener("click", handleTimelineClick);
 
     context.elements.previewContent.addEventListener("click", handleRenderedLinkClick);
     context.elements.outgoingLinks.addEventListener("click", handleChipClick);
@@ -401,6 +418,11 @@
 
     if (context.state.activeTab === "flashcards") {
       context.quiz.renderFlashcards();
+      return;
+    }
+
+    if (context.state.activeTab === "timeline") {
+      context.renderers.renderTimelineView();
       return;
     }
 
@@ -712,6 +734,25 @@
     }
 
     context.notes.appendSuggestedLinkToActiveNote(chip.dataset.linkTitle);
+  }
+
+  function handleTimelineClick(event) {
+    const openButton = event.target.closest("[data-open-timeline-note]");
+    if (openButton) {
+      context.state.activeNoteId = openButton.dataset.openTimelineNote;
+      context.state.activeTab = "knowledge";
+      context.state.noteViewMode = "read";
+      context.renderers.renderEverything();
+      return;
+    }
+
+    const selectButton = event.target.closest("[data-select-timeline-note]");
+    if (!selectButton) {
+      return;
+    }
+
+    context.state.timeline.selectedNoteId = selectButton.dataset.selectTimelineNote;
+    context.renderers.renderTimelineView();
   }
 
   function handleOrganizationDragStart(event) {

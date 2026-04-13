@@ -864,6 +864,66 @@
           </div>
         </section>
 
+        <section id="timeline-tab" class="tab-panel">
+          <div class="timeline-layout">
+            <section class="panel timeline-controls">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Lecture visuelle</p>
+                  <h3>Frise chronologique</h3>
+                </div>
+              </div>
+
+              <label>
+                <span class="field-label">Source</span>
+                <select id="timeline-scope" class="select-input">
+                  <option value="folder">Dossier</option>
+                  <option value="tag">Tag</option>
+                </select>
+              </label>
+
+              <label id="timeline-folder-wrapper">
+                <span class="field-label">Dossier cible</span>
+                <select id="timeline-folder" class="select-input">
+                  <option value="">Choisir un dossier</option>
+                </select>
+              </label>
+
+              <label id="timeline-tag-wrapper" class="is-hidden">
+                <span class="field-label">Tag cible</span>
+                <select id="timeline-tag" class="select-input">
+                  <option value="">Choisir un tag</option>
+                </select>
+              </label>
+
+              <article class="helper-card timeline-guide">
+                <h4>Ce que montre la frise</h4>
+                <p>
+                  Toutes les pages datees reliees au dossier ou au tag choisi. Les vies
+                  apparaissent comme des trajectoires, les periodes comme des bandes, et
+                  les dates uniques comme des repères.
+                </p>
+              </article>
+            </section>
+
+            <section class="panel timeline-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Narration</p>
+                  <h3 id="timeline-title">Aucune frise preparee</h3>
+                </div>
+                <span id="timeline-progress" class="pill pill-soft">0 repere</span>
+              </div>
+
+              <div id="timeline-summary" class="timeline-summary"></div>
+              <div id="timeline-canvas" class="timeline-canvas empty-state">
+                La frise apparaitra ici a partir d'un dossier ou d'un tag date.
+              </div>
+              <div id="timeline-focus" class="timeline-focus"></div>
+            </section>
+          </div>
+        </section>
+
         <section id="publish-tab" class="tab-panel">
           <div class="publish-layout">
             <section class="panel">
@@ -1006,6 +1066,10 @@
           <button class="utility-link" data-utility-tab="flashcards" type="button">
             <strong>Flashcards</strong>
             <span>Transformer vos connaissances en cartes recto verso pour memoriser plus vite.</span>
+          </button>
+          <button class="utility-link" data-utility-tab="timeline" type="button">
+            <strong>Frises</strong>
+            <span>Visualiser un dossier ou un tag sous forme de chronologie vivante et didactique.</span>
           </button>
           <button class="utility-link" data-utility-tab="settings" type="button">
             <strong>Parametres</strong>
