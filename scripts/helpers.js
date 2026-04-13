@@ -103,6 +103,145 @@
     }).format(date);
   }
 
+  function normalizeFlexibleDateInput(value) {
+    const cleaned = String(value || "")
+      .trim()
+      .replace(/[/.]/g, "-")
+      .replace(/\s+/g, "");
+
+    if (!cleaned) {
+      return "";
+    }
+
+    const parts = cleaned.split("-").filter(Boolean);
+    if (!parts.length) {
+      return "";
+    }
+
+    if (parts.length === 1) {
+      return /^\d{1,4}$/.test(parts[0]) ? parts[0] : cleaned;
+    }
+
+    if (parts.length === 2) {
+      const [first, second] = parts;
+      if (/^\d{4}$/.test(first) && /^\d{1,2}$/.test(second)) {
+        return `${first}-${second.padStart(2, "0")}`;
+      }
+      if (/^\d{1,2}$/.test(first) && /^\d{4}$/.test(second)) {
+        return `${second}-${first.padStart(2, "0")}`;
+      }
+      return cleaned;
+    }
+
+    const [first, second, third] = parts;
+    if (/^\d{4}$/.test(first) && /^\d{1,2}$/.test(second) && /^\d{1,2}$/.test(third)) {
+      return `${first}-${second.padStart(2, "0")}-${third.padStart(2, "0")}`;
+    }
+    if (/^\d{1,2}$/.test(first) && /^\d{1,2}$/.test(second) && /^\d{4}$/.test(third)) {
+      return `${third}-${second.padStart(2, "0")}-${first.padStart(2, "0")}`;
+    }
+
+    return cleaned;
+  }
+
+  function parseFlexibleDateParts(value) {
+    const normalized = normalizeFlexibleDateInput(value);
+    if (!normalized) {
+      return null;
+    }
+
+    if (/^\d{1,4}$/.test(normalized)) {
+      return {
+        normalized,
+        precision: "year",
+        year: Number(normalized),
+        month: null,
+        day: null,
+      };
+    }
+
+    const monthMatch = normalized.match(/^(\d{1,4})-(\d{2})$/);
+    if (monthMatch) {
+      return {
+        normalized,
+        precision: "month",
+        year: Number(monthMatch[1]),
+        month: Number(monthMatch[2]),
+        day: null,
+      };
+    }
+
+    const dayMatch = normalized.match(/^(\d{1,4})-(\d{2})-(\d{2})$/);
+    if (dayMatch) {
+      return {
+        normalized,
+        precision: "day",
+        year: Number(dayMatch[1]),
+        month: Number(dayMatch[2]),
+        day: Number(dayMatch[3]),
+      };
+    }
+
+    return null;
+  }
+
+  function getFlexibleDateTimestamp(value, boundary = "center") {
+    const parts = parseFlexibleDateParts(value);
+    if (!parts) {
+      return null;
+    }
+
+    if (parts.precision === "year") {
+      if (boundary === "start") {
+        return Date.UTC(parts.year, 0, 1);
+      }
+
+      if (boundary === "end") {
+        return Date.UTC(parts.year, 11, 31, 23, 59, 59, 999);
+      }
+
+      return Date.UTC(parts.year, 6, 1);
+    }
+
+    if (parts.precision === "month") {
+      const lastDay = new Date(Date.UTC(parts.year, parts.month, 0)).getUTCDate();
+      if (boundary === "start") {
+        return Date.UTC(parts.year, parts.month - 1, 1);
+      }
+
+      if (boundary === "end") {
+        return Date.UTC(parts.year, parts.month - 1, lastDay, 23, 59, 59, 999);
+      }
+
+      return Date.UTC(parts.year, parts.month - 1, Math.min(15, lastDay));
+    }
+
+    return Date.UTC(parts.year, parts.month - 1, parts.day);
+  }
+
+  function formatFlexibleDate(value) {
+    const normalized = normalizeFlexibleDateInput(value);
+    if (!normalized) {
+      return "inconnue";
+    }
+
+    if (/^\d{1,4}$/.test(normalized)) {
+      return normalized;
+    }
+
+    const monthMatch = normalized.match(/^(\d{1,4})-(\d{2})$/);
+    if (monthMatch) {
+      return `${monthMatch[2]}-${monthMatch[1]}`;
+    }
+
+    const dayMatch = normalized.match(/^(\d{1,4})-(\d{2})-(\d{2})$/);
+    if (dayMatch) {
+      return `${dayMatch[3]}-${dayMatch[2]}-${dayMatch[1]}`;
+    }
+
+    return normalized;
+  }
+
   function renderInline(text) {
     const escaped = escapeHtml(text);
     return escaped
@@ -165,10 +304,14 @@
     escapeHtml,
     extractLinks,
     extractSummary,
+    formatFlexibleDate,
     formatDate,
+    getFlexibleDateTimestamp,
     normalizeTag,
     normalizeTagList,
+    normalizeFlexibleDateInput,
     parseTags,
+    parseFlexibleDateParts,
     renderInline,
     renderNoteHtml,
     shuffle,
