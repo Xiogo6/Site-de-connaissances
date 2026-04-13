@@ -2,7 +2,7 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createQuizModule = function createQuizModule(context) {
-    const { escapeHtml, extractLinks, shuffle } = AtlasApp.helpers;
+    const { escapeHtml, extractLinks, formatFlexibleDate, shuffle } = AtlasApp.helpers;
   function getScopedNotes(scope, tagValue, folderId = "") {
     const active = context.notes.getActiveNote();
 
@@ -483,20 +483,7 @@
   }
 
   function formatDateAnswer(value) {
-    if (!value) {
-      return "inconnue";
-    }
-
-    const date = new Date(`${value}T00:00:00`);
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
-    return new Intl.DateTimeFormat("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date);
+    return formatFlexibleDate(value);
   }
 
   function deduplicateQuestions(questions) {

@@ -2,7 +2,7 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createDataModule = function createDataModule(context) {
-    const { normalizeTagList } = AtlasApp.helpers;
+    const { normalizeFlexibleDateInput, normalizeTagList } = AtlasApp.helpers;
     const {
       appStorageKey,
       dataVersion,
@@ -198,9 +198,18 @@
           ["reference", "life", "range"].includes(metadata.dateMode)
             ? metadata.dateMode
             : legacyMode,
-        singleDate: typeof metadata?.singleDate === "string" ? metadata.singleDate : legacySingleDate,
-        startDate: typeof metadata?.startDate === "string" ? metadata.startDate : legacyEventStartDate,
-        endDate: typeof metadata?.endDate === "string" ? metadata.endDate : legacyEventEndDate,
+        singleDate:
+          typeof metadata?.singleDate === "string"
+            ? normalizeFlexibleDateInput(metadata.singleDate)
+            : normalizeFlexibleDateInput(legacySingleDate),
+        startDate:
+          typeof metadata?.startDate === "string"
+            ? normalizeFlexibleDateInput(metadata.startDate)
+            : normalizeFlexibleDateInput(legacyEventStartDate),
+        endDate:
+          typeof metadata?.endDate === "string"
+            ? normalizeFlexibleDateInput(metadata.endDate)
+            : normalizeFlexibleDateInput(legacyEventEndDate),
       };
     }
 
@@ -214,7 +223,7 @@
             ? note.id
             : generateId(title, existingNotes),
         title,
-        type: typeof note.type === "string" && noteTypeLabels[note.type] ? note.type : "concept",
+        type: typeof note.type === "string" && note.type.trim() ? note.type.trim() : "concept",
         parentId: typeof note.parentId === "string" && note.parentId.trim() ? note.parentId : null,
         favorite: Boolean(note.favorite),
         tags: Array.isArray(note.tags) ? normalizeTagList(note.tags.map(String)) : [],
@@ -283,6 +292,8 @@
         publishedUrl: "",
         lastPublishAt: null,
         theme: "light",
+        typeLabels: {},
+        customNoteTypes: [],
         templates: { ...noteTemplates },
         collapsedFolders: [],
       };
@@ -291,13 +302,50 @@
     function normalizeTemplates(rawTemplates) {
       const templates = { ...noteTemplates };
 
-      Object.keys(noteTemplates).forEach((type) => {
-        if (typeof rawTemplates?.[type] === "string") {
-          templates[type] = rawTemplates[type];
+      Object.entries(rawTemplates || {}).forEach(([type, value]) => {
+        if (typeof value === "string") {
+          templates[type] = value;
         }
       });
 
       return templates;
+    }
+
+    function normalizeTypeLabels(rawTypeLabels = {}) {
+      return Object.entries(rawTypeLabels).reduce((result, [type, label]) => {
+        if (typeof label === "string" && label.trim()) {
+          result[type] = label.trim();
+        }
+        return result;
+      }, {});
+    }
+
+    function normalizeCustomNoteTypes(rawCustomNoteTypes = []) {
+      const reserved = new Set(Object.keys(noteTypeLabels));
+      const seen = new Set();
+
+      return Array.isArray(rawCustomNoteTypes)
+        ? rawCustomNoteTypes
+            .map((item) => {
+              const rawId = typeof item?.id === "string" ? item.id.trim() : "";
+              const label = typeof item?.label === "string" ? item.label.trim() : "";
+              const id =
+                rawId
+                  .toLowerCase()
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .replace(/[^a-z0-9]+/g, "-")
+                  .replace(/(^-|-$)/g, "") || "";
+
+              if (!label || !id || reserved.has(id) || seen.has(id)) {
+                return null;
+              }
+
+              seen.add(id);
+              return { id, label };
+            })
+            .filter(Boolean)
+        : [];
     }
 
     function normalizeSettings(rawSettings = {}) {
@@ -308,6 +356,8 @@
         lastPublishAt:
           typeof rawSettings?.lastPublishAt === "string" ? rawSettings.lastPublishAt : null,
         theme: rawSettings?.theme === "dark" ? "dark" : "light",
+        typeLabels: normalizeTypeLabels(rawSettings?.typeLabels),
+        customNoteTypes: normalizeCustomNoteTypes(rawSettings?.customNoteTypes),
         templates: normalizeTemplates(rawSettings?.templates),
         collapsedFolders: Array.isArray(rawSettings?.collapsedFolders)
           ? rawSettings.collapsedFolders.filter((value) => typeof value === "string")
@@ -350,6 +400,8 @@
           publishedUrl: context.state.settings.publishedUrl,
           lastPublishAt: context.state.settings.lastPublishAt,
           theme: context.state.settings.theme || "light",
+          typeLabels: context.state.settings.typeLabels || {},
+          customNoteTypes: context.state.settings.customNoteTypes || [],
           templates: context.state.settings.templates || {},
           collapsedFolders: context.state.settings.collapsedFolders || [],
         },
@@ -414,8 +466,52 @@
       return context.state.settings.templates || noteTemplates;
     }
 
+    function getNoteTypeLabels() {
+      const builtins = Object.fromEntries(
+        Object.entries(noteTypeLabels).map(([type, label]) => [
+          type,
+          context.state.settings.typeLabels?.[type] || label,
+        ])
+      );
+
+      const custom = Object.fromEntries(
+        (context.state.settings.customNoteTypes || []).map((item) => [item.id, item.label])
+      );
+
+      return {
+        ...builtins,
+        ...custom,
+      };
+    }
+
+    function getNoteTypeEntries() {
+      const labels = getNoteTypeLabels();
+      const customIds = new Set((context.state.settings.customNoteTypes || []).map((item) => item.id));
+      return Object.keys(labels).map((type) => ({
+        id: type,
+        label: labels[type],
+        isCustom: customIds.has(type),
+      }));
+    }
+
+    function getDefaultTemplateForType(type) {
+      if (noteTemplates[type]) {
+        return noteTemplates[type];
+      }
+
+      const label = getNoteTypeLabels()[type] || "Page";
+      return `# {{title}}
+
+## ${label}
+
+- Idee principale :
+- Contenu :
+- Liens utiles :
+`;
+    }
+
     function buildTemplateContent(type, title) {
-      const template = getTemplates()[type] || noteTemplates[type] || noteTemplates.concept;
+      const template = getTemplates()[type] || getDefaultTemplateForType(type) || noteTemplates.concept;
       return template.replaceAll("{{title}}", title || "Sans titre");
     }
 
@@ -712,6 +808,9 @@
       generateId,
       getDefaultRemoteState,
       getDefaultSettings,
+      getDefaultTemplateForType,
+      getNoteTypeEntries,
+      getNoteTypeLabels,
       getRemoteStatusLabel,
       getSaveStatusLabel,
       getSourceMode,

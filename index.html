@@ -285,6 +285,7 @@
                     type="text"
                     placeholder="memoire, biologie, projet"
                   />
+                  <div id="note-tag-suggestions" class="tag-suggestion-list is-hidden"></div>
                 </label>
 
                 <label>
@@ -322,19 +323,41 @@
                 <div id="generic-date-fields" class="note-detail-group form-grid form-grid-meta is-hidden">
                   <label id="note-date-single-label">
                     <span id="note-date-single-copy" class="field-label">Date</span>
-                    <input id="note-date-single" class="text-input" type="date" />
+                    <input
+                      id="note-date-single"
+                      class="text-input"
+                      type="text"
+                      inputmode="numeric"
+                      placeholder="AAAA, MM-AAAA ou JJ-MM-AAAA"
+                    />
                   </label>
 
                   <label id="note-date-start-label" class="is-hidden">
                     <span class="field-label">Date de debut</span>
-                    <input id="note-date-start" class="text-input" type="date" />
+                    <input
+                      id="note-date-start"
+                      class="text-input"
+                      type="text"
+                      inputmode="numeric"
+                      placeholder="AAAA, MM-AAAA ou JJ-MM-AAAA"
+                    />
                   </label>
 
                   <label id="note-date-end-label" class="is-hidden">
                     <span class="field-label">Date de fin</span>
-                    <input id="note-date-end" class="text-input" type="date" />
+                    <input
+                      id="note-date-end"
+                      class="text-input"
+                      type="text"
+                      inputmode="numeric"
+                      placeholder="AAAA, MM-AAAA ou JJ-MM-AAAA"
+                    />
                   </label>
                 </div>
+                <p class="helper-copy helper-copy-compact">
+                  Formats acceptes : <code>900</code>, <code>05-1453</code> ou
+                  <code>14-07-1789</code>.
+                </p>
               </div>
 
               <label class="editor-label">
@@ -651,13 +674,13 @@
           </div>
         </section>
 
-        <section id="templates-tab" class="tab-panel">
+        <section id="settings-tab" class="tab-panel">
           <div class="templates-layout">
             <section class="panel">
               <div class="panel-header">
                 <div>
-                  <p class="eyebrow">Uniformisation</p>
-                  <h3>Modeles de page</h3>
+                  <p class="eyebrow">Parametres</p>
+                  <h3>Types et modeles</h3>
                 </div>
                 <div class="inline-actions">
                   <button id="reset-template-button" class="button" type="button">
@@ -667,6 +690,27 @@
                     Enregistrer le modele
                   </button>
                 </div>
+              </div>
+
+              <div class="link-section">
+                <h4>Types de pages</h4>
+                <div class="form-grid">
+                  <label>
+                    <span class="field-label">Nouveau type</span>
+                    <input
+                      id="new-type-label"
+                      class="text-input"
+                      type="text"
+                      placeholder="ex: Theorie, Auteur, Oeuvre"
+                    />
+                  </label>
+                  <div class="editor-secondary-actions settings-add-type">
+                    <button id="add-type-button" class="button button-primary" type="button">
+                      Ajouter le type
+                    </button>
+                  </div>
+                </div>
+                <div id="type-settings-list" class="settings-type-list"></div>
               </div>
 
               <label>
@@ -693,23 +737,23 @@
               <div class="panel-header">
                 <div>
                   <p class="eyebrow">Aide</p>
-                  <h3>Comment les adapter</h3>
+                  <h3>Comment les organiser</h3>
                 </div>
               </div>
 
               <div class="helper-grid">
                 <article class="helper-card">
-                  <h4>Ou ils sont</h4>
+                  <h4>Ce que vous pouvez faire</h4>
                   <p>
-                    Les modeles sont maintenant modifiables ici dans l'onglet
-                    <strong>Modeles</strong> et sont sauvegardes localement dans votre navigateur.
+                    Renommer les types existants, ajouter vos propres types, puis ajuster leur
+                    modele d ecriture.
                   </p>
                 </article>
 
                 <article class="helper-card">
                   <h4>Quand ils servent</h4>
                   <p>
-                    Ils s'appliquent aux nouvelles pages et automatiquement quand vous changez
+                    Les modeles s'appliquent aux nouvelles pages et automatiquement quand vous changez
                     le type d'une page encore vierge ou basee sur son modele.
                   </p>
                 </article>
@@ -820,6 +864,66 @@
           </div>
         </section>
 
+        <section id="timeline-tab" class="tab-panel">
+          <div class="timeline-layout">
+            <section class="panel timeline-controls">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Lecture visuelle</p>
+                  <h3>Frise chronologique</h3>
+                </div>
+              </div>
+
+              <label>
+                <span class="field-label">Source</span>
+                <select id="timeline-scope" class="select-input">
+                  <option value="folder">Dossier</option>
+                  <option value="tag">Tag</option>
+                </select>
+              </label>
+
+              <label id="timeline-folder-wrapper">
+                <span class="field-label">Dossier cible</span>
+                <select id="timeline-folder" class="select-input">
+                  <option value="">Choisir un dossier</option>
+                </select>
+              </label>
+
+              <label id="timeline-tag-wrapper" class="is-hidden">
+                <span class="field-label">Tag cible</span>
+                <select id="timeline-tag" class="select-input">
+                  <option value="">Choisir un tag</option>
+                </select>
+              </label>
+
+              <article class="helper-card timeline-guide">
+                <h4>Ce que montre la frise</h4>
+                <p>
+                  Toutes les pages datees reliees au dossier ou au tag choisi. Les vies
+                  apparaissent comme des trajectoires, les periodes comme des bandes, et
+                  les dates uniques comme des repères.
+                </p>
+              </article>
+            </section>
+
+            <section class="panel timeline-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Narration</p>
+                  <h3 id="timeline-title">Aucune frise preparee</h3>
+                </div>
+                <span id="timeline-progress" class="pill pill-soft">0 repere</span>
+              </div>
+
+              <div id="timeline-summary" class="timeline-summary"></div>
+              <div id="timeline-canvas" class="timeline-canvas empty-state">
+                La frise apparaitra ici a partir d'un dossier ou d'un tag date.
+              </div>
+              <div id="timeline-focus" class="timeline-focus"></div>
+            </section>
+          </div>
+        </section>
+
         <section id="publish-tab" class="tab-panel">
           <div class="publish-layout">
             <section class="panel">
@@ -908,6 +1012,7 @@
       <label>
         <span class="field-label">Tags</span>
         <input id="quick-tags" class="text-input" type="text" placeholder="idee, capture" />
+        <div id="quick-tag-suggestions" class="tag-suggestion-list is-hidden"></div>
       </label>
 
       <label>
@@ -962,9 +1067,13 @@
             <strong>Flashcards</strong>
             <span>Transformer vos connaissances en cartes recto verso pour memoriser plus vite.</span>
           </button>
-          <button class="utility-link" data-utility-tab="templates" type="button">
-            <strong>Modeles</strong>
-            <span>Uniformiser vos pages et adapter les structures de redaction.</span>
+          <button class="utility-link" data-utility-tab="timeline" type="button">
+            <strong>Frises</strong>
+            <span>Visualiser un dossier ou un tag sous forme de chronologie vivante et didactique.</span>
+          </button>
+          <button class="utility-link" data-utility-tab="settings" type="button">
+            <strong>Parametres</strong>
+            <span>Gerer les types de pages et leurs modeles de redaction.</span>
           </button>
           <button class="utility-link" data-utility-tab="publish" type="button">
             <strong>Publication</strong>
