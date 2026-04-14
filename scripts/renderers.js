@@ -8,6 +8,7 @@
       formatFlexibleDate,
       getFlexibleDateTimestamp,
       normalizeTag,
+      parseFlexibleDateParts,
       parseTags,
       renderNoteHtml,
       unique,
@@ -893,18 +894,16 @@
 
     if (!dataset.items.length) {
       context.elements.timelineSummary.innerHTML = `
-        <div class="timeline-summary-card">
-          <strong>Rien a tracer pour l'instant</strong>
-          <p>
-            Choisissez un dossier ou un tag contenant des pages avec une date.
-            Les personnes, evenements, concepts et autres pages datees apparaitront ici.
-          </p>
-        </div>
+        <p class="timeline-summary-line">
+          Choisissez un dossier ou un tag contenant des pages avec une date.
+          Les personnes, evenements, concepts, sous-dossiers dates et pages filles apparaitront ici.
+        </p>
       `;
       context.elements.timelineCanvas.className = "timeline-canvas empty-state";
       context.elements.timelineCanvas.textContent =
         "Aucune page datee trouvee pour cette source.";
-      context.elements.timelineFocus.innerHTML = "";
+      context.elements.timelineFocus.innerHTML =
+        '<p class="timeline-summary-line">Touchez un repere pour lire la page associee.</p>';
       context.state.timeline.selectedNoteId = null;
       return;
     }
@@ -925,20 +924,10 @@
     );
 
     context.elements.timelineSummary.innerHTML = `
-      <div class="timeline-summary-grid">
-        <article class="timeline-summary-card">
-          <strong>Amplitude</strong>
-          <p>${escapeHtml(dataset.summaryRange)}</p>
-        </article>
-        <article class="timeline-summary-card">
-          <strong>Composition</strong>
-          <p>${counts.people} personne(s), ${counts.events} evenement(s), ${counts.other} autre(s) repere(s).</p>
-        </article>
-        <article class="timeline-summary-card">
-          <strong>Lecture</strong>
-          <p>${escapeHtml(dataset.didacticCopy)}</p>
-        </article>
-      </div>
+      <p class="timeline-summary-line">
+        <strong>${escapeHtml(dataset.scopeLabel)}</strong> · ${escapeHtml(dataset.summaryRange)} ·
+        ${counts.people} personne(s), ${counts.events} evenement(s), ${counts.other} autre(s) repere(s).
+      </p>
     `;
 
     context.elements.timelineCanvas.className = "timeline-canvas";
@@ -967,7 +956,7 @@
         items: [],
         stageHtml: "",
         summaryRange: "",
-        didacticCopy: "",
+        scopeLabel: sourceLabel || "Source vide",
       };
     }
 
@@ -992,59 +981,45 @@
       };
     });
 
-    const lifeItems = projectedItems.filter((item) => item.kind === "life");
-    const rangeItems = projectedItems.filter((item) => item.kind === "range");
-    const pointItems = projectedItems.filter((item) => item.kind === "point");
-
-    const topPointItems = [];
-    const bottomPointItems = [];
-    pointItems.forEach((item, index) => {
-      (index % 2 === 0 ? topPointItems : bottomPointItems).push(item);
+    const topSideItems = [];
+    const bottomSideItems = [];
+    projectedItems.forEach((item, index) => {
+      (index % 2 === 0 ? topSideItems : bottomSideItems).push(item);
     });
 
-    const topBarLayout = assignTimelineRows(lifeItems, 32, 34);
-    const bottomBarLayout = assignTimelineRows(rangeItems, 32, 34);
-    const topPointLayout = assignTimelineRows(topPointItems, 140, 72);
-    const bottomPointLayout = assignTimelineRows(bottomPointItems, 140, 72);
-
-    const topBarRows = Math.max(...topBarLayout.map((item) => item.row), -1) + 1;
-    const bottomBarRows = Math.max(...bottomBarLayout.map((item) => item.row), -1) + 1;
-    const topPointRows = Math.max(...topPointLayout.map((item) => item.row), -1) + 1;
-    const bottomPointRows = Math.max(...bottomPointLayout.map((item) => item.row), -1) + 1;
-
-    const axisY = 110 + topPointRows * 98 + topBarRows * 38;
-    const stageHeight = Math.max(
-      520,
-      axisY + 120 + bottomBarRows * 38 + bottomPointRows * 98
-    );
+    const topLayout = assignTimelineRows(topSideItems, 32, 170);
+    const bottomLayout = assignTimelineRows(bottomSideItems, 32, 170);
+    const topRows = Math.max(...topLayout.map((item) => item.row), -1) + 1;
+    const bottomRows = Math.max(...bottomLayout.map((item) => item.row), -1) + 1;
+    const lanePitch = 112;
+    const axisY = 86 + topRows * lanePitch;
+    const stageHeight = Math.max(520, axisY + 86 + bottomRows * lanePitch);
 
     const timelineEntries = [
-      ...topBarLayout.map((item) => ({
-        ...item,
-        side: "top",
-        top: axisY - 34 - item.row * 38,
-      })),
-      ...bottomBarLayout.map((item) => ({
-        ...item,
-        side: "bottom",
-        top: axisY + 28 + item.row * 38,
-      })),
-      ...topPointLayout.map((item) => ({
-        ...item,
-        side: "top",
-        top: axisY - 92 - topBarRows * 38 - item.row * 98,
-      })),
-      ...bottomPointLayout.map((item) => ({
-        ...item,
-        side: "bottom",
-        top: axisY + 70 + bottomBarRows * 38 + item.row * 98,
-      })),
+      ...topLayout.map((item) => {
+        const laneTop = axisY - (item.row + 1) * lanePitch;
+        return {
+          ...item,
+          side: "top",
+          top: item.kind === "point" ? laneTop + 8 : laneTop + 54,
+        };
+      }),
+      ...bottomLayout.map((item) => {
+        const laneTop = axisY + item.row * lanePitch + 20;
+        return {
+          ...item,
+          side: "bottom",
+          top: item.kind === "point" ? laneTop + 34 : laneTop + 8,
+        };
+      }),
     ].sort((left, right) => left.sortStart - right.sortStart || left.sortEnd - right.sortEnd);
 
-    const selectedItem =
-      timelineEntries.find((item) => item.note.id === context.state.timeline.selectedNoteId) ||
-      timelineEntries[0];
-    context.state.timeline.selectedNoteId = selectedItem?.note.id || null;
+    if (
+      context.state.timeline.selectedNoteId &&
+      !timelineEntries.some((item) => item.note.id === context.state.timeline.selectedNoteId)
+    ) {
+      context.state.timeline.selectedNoteId = null;
+    }
 
     const stageHtml = buildTimelineStageHtml({
       axisY,
@@ -1058,10 +1033,6 @@
 
     const firstLabel = items[0].labelDate;
     const lastLabel = items[items.length - 1].labelDate;
-    const spanYears = Math.max(
-      0,
-      new Date(maxTime).getUTCFullYear() - new Date(minTime).getUTCFullYear()
-    );
 
     return {
       title:
@@ -1071,12 +1042,7 @@
       items: timelineEntries,
       stageHtml,
       summaryRange: `${firstLabel} -> ${lastLabel}`,
-      didacticCopy:
-        spanYears > 120
-          ? "Vue large: les bandes montrent les longues periodes, tandis que les repères isolent les moments clefs."
-          : spanYears > 25
-            ? "Vue intermediaire: on lit les trajectoires humaines, les evenements et les jalons sur un meme axe."
-            : "Vue resserree: la frise laisse voir les successions fines, presque scene par scene.",
+      scopeLabel: sourceLabel || "Source vide",
     };
   }
 
@@ -1128,6 +1094,10 @@
           metadata.dateMode === "life"
             ? `${formatFlexibleDate(startRaw)} -> ${formatFlexibleDate(endRaw)}`
             : `${formatFlexibleDate(startRaw)} -> ${formatFlexibleDate(endRaw)}`,
+        startLabel: formatFlexibleDate(startRaw),
+        endLabel: formatFlexibleDate(endRaw),
+        compactStartLabel: String(new Date(Math.min(safeStart, safeEnd)).getUTCFullYear()),
+        compactEndLabel: String(new Date(Math.max(safeStart, safeEnd)).getUTCFullYear()),
         sortStart: Math.min(safeStart, safeEnd),
         sortEnd: Math.max(safeStart, safeEnd),
         startMs: Math.min(safeStart, safeEnd),
@@ -1146,6 +1116,16 @@
       note,
       kind: "point",
       labelDate: formatFlexibleDate(singleRaw),
+      startLabel: formatFlexibleDate(singleRaw),
+      endLabel: formatFlexibleDate(singleRaw),
+      compactStartLabel:
+        parseFlexibleDateParts(singleRaw)?.year != null
+          ? String(parseFlexibleDateParts(singleRaw).year)
+          : formatFlexibleDate(singleRaw),
+      compactEndLabel:
+        parseFlexibleDateParts(singleRaw)?.year != null
+          ? String(parseFlexibleDateParts(singleRaw).year)
+          : formatFlexibleDate(singleRaw),
       sortStart: singleMs,
       sortEnd: singleMs,
       startMs: singleMs,
@@ -1164,8 +1144,10 @@
       .slice()
       .sort((left, right) => left.startX - right.startX)
       .map((item) => {
-        const intervalStart = item.kind === "point" ? item.anchorX - pointWidth / 2 : item.startX;
-        const intervalEnd = item.kind === "point" ? item.anchorX + pointWidth / 2 : item.endX;
+        const visualWidth =
+          item.kind === "point" ? pointWidth : Math.max(96, Math.abs(item.endX - item.startX));
+        const intervalStart = item.anchorX - visualWidth / 2;
+        const intervalEnd = item.anchorX + visualWidth / 2;
         let row = 0;
 
         while (lanes[row] != null && intervalStart <= lanes[row] + padding) {
@@ -1249,8 +1231,11 @@
   function buildPointTimelineEntry(item, axisY, selectedNoteId) {
     const typeLabel = context.data.getNoteTypeLabels()[item.note.type] || "Page";
     const selectedClass = item.note.id === selectedNoteId ? " is-selected" : "";
-    const stemHeight = Math.max(28, Math.abs(axisY - (item.side === "top" ? item.top + 74 : item.top)) - 10);
-    const stemTop = item.side === "top" ? item.top + 74 : axisY + 10;
+    const stemHeight = Math.max(
+      28,
+      Math.abs(axisY - (item.side === "top" ? item.top + 82 : item.top)) - 10
+    );
+    const stemTop = item.side === "top" ? item.top + 82 : axisY + 10;
     const dotTop = axisY - 7;
 
     return `
@@ -1271,16 +1256,21 @@
   function buildRangeTimelineEntry(item, selectedNoteId) {
     const typeLabel = context.data.getNoteTypeLabels()[item.note.type] || "Page";
     const selectedClass = item.note.id === selectedNoteId ? " is-selected" : "";
-    const left = Math.min(item.startX, item.endX);
-    const width = Math.max(24, Math.abs(item.endX - item.startX));
+    const width = Math.max(96, Math.abs(item.endX - item.startX));
+    const left = item.anchorX - width / 2;
 
     return `
       <div class="timeline-range timeline-range-${item.kind} timeline-range-${item.side}${selectedClass}" style="left:${left}px;top:${item.top}px;width:${width}px;">
         <button type="button" class="timeline-range-bar timeline-card-${escapeHtml(
           item.note.type
         )}" data-select-timeline-note="${item.note.id}">
+          <span class="timeline-range-bound timeline-range-bound-start">${escapeHtml(
+            item.compactStartLabel || item.startLabel
+          )}</span>
+          <span class="timeline-range-bound timeline-range-bound-end">${escapeHtml(
+            item.compactEndLabel || item.endLabel
+          )}</span>
           <span class="timeline-range-title">${escapeHtml(item.note.title)}</span>
-          <span class="timeline-range-date">${escapeHtml(item.labelDate)}</span>
           <span class="timeline-range-type">${escapeHtml(typeLabel)}</span>
         </button>
       </div>
@@ -1288,52 +1278,32 @@
   }
 
   function renderTimelineFocus(dataset) {
-    const selectedItem =
-      dataset.items.find((item) => item.note.id === context.state.timeline.selectedNoteId) ||
-      dataset.items[0];
+    const selectedItem = dataset.items.find(
+      (item) => item.note.id === context.state.timeline.selectedNoteId
+    );
 
     if (!selectedItem) {
-      context.elements.timelineFocus.innerHTML = "";
+      context.elements.timelineFocus.innerHTML =
+        '<p class="timeline-summary-line">Touchez un repere, une personne ou une periode pour afficher son resume puis lire la page.</p>';
       return;
     }
 
     const selectedType = context.data.getNoteTypeLabels()[selectedItem.note.type] || "Page";
-    const relatedItems = dataset.items
-      .filter((item) => item.note.id !== selectedItem.note.id)
-      .slice(0, 5);
 
     context.elements.timelineFocus.innerHTML = `
-      <div class="timeline-focus-grid">
-        <article class="timeline-focus-card">
-          <p class="eyebrow">Repere selectionne</p>
-          <h4>${escapeHtml(selectedItem.note.title)}</h4>
-          <p class="timeline-focus-meta">${escapeHtml(selectedType)} · ${escapeHtml(
-            selectedItem.labelDate
-          )}</p>
-          <p>${escapeHtml(
-            AtlasApp.helpers.extractSummary(selectedItem.note.content)
-          )}</p>
+      <article class="timeline-focus-card">
+        <p class="eyebrow">Lecture rapide</p>
+        <h4>${escapeHtml(selectedItem.note.title)}</h4>
+        <p class="timeline-focus-meta">${escapeHtml(selectedType)} · ${escapeHtml(
+          selectedItem.labelDate
+        )}</p>
+        <p>${escapeHtml(AtlasApp.helpers.extractSummary(selectedItem.note.content))}</p>
+        <div class="inline-actions">
           <button type="button" class="button button-primary" data-open-timeline-note="${selectedItem.note.id}">
-            Ouvrir la page
+            Lire la page
           </button>
-        </article>
-
-        <article class="timeline-focus-card">
-          <p class="eyebrow">Autres repères</p>
-          <div class="timeline-moment-list">
-            ${relatedItems
-              .map((item) => {
-                return `
-                  <button type="button" class="timeline-moment" data-select-timeline-note="${item.note.id}">
-                    <strong>${escapeHtml(item.note.title)}</strong>
-                    <span>${escapeHtml(item.labelDate)}</span>
-                  </button>
-                `;
-              })
-              .join("")}
-          </div>
-        </article>
-      </div>
+        </div>
+      </article>
     `;
   }
 

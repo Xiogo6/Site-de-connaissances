@@ -751,8 +751,16 @@
       return;
     }
 
+    const stageShell = context.elements.timelineCanvas?.querySelector(".timeline-stage-shell");
+    const previousScrollLeft = stageShell?.scrollLeft || 0;
+    const previousScrollTop = stageShell?.scrollTop || 0;
     context.state.timeline.selectedNoteId = selectButton.dataset.selectTimelineNote;
     context.renderers.renderTimelineView();
+    const nextStageShell = context.elements.timelineCanvas?.querySelector(".timeline-stage-shell");
+    if (nextStageShell) {
+      nextStageShell.scrollLeft = previousScrollLeft;
+      nextStageShell.scrollTop = previousScrollTop;
+    }
   }
 
   function handleOrganizationDragStart(event) {

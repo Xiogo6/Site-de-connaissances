@@ -2,7 +2,7 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createGraphModule = function createGraphModule(context) {
-    const { escapeHtml, extractLinks, extractSummary, unique } = AtlasApp.helpers;
+    const { clamp, escapeHtml, extractLinks, extractSummary, unique } = AtlasApp.helpers;
     const CANVAS_WIDTH = 960;
     const CANVAS_HEIGHT = 620;
 
@@ -80,40 +80,76 @@
     return edges.filter((edge) => edge.from === nodeId || edge.to === nodeId).length;
   }
 
-  function getTypeColor(type) {
+  function getTypePalette(type) {
     if (type === "person") {
-      return "#d9e1f2";
-    }
-
-    if (type === "definition") {
-      return "#e5e0f7";
+      return {
+        fill: "#edd8b9",
+        stroke: "#8f5d2f",
+        label: "#6e4824",
+      };
     }
 
     if (type === "event") {
-      return "#f2dfd2";
+      return {
+        fill: "#d9e7f7",
+        stroke: "#496a8f",
+        label: "#34506e",
+      };
+    }
+
+    if (type === "definition") {
+      return {
+        fill: "#e5efe1",
+        stroke: "#5e7855",
+        label: "#44573d",
+      };
     }
 
     if (type === "experience") {
-      return "#d9e8ef";
+      return {
+        fill: "#dfeeea",
+        stroke: "#4f7d73",
+        label: "#3a5d56",
+      };
     }
 
     if (type === "folder") {
-      return "#ead7be";
+      return {
+        fill: "#ece3d2",
+        stroke: "#8f7752",
+        label: "#66553b",
+      };
     }
 
     if (type === "hub") {
-      return "#f2d8a7";
+      return {
+        fill: "#efe6c8",
+        stroke: "#9b7b2f",
+        label: "#725a22",
+      };
     }
 
     if (type === "procedure") {
-      return "#d8ead9";
+      return {
+        fill: "#dcead9",
+        stroke: "#5d7d57",
+        label: "#42583d",
+      };
     }
 
     if (type === "question") {
-      return "#f4d5cc";
+      return {
+        fill: "#f3ddd3",
+        stroke: "#9e6751",
+        label: "#744a39",
+      };
     }
 
-    return "#fffaf2";
+    return {
+      fill: "#e3ecdb",
+      stroke: "#617356",
+      label: "#49563f",
+    };
   }
 
   function buildAdjacency(graph) {
@@ -338,7 +374,7 @@
   }
 
   function getGraphViewBox() {
-    const zoom = context.helpers.clamp(context.state.graphZoom || 1, 1, 2.8);
+    const zoom = clamp(context.state.graphZoom || 1, 1, 2.8);
     const width = CANVAS_WIDTH / zoom;
     const height = CANVAS_HEIGHT / zoom;
     const centeredX = (CANVAS_WIDTH - width) / 2;
@@ -346,8 +382,8 @@
     const maxX = CANVAS_WIDTH - width;
     const maxY = CANVAS_HEIGHT - height;
     return {
-      x: context.helpers.clamp(centeredX + (context.state.graphViewport.panX || 0), 0, maxX),
-      y: context.helpers.clamp(centeredY + (context.state.graphViewport.panY || 0), 0, maxY),
+      x: clamp(centeredX + (context.state.graphViewport.panX || 0), 0, maxX),
+      y: clamp(centeredY + (context.state.graphViewport.panY || 0), 0, maxY),
       width,
       height,
     };
@@ -451,6 +487,10 @@
         context.state.graphSelection.kind === node.kind &&
         context.state.graphSelection.id === node.id;
       const degree = getNodeDegree(node.id, graph.edges);
+      const palette =
+        node.kind === "tag"
+          ? { fill: "#dfeee1", stroke: "#5f7c63", label: "#47604a" }
+          : getTypePalette(node.type);
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
       group.dataset.graphNodeId = node.id;
       group.dataset.graphNodeKind = node.kind;
@@ -470,12 +510,15 @@
         )
       );
       circle.setAttribute("class", `graph-node${isCurrent || isSelected ? " is-current" : ""}`);
-      circle.setAttribute("fill", node.kind === "tag" ? "#dbe6d4" : getTypeColor(node.type));
+      circle.style.fill = palette.fill;
+      circle.style.stroke = palette.stroke;
+      circle.style.strokeWidth = isCurrent || isSelected ? "3" : "2";
 
       const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
       label.setAttribute("x", position.x + 24);
       label.setAttribute("y", position.y + 4);
       label.setAttribute("class", `graph-label${node.kind === "tag" ? " is-tag-label" : ""}`);
+      label.style.fill = palette.label;
       label.textContent = node.label;
 
       group.appendChild(circle);
@@ -559,6 +602,13 @@
   }
 
   function handleGraphPointerDown(event) {
+    updateActivePointer(event);
+    if (event.pointerType === "touch" && getActivePointerCount() === 2) {
+      startPinchGesture();
+      event.preventDefault();
+      return;
+    }
+
     const group = event.target.closest("[data-graph-node-id]");
     context.state.graphDrag.pointerId = event.pointerId;
     context.state.graphDrag.moved = false;
@@ -590,6 +640,13 @@
   }
 
   function handleGraphPointerMove(event) {
+    updateActivePointer(event);
+
+    if (context.state.graphDrag.mode === "pinch") {
+      handlePinchMove(event);
+      return;
+    }
+
     if (context.state.graphDrag.pointerId !== event.pointerId || !context.state.graphDrag.mode) {
       return;
     }
@@ -632,6 +689,16 @@
   }
 
   function handleGraphPointerUp(event) {
+    removeActivePointer(event.pointerId);
+
+    if (context.state.graphDrag.mode === "pinch") {
+      if (context.state.graphDrag.moved) {
+        context.state.graphDrag.suppressClickUntil = Date.now() + 280;
+      }
+      clearPinchGesture();
+      return;
+    }
+
     if (context.state.graphDrag.pointerId !== event.pointerId) {
       return;
     }
@@ -656,14 +723,128 @@
     };
   }
 
-  function zoomIn() {
-    context.state.graphZoom = context.helpers.clamp((context.state.graphZoom || 1) + 0.2, 1, 2.8);
+  function updateActivePointer(event) {
+    context.state.graphDrag.activePointers[event.pointerId] = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
+  }
+
+  function removeActivePointer(pointerId) {
+    delete context.state.graphDrag.activePointers[pointerId];
+  }
+
+  function getActivePointerCount() {
+    return Object.keys(context.state.graphDrag.activePointers).length;
+  }
+
+  function getActivePointerEntries() {
+    return Object.values(context.state.graphDrag.activePointers);
+  }
+
+  function startPinchGesture() {
+    const pointers = getActivePointerEntries();
+    if (pointers.length < 2) {
+      return;
+    }
+
+    if (context.state.graphDrag.nodeId) {
+      const position = context.state.graphPositions.get(context.state.graphDrag.nodeId);
+      if (position) {
+        position.locked = true;
+      }
+    }
+
+    const [first, second] = pointers;
+    const centerX = (first.clientX + second.clientX) / 2;
+    const centerY = (first.clientY + second.clientY) / 2;
+    const distance = Math.max(
+      Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY),
+      1
+    );
+    const rect = context.elements.graphCanvas.getBoundingClientRect();
+    const viewBox = getGraphViewBox();
+    const ratioX = (centerX - rect.left) / rect.width;
+    const ratioY = (centerY - rect.top) / rect.height;
+
+    context.state.graphDrag.mode = "pinch";
+    context.state.graphDrag.nodeId = null;
+    context.state.graphDrag.pointerId = null;
+    context.state.graphDrag.pinchStartDistance = distance;
+    context.state.graphDrag.pinchStartZoom = context.state.graphZoom || 1;
+    context.state.graphDrag.pinchFocalGraphX = viewBox.x + ratioX * viewBox.width;
+    context.state.graphDrag.pinchFocalGraphY = viewBox.y + ratioY * viewBox.height;
+    context.state.graphDrag.moved = false;
+  }
+
+  function clearPinchGesture() {
+    context.state.graphDrag.mode = null;
+    context.state.graphDrag.nodeId = null;
+    context.state.graphDrag.pointerId = null;
+    context.state.graphDrag.moved = false;
+    context.state.graphDrag.pinchStartDistance = 0;
+  }
+
+  function handlePinchMove(event) {
+    const pointers = getActivePointerEntries();
+    if (pointers.length < 2) {
+      return;
+    }
+
+    const [first, second] = pointers;
+    const centerX = (first.clientX + second.clientX) / 2;
+    const centerY = (first.clientY + second.clientY) / 2;
+    const distance = Math.max(
+      Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY),
+      1
+    );
+    const nextZoom = clamp(
+      (context.state.graphDrag.pinchStartZoom || 1) *
+        (distance / Math.max(context.state.graphDrag.pinchStartDistance || 1, 1)),
+      1,
+      2.8
+    );
+
+    setZoomAtPoint(
+      nextZoom,
+      centerX,
+      centerY,
+      context.state.graphDrag.pinchFocalGraphX,
+      context.state.graphDrag.pinchFocalGraphY
+    );
+    context.state.graphDrag.moved = true;
+    event.preventDefault();
+  }
+
+  function setZoomAtPoint(nextZoom, clientX, clientY, focalGraphX = null, focalGraphY = null) {
+    const rect = context.elements.graphCanvas.getBoundingClientRect();
+    const currentViewBox = getGraphViewBox();
+    const safeZoom = clamp(nextZoom, 1, 2.8);
+    const nextWidth = CANVAS_WIDTH / safeZoom;
+    const nextHeight = CANVAS_HEIGHT / safeZoom;
+    const centeredX = (CANVAS_WIDTH - nextWidth) / 2;
+    const centeredY = (CANVAS_HEIGHT - nextHeight) / 2;
+    const ratioX = clamp((clientX - rect.left) / rect.width, 0, 1);
+    const ratioY = clamp((clientY - rect.top) / rect.height, 0, 1);
+    const focusX =
+      focalGraphX == null ? currentViewBox.x + ratioX * currentViewBox.width : focalGraphX;
+    const focusY =
+      focalGraphY == null ? currentViewBox.y + ratioY * currentViewBox.height : focalGraphY;
+
+    context.state.graphZoom = safeZoom;
+    context.state.graphViewport.panX = focusX - ratioX * nextWidth - centeredX;
+    context.state.graphViewport.panY = focusY - ratioY * nextHeight - centeredY;
     drawGraph();
   }
 
+  function zoomIn() {
+    const rect = context.elements.graphCanvas.getBoundingClientRect();
+    setZoomAtPoint((context.state.graphZoom || 1) + 0.2, rect.left + rect.width / 2, rect.top + rect.height / 2);
+  }
+
   function zoomOut() {
-    context.state.graphZoom = context.helpers.clamp((context.state.graphZoom || 1) - 0.2, 1, 2.8);
-    drawGraph();
+    const rect = context.elements.graphCanvas.getBoundingClientRect();
+    setZoomAtPoint((context.state.graphZoom || 1) - 0.2, rect.left + rect.width / 2, rect.top + rect.height / 2);
   }
 
   return {
