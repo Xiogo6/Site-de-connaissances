@@ -44,7 +44,7 @@
 }
 
 .graph-zoom-stack {
-  bottom: 18px;
+  top: 18px;
   display: grid;
   gap: 8px;
   position: absolute;
@@ -156,6 +156,12 @@
   margin-bottom: 18px;
 }
 
+.timeline-summary-line {
+  color: var(--text-soft);
+  line-height: 1.6;
+  margin: 0;
+}
+
 .timeline-summary-grid,
 .timeline-focus-grid {
   display: grid;
@@ -196,6 +202,7 @@
     rgba(255, 252, 245, 0.84);
   border: 1px solid var(--line);
   border-radius: 24px;
+  overflow: hidden;
   position: relative;
 }
 
@@ -292,25 +299,57 @@
 }
 
 .timeline-range-bar {
+  overflow: visible;
   min-height: 56px;
+  padding-top: 30px;
+  position: relative;
 }
 
 .timeline-range-life .timeline-range-bar {
   border-left: 4px solid #8f5d2f;
+  box-shadow:
+    inset 0 0 0 1px rgba(143, 93, 47, 0.08),
+    0 10px 20px rgba(143, 93, 47, 0.08);
 }
 
 .timeline-range-range .timeline-range-bar {
   border-left: 4px solid #496a8f;
+  box-shadow:
+    inset 0 0 0 1px rgba(73, 106, 143, 0.08),
+    0 10px 20px rgba(73, 106, 143, 0.08);
+}
+
+.timeline-range-bound {
+  align-items: center;
+  background: rgba(47, 36, 24, 0.92);
+  border-radius: 999px;
+  color: #fff8ef;
+  display: inline-flex;
+  font-size: 0.73rem;
+  min-height: 24px;
+  padding: 0 10px;
+  position: absolute;
+  top: -12px;
+}
+
+.timeline-range-bound-start {
+  left: 10px;
+}
+
+.timeline-range-bound-end {
+  right: 10px;
 }
 
 .timeline-card-person,
 .timeline-range-bar.timeline-card-person {
-  box-shadow: inset 0 0 0 1px rgba(143, 93, 47, 0.08);
+  background: linear-gradient(180deg, rgba(224, 196, 155, 0.34), rgba(255, 255, 255, 0.96));
+  border-color: rgba(143, 93, 47, 0.18);
 }
 
 .timeline-card-event,
 .timeline-range-bar.timeline-card-event {
-  box-shadow: inset 0 0 0 1px rgba(73, 106, 143, 0.08);
+  background: linear-gradient(180deg, rgba(181, 206, 232, 0.34), rgba(255, 255, 255, 0.96));
+  border-color: rgba(73, 106, 143, 0.18);
 }
 
 .timeline-card-concept,
@@ -327,7 +366,8 @@
 .timeline-range-bar.timeline-card-hub,
 .timeline-range-bar.timeline-card-procedure,
 .timeline-range-bar.timeline-card-question {
-  box-shadow: inset 0 0 0 1px rgba(97, 115, 86, 0.08);
+  background: linear-gradient(180deg, rgba(197, 216, 193, 0.34), rgba(255, 255, 255, 0.96));
+  border-color: rgba(97, 115, 86, 0.18);
 }
 
 .timeline-entry.is-selected .timeline-card,
@@ -337,6 +377,8 @@
 }
 
 .timeline-focus {
+  display: flex;
+  justify-content: center;
   margin-top: 18px;
 }
 
@@ -347,6 +389,11 @@
 
 .timeline-moment {
   align-items: start;
+}
+
+.timeline-focus-card {
+  max-width: 560px;
+  width: 100%;
 }
 
 .snapshot-list {
@@ -616,7 +663,7 @@ body[data-theme="dark"] .graph-label.is-tag-label {
   }
 
   .graph-zoom-stack {
-    bottom: 14px;
+    top: 14px;
     right: 14px;
   }
 
