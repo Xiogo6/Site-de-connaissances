@@ -145,7 +145,7 @@
               </span>
               <span class="tab-label">Organisation</span>
             </button>
-            <button class="tab" data-tab="graph" type="button">
+            <button class="tab" data-tab="visualization" type="button">
               <span class="tab-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" role="presentation">
                   <path d="M7 7h.01M17 7h.01M12 17h.01" />
@@ -155,19 +155,7 @@
                   <circle cx="12" cy="17" r="2.5" />
                 </svg>
               </span>
-              <span class="tab-label">Graphe</span>
-            </button>
-            <button class="tab" data-tab="timeline" type="button">
-              <span class="tab-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" role="presentation">
-                  <path d="M4 17h16" />
-                  <path d="M6 17V8M12 17V5M18 17v-7" />
-                  <circle cx="6" cy="8" r="1.8" />
-                  <circle cx="12" cy="5" r="1.8" />
-                  <circle cx="18" cy="10" r="1.8" />
-                </svg>
-              </span>
-              <span class="tab-label">Frises</span>
+              <span class="tab-label">Visualisation</span>
             </button>
             <button class="tab" data-tab="quiz" type="button">
               <span class="tab-icon" aria-hidden="true">
@@ -512,6 +500,19 @@
           </div>
         </section>
 
+        <section id="visualization-tab" class="tab-panel">
+          <div class="revision-choice mode-switcher">
+            <button class="revision-choice-card is-active" data-visualization-mode="graph" type="button">
+              <strong>Graphe</strong>
+              <span>Carte vivante des liens et des tags.</span>
+            </button>
+            <button class="revision-choice-card" data-visualization-mode="timeline" type="button">
+              <strong>Frise</strong>
+              <span>Lecture chronologique par dossier ou tag.</span>
+            </button>
+          </div>
+        </section>
+
         <section id="graph-tab" class="tab-panel">
           <div class="graph-layout">
             <section class="panel graph-panel">
@@ -575,7 +576,7 @@
         </section>
 
         <section id="quiz-tab" class="tab-panel">
-          <div class="revision-choice">
+          <div class="revision-choice mode-switcher">
             <button class="revision-choice-card is-active" data-revision-mode="quiz" type="button">
               <strong>Quiz</strong>
               <span>Questions courtes pour tester le rappel actif.</span>

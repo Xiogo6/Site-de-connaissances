@@ -56,6 +56,7 @@
         suppressClickUntil: 0,
       },
       activeTab: "knowledge",
+      visualizationMode: "graph",
       sourceMode: "workspace",
       quickCaptureOpen: false,
       dragState: {

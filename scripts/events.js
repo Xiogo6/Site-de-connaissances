@@ -116,6 +116,16 @@
         renderActiveTabContent();
       });
     });
+    context.elements.visualizationModeButtons?.forEach((button) => {
+      button.addEventListener("click", () => {
+        context.state.visualizationMode = button.dataset.visualizationMode || "graph";
+        context.state.activeTab = "visualization";
+        context.renderers.renderTabs();
+        context.renderers.renderVisualizationMode();
+        renderActiveTabContent();
+        scrollToTop();
+      });
+    });
     context.elements.templateEditor?.addEventListener("input", (event) => {
       context.state.templateDrafts[context.state.activeTemplateType] = event.target.value;
     });
@@ -423,7 +433,10 @@
       return;
     }
 
-    if (context.state.activeTab === "graph") {
+    if (
+      context.state.activeTab === "graph" ||
+      (context.state.activeTab === "visualization" && context.state.visualizationMode === "graph")
+    ) {
       context.graph.drawGraph();
       return;
     }
@@ -442,7 +455,10 @@
       return;
     }
 
-    if (context.state.activeTab === "timeline") {
+    if (
+      context.state.activeTab === "timeline" ||
+      (context.state.activeTab === "visualization" && context.state.visualizationMode === "timeline")
+    ) {
       context.renderers.renderTimelineView();
       return;
     }
@@ -503,6 +519,7 @@
         }
 
         swipe = {
+          startedAt: Date.now(),
           x: touch.clientX,
           y: touch.clientY,
           side: touch.clientX < window.innerWidth / 2 ? "left" : "right",
@@ -525,15 +542,18 @@
 
         const deltaX = touch.clientX - swipe.x;
         const deltaY = Math.abs(touch.clientY - swipe.y);
+        const absX = Math.abs(deltaX);
+        const isDeliberateSwipe =
+          Date.now() - swipe.startedAt > 90 && absX > 126 && absX > deltaY * 1.7 && deltaY < 56;
 
-        if (context.state.sidebarDrawerOpen && deltaX < -72 && deltaY < 48) {
+        if (context.state.sidebarDrawerOpen && deltaX < 0 && isDeliberateSwipe) {
           context.state.sidebarDrawerOpen = false;
           context.renderers.renderSidebarDrawer();
           swipe = null;
           return;
         }
 
-        if (context.state.utilityDrawerOpen && deltaX > 72 && deltaY < 48) {
+        if (context.state.utilityDrawerOpen && deltaX > 0 && isDeliberateSwipe) {
           context.state.utilityDrawerOpen = false;
           context.renderers.renderTabs();
           swipe = null;
@@ -544,7 +564,7 @@
           return;
         }
 
-        if (swipe.side === "left" && deltaX > 72 && deltaY < 48) {
+        if (swipe.side === "left" && deltaX > 0 && isDeliberateSwipe) {
           context.state.sidebarDrawerOpen = true;
           context.state.utilityDrawerOpen = false;
           context.renderers.renderSidebarDrawer();
@@ -553,7 +573,7 @@
           return;
         }
 
-        if (swipe.side === "right" && deltaX < -72 && deltaY < 48) {
+        if (swipe.side === "right" && deltaX < 0 && isDeliberateSwipe) {
           context.state.utilityDrawerOpen = true;
           context.state.sidebarDrawerOpen = false;
           context.renderers.renderSidebarDrawer();
