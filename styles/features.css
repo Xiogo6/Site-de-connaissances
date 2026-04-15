@@ -645,7 +645,7 @@
   gap: 16px;
   height: 100%;
   margin-left: auto;
-  max-width: min(420px, calc(100vw - 24px));
+  max-width: min(340px, calc(100vw - 42px));
   padding: 24px;
   position: relative;
   width: 100%;
@@ -674,6 +674,7 @@
 
 .utility-link span {
   color: var(--text-soft);
+  display: none;
   line-height: 1.5;
 }
 
@@ -865,7 +866,7 @@ body[data-theme="dark"] .graph-label.is-tag-label {
   }
 
   .utility-drawer-panel {
-    max-width: min(360px, calc(100vw - 18px));
+    max-width: min(300px, calc(100vw - 54px));
     padding: 18px;
   }
 }

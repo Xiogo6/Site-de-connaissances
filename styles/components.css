@@ -101,6 +101,10 @@
   margin-bottom: 18px;
 }
 
+.mode-switcher {
+  align-items: stretch;
+}
+
 .revision-choice-card {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -901,6 +905,32 @@ body[data-theme="dark"] .toggle-row-editor {
 }
 
 @media (max-width: 780px) {
+  .mode-switcher {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    gap: 8px;
+    left: 50%;
+    padding: 8px;
+    position: fixed;
+    top: 68px;
+    transform: translateX(-50%);
+    width: min(calc(100vw - 28px), 430px);
+    z-index: 22;
+  }
+
+  .mode-switcher .revision-choice-card {
+    border-radius: 16px;
+    gap: 2px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .mode-switcher .revision-choice-card span {
+    display: none;
+  }
+
   .select-inline {
     width: 100%;
   }

@@ -230,8 +230,17 @@ body[data-theme="dark"] .tab.is-active {
   display: none;
 }
 
+#quiz-tab.is-showing-flashcards .quiz-layout {
+  display: none;
+}
+
 #quiz-tab.is-active + #settings-tab + #flashcards-tab,
 #quiz-tab.is-active ~ #flashcards-tab.is-active {
+  margin-top: 18px;
+}
+
+#visualization-tab.is-active ~ #graph-tab.is-active,
+#visualization-tab.is-active ~ #timeline-tab.is-active {
   margin-top: 18px;
 }
 
@@ -402,7 +411,7 @@ body[data-theme="dark"] .tab.is-active {
     box-shadow: var(--shadow);
     display: grid;
     gap: 6px;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     left: 50%;
     padding: 8px;
     position: fixed;
@@ -443,8 +452,7 @@ body[data-theme="dark"] .tab.is-active {
   }
 
   .form-grid,
-  .helper-grid,
-  .revision-choice {
+  .helper-grid {
     grid-template-columns: 1fr;
   }
 
@@ -455,6 +463,11 @@ body[data-theme="dark"] .tab.is-active {
   .panel-preview,
   .panel-links {
     min-width: 0;
+  }
+
+  #quiz-tab.is-active,
+  #visualization-tab.is-active {
+    padding-top: 78px;
   }
 
   .panel-links,

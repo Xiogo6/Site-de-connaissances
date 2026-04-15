@@ -40,6 +40,7 @@
       panels: {
         knowledge: document.querySelector("#knowledge-tab"),
         organisation: document.querySelector("#organisation-tab"),
+        visualization: document.querySelector("#visualization-tab"),
         graph: document.querySelector("#graph-tab"),
         quiz: document.querySelector("#quiz-tab"),
         flashcards: document.querySelector("#flashcards-tab"),
@@ -94,6 +95,7 @@
       orphanCount: document.querySelector("#orphan-count"),
       quizCount: document.querySelector("#quiz-count"),
       revisionModeButtons: [...document.querySelectorAll("[data-revision-mode]")],
+      visualizationModeButtons: [...document.querySelectorAll("[data-visualization-mode]")],
       graphCanvas: document.querySelector("#graph-canvas"),
       graphFocus: document.querySelector("#graph-focus"),
       graphShowTags: document.querySelector("#graph-show-tags"),

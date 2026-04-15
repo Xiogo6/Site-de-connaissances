@@ -21,6 +21,7 @@
     renderFiltersPanel();
     renderTabs();
     renderRevisionMode();
+    renderVisualizationMode();
     renderWorkspaceBanner();
     renderKnowledgeMode();
     renderKnowledgeList();
@@ -69,18 +70,39 @@
         context.state.activeTab === "quiz" &&
         context.state.revisionMode === "flashcards" &&
         key === "flashcards";
-      const isHiddenQuiz =
-        context.state.activeTab === "quiz" &&
-        context.state.revisionMode === "flashcards" &&
-        key === "quiz";
-      panel.classList.toggle("is-active", key === context.state.activeTab || isRevisionCompanion);
-      panel.classList.toggle("is-revision-hidden", isHiddenQuiz);
+      const isVisualizationCompanion =
+        context.state.activeTab === "visualization" &&
+        key === context.state.visualizationMode;
+      panel.classList.toggle(
+        "is-active",
+        key === context.state.activeTab || isRevisionCompanion || isVisualizationCompanion
+      );
+      panel.classList.toggle(
+        "is-showing-flashcards",
+        key === "quiz" && context.state.activeTab === "quiz" && context.state.revisionMode !== "quiz"
+      );
+      panel.classList.toggle("is-revision-hidden", false);
+      panel.classList.toggle(
+        "is-visualization-hidden",
+        (key === "graph" || key === "timeline") &&
+          context.state.activeTab === "visualization" &&
+          key !== context.state.visualizationMode
+      );
     });
   }
 
   function renderRevisionMode() {
     context.elements.revisionModeButtons?.forEach((button) => {
       button.classList.toggle("is-active", button.dataset.revisionMode === context.state.revisionMode);
+    });
+  }
+
+  function renderVisualizationMode() {
+    context.elements.visualizationModeButtons?.forEach((button) => {
+      button.classList.toggle(
+        "is-active",
+        button.dataset.visualizationMode === context.state.visualizationMode
+      );
     });
   }
 
@@ -1559,6 +1581,7 @@
     renderPublishCenter,
     renderQuickCapture,
     renderRevisionMode,
+    renderVisualizationMode,
     renderSidebarDrawer,
     renderSidebarRecap,
     renderSidebarTabs,
