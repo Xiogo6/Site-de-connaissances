@@ -642,7 +642,7 @@
   border-left: 1px solid var(--line);
   box-shadow: var(--shadow);
   display: grid;
-  gap: 16px;
+  gap: 14px;
   height: 100%;
   margin-left: auto;
   max-width: min(340px, calc(100vw - 42px));
@@ -656,20 +656,44 @@
 }
 
 .utility-link {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid var(--line);
-  border-radius: 20px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(86, 70, 48, 0.1);
+  border-radius: 999px;
   color: var(--text);
   cursor: pointer;
-  display: grid;
-  gap: 6px;
-  padding: 16px;
+  display: flex;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  position: relative;
   text-align: left;
 }
 
+.utility-link::before {
+  background: rgba(191, 91, 44, 0.14);
+  border: 1px solid rgba(191, 91, 44, 0.16);
+  border-radius: 999px;
+  content: "";
+  height: 12px;
+  width: 12px;
+}
+
+.utility-link strong {
+  font-size: 0.94rem;
+  font-weight: 720;
+}
+
 .utility-link.is-active {
-  border-color: rgba(191, 91, 44, 0.35);
-  box-shadow: 0 10px 20px rgba(81, 55, 30, 0.08);
+  background: rgba(255, 247, 232, 0.94);
+  border-color: rgba(191, 91, 44, 0.3);
+  box-shadow: 0 10px 22px rgba(81, 55, 30, 0.08);
+  color: var(--accent-strong);
+}
+
+.utility-link.is-active::before {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
 }
 
 .utility-link span {
@@ -680,8 +704,15 @@
 
 :root[data-theme="dark"] .utility-link,
 body[data-theme="dark"] .utility-link {
-  background: rgba(24, 28, 33, 0.96);
+  background: rgba(24, 28, 33, 0.82);
   border-color: rgba(215, 201, 185, 0.16);
+}
+
+:root[data-theme="dark"] .utility-link.is-active,
+body[data-theme="dark"] .utility-link.is-active {
+  background: rgba(43, 49, 57, 0.94);
+  border-color: rgba(208, 122, 76, 0.35);
+  color: #f0b08a;
 }
 
 :root[data-theme="dark"] .utility-link span,
