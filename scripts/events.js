@@ -102,15 +102,15 @@
       context.elements.titleInput.focus();
       context.elements.titleInput.select();
     });
-    context.elements.templateType.addEventListener("change", (event) => {
+    context.elements.templateType?.addEventListener("change", (event) => {
       context.state.activeTemplateType = event.target.value;
       context.renderers.renderTemplateEditor();
     });
-    context.elements.templateEditor.addEventListener("input", (event) => {
+    context.elements.templateEditor?.addEventListener("input", (event) => {
       context.state.templateDrafts[context.state.activeTemplateType] = event.target.value;
     });
-    context.elements.saveTemplateButton.addEventListener("click", context.notes.saveTemplate);
-    context.elements.resetTemplateButton.addEventListener("click", context.notes.resetTemplate);
+    context.elements.saveTemplateButton?.addEventListener("click", context.notes.saveTemplate);
+    context.elements.resetTemplateButton?.addEventListener("click", context.notes.resetTemplate);
     context.elements.addTypeButton?.addEventListener("click", context.notes.addCustomType);
     context.elements.newTypeLabelInput?.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
@@ -157,6 +157,13 @@
     context.elements.noteDateSingle.addEventListener("input", context.renderers.renderLivePreview);
     context.elements.noteDateStart.addEventListener("input", context.renderers.renderLivePreview);
     context.elements.noteDateEnd.addEventListener("input", context.renderers.renderLivePreview);
+    [
+      context.elements.noteDateSingle,
+      context.elements.noteDateStart,
+      context.elements.noteDateEnd,
+    ].forEach((input) => {
+      input.addEventListener("blur", () => normalizeDateInputField(input));
+    });
     context.elements.contentInput.addEventListener("input", () => {
       context.notes.handleEditorContentChange();
       context.renderers.renderLivePreview();
@@ -428,6 +435,7 @@
 
     if (context.state.activeTab === "settings") {
       context.renderers.renderTemplateEditor();
+      context.renderers.renderPublishCenter();
     }
   }
 
@@ -483,7 +491,7 @@
         swipe = {
           x: touch.clientX,
           y: touch.clientY,
-          edge: touch.clientX <= 26,
+          side: touch.clientX < window.innerWidth / 2 ? "left" : "right",
         };
       },
       { passive: true }
@@ -492,7 +500,7 @@
     window.addEventListener(
       "touchmove",
       (event) => {
-        if (!swipe?.edge || context.state.sidebarDrawerOpen || context.state.quickCaptureOpen) {
+        if (!swipe || context.state.quickCaptureOpen) {
           return;
         }
 
@@ -504,9 +512,38 @@
         const deltaX = touch.clientX - swipe.x;
         const deltaY = Math.abs(touch.clientY - swipe.y);
 
-        if (deltaX > 72 && deltaY < 40) {
-          context.state.sidebarDrawerOpen = true;
+        if (context.state.sidebarDrawerOpen && deltaX < -72 && deltaY < 48) {
+          context.state.sidebarDrawerOpen = false;
           context.renderers.renderSidebarDrawer();
+          swipe = null;
+          return;
+        }
+
+        if (context.state.utilityDrawerOpen && deltaX > 72 && deltaY < 48) {
+          context.state.utilityDrawerOpen = false;
+          context.renderers.renderTabs();
+          swipe = null;
+          return;
+        }
+
+        if (context.state.sidebarDrawerOpen || context.state.utilityDrawerOpen) {
+          return;
+        }
+
+        if (swipe.side === "left" && deltaX > 72 && deltaY < 48) {
+          context.state.sidebarDrawerOpen = true;
+          context.state.utilityDrawerOpen = false;
+          context.renderers.renderSidebarDrawer();
+          context.renderers.renderTabs();
+          swipe = null;
+          return;
+        }
+
+        if (swipe.side === "right" && deltaX < -72 && deltaY < 48) {
+          context.state.utilityDrawerOpen = true;
+          context.state.sidebarDrawerOpen = false;
+          context.renderers.renderSidebarDrawer();
+          context.renderers.renderTabs();
           swipe = null;
         }
       },
@@ -761,6 +798,12 @@
       nextStageShell.scrollLeft = previousScrollLeft;
       nextStageShell.scrollTop = previousScrollTop;
     }
+  }
+
+  function normalizeDateInputField(input) {
+    const normalized = context.helpers.normalizeFlexibleDateInput(input.value);
+    input.value = normalized ? context.helpers.formatFlexibleDate(normalized) : "";
+    context.renderers.renderLivePreview();
   }
 
   function handleOrganizationDragStart(event) {

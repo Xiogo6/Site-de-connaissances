@@ -76,16 +76,16 @@
   }
 
   function createEmptyNote() {
-    const title = generateUntitledName();
+    const type = context.data.getNoteTypeEntries()[0]?.id || "concept";
     const now = new Date().toISOString();
     return {
-      id: context.data.generateId(title),
-      title,
-      type: "concept",
+      id: context.data.generateId(`page-${Date.now()}`),
+      title: "",
+      type,
       parentId: null,
       favorite: false,
       tags: [],
-      content: context.data.buildTemplateContent("concept", title),
+      content: "",
       metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
@@ -503,12 +503,6 @@
       ...(context.state.settings.customNoteTypes || []),
       { id: candidate, label },
     ];
-    context.state.settings.templates = {
-      ...context.data.getTemplates(),
-      [candidate]: context.data.getDefaultTemplateForType(candidate).replace("## Page", `## ${label}`),
-    };
-    context.state.activeTemplateType = candidate;
-    context.state.templateDrafts[candidate] = context.state.settings.templates[candidate];
     context.elements.newTypeLabelInput.value = "";
     context.data.saveNotes();
     context.renderers.renderEverything();
@@ -553,15 +547,15 @@
     }
 
     const customTypes = context.state.settings.customNoteTypes || [];
-    if (!customTypes.some((entry) => entry.id === type)) {
-      return;
-    }
-
     if (isTypeUsed(type)) {
       return;
     }
 
     context.state.settings.customNoteTypes = customTypes.filter((entry) => entry.id !== type);
+    context.state.settings.deletedNoteTypes = unique([
+      ...(context.state.settings.deletedNoteTypes || []),
+      type,
+    ]);
 
     if (context.state.settings.templates?.[type]) {
       const templates = { ...context.state.settings.templates };
@@ -577,25 +571,12 @@
 
     delete context.state.templateDrafts[type];
 
-    if (context.state.activeTemplateType === type) {
-      context.state.activeTemplateType = "concept";
-    }
-
     context.data.saveNotes();
     context.renderers.renderEverything();
   }
 
   function handleEditorTypeChange() {
-    const note = getActiveNote();
-    const nextType = context.elements.typeInput.value;
-    const title = context.elements.titleInput.value.trim() || note?.title || "Sans titre";
-
     context.renderers.renderStructuredFields();
-    if (isEditorUsingAutoTemplate()) {
-      applyEditorTemplate(nextType, title);
-      return;
-    }
-
     clearEditorTemplateSeed();
     context.renderers.renderLivePreview();
   }
@@ -603,12 +584,6 @@
   function handleEditorTitleChange() {
     const note = getActiveNote();
     const title = context.elements.titleInput.value.trim() || note?.title || "Sans titre";
-    const type = context.elements.typeInput.value;
-
-    if (isEditorUsingAutoTemplate()) {
-      applyEditorTemplate(type, title);
-      return;
-    }
 
     syncMarkdownHeadingWithTitle(title);
     context.renderers.renderLivePreview();
@@ -800,7 +775,7 @@
       parentId: active?.type === "folder" ? active.id : null,
       favorite: false,
       tags: [],
-      content: context.data.buildTemplateContent("folder", title),
+      content: "",
       metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
@@ -960,7 +935,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
       parentId: null,
       favorite: false,
       tags: [],
-      content: context.data.buildTemplateContent("concept", trimmedTitle),
+      content: "",
       metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,

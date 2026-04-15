@@ -104,7 +104,7 @@ Backlink : page qui cite la page actuelle.`,
     storageKey: "atlas-connaissance-notes",
     appStorageKey: "atlas-connaissance-app",
     snapshotStorageKey: "atlas-connaissance-snapshots",
-    dataVersion: 10,
+    dataVersion: 11,
     supabase: {
       url: "https://cmmlgojptwolqbriexse.supabase.co",
       publishableKey: "sb_publishable_zoF-bkuVgEm9e7cbFG8lwA_kxRIHoPk",

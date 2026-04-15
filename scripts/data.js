@@ -294,7 +294,8 @@
         theme: "light",
         typeLabels: {},
         customNoteTypes: [],
-        templates: { ...noteTemplates },
+        deletedNoteTypes: [],
+        templates: {},
         collapsedFolders: [],
       };
     }
@@ -358,6 +359,9 @@
         theme: rawSettings?.theme === "dark" ? "dark" : "light",
         typeLabels: normalizeTypeLabels(rawSettings?.typeLabels),
         customNoteTypes: normalizeCustomNoteTypes(rawSettings?.customNoteTypes),
+        deletedNoteTypes: Array.isArray(rawSettings?.deletedNoteTypes)
+          ? rawSettings.deletedNoteTypes.filter((value) => typeof value === "string")
+          : [],
         templates: normalizeTemplates(rawSettings?.templates),
         collapsedFolders: Array.isArray(rawSettings?.collapsedFolders)
           ? rawSettings.collapsedFolders.filter((value) => typeof value === "string")
@@ -402,6 +406,7 @@
           theme: context.state.settings.theme || "light",
           typeLabels: context.state.settings.typeLabels || {},
           customNoteTypes: context.state.settings.customNoteTypes || [],
+          deletedNoteTypes: context.state.settings.deletedNoteTypes || [],
           templates: context.state.settings.templates || {},
           collapsedFolders: context.state.settings.collapsedFolders || [],
         },
@@ -467,15 +472,20 @@
     }
 
     function getNoteTypeLabels() {
+      const deletedTypes = new Set(context.state.settings.deletedNoteTypes || []);
       const builtins = Object.fromEntries(
-        Object.entries(noteTypeLabels).map(([type, label]) => [
-          type,
-          context.state.settings.typeLabels?.[type] || label,
-        ])
+        Object.entries(noteTypeLabels)
+          .filter(([type]) => !deletedTypes.has(type))
+          .map(([type, label]) => [
+            type,
+            context.state.settings.typeLabels?.[type] || label,
+          ])
       );
 
       const custom = Object.fromEntries(
-        (context.state.settings.customNoteTypes || []).map((item) => [item.id, item.label])
+        (context.state.settings.customNoteTypes || [])
+          .filter((item) => !deletedTypes.has(item.id))
+          .map((item) => [item.id, item.label])
       );
 
       return {
