@@ -680,20 +680,11 @@
               <div class="panel-header">
                 <div>
                   <p class="eyebrow">Parametres</p>
-                  <h3>Types et modeles</h3>
-                </div>
-                <div class="inline-actions">
-                  <button id="reset-template-button" class="button" type="button">
-                    Reinitialiser
-                  </button>
-                  <button id="save-template-button" class="button button-primary" type="button">
-                    Enregistrer le modele
-                  </button>
+                  <h3>Types de pages</h3>
                 </div>
               </div>
 
               <div class="link-section">
-                <h4>Types de pages</h4>
                 <div class="form-grid">
                   <label>
                     <span class="field-label">Nouveau type</span>
@@ -712,59 +703,62 @@
                 </div>
                 <div id="type-settings-list" class="settings-type-list"></div>
               </div>
-
-              <label>
-                <span class="field-label">Type de page</span>
-                <select id="template-type" class="select-input"></select>
-              </label>
-
-              <label class="editor-label">
-                <span class="field-label">Modele</span>
-                <textarea
-                  id="template-editor"
-                  class="editor"
-                  spellcheck="false"
-                  placeholder="Ecrivez ici le modele de ce type de page."
-                ></textarea>
-              </label>
-
-              <p class="helper-copy">
-                Utilisez <code>{{title}}</code> pour inserer automatiquement le titre de la page.
-              </p>
             </section>
 
             <section class="panel">
               <div class="panel-header">
                 <div>
-                  <p class="eyebrow">Aide</p>
-                  <h3>Comment les organiser</h3>
+                  <p class="eyebrow">Publication</p>
+                  <h3>Centre de publication</h3>
                 </div>
               </div>
 
               <div class="helper-grid">
                 <article class="helper-card">
-                  <h4>Ce que vous pouvez faire</h4>
-                  <p>
-                    Renommer les types existants, ajouter vos propres types, puis ajuster leur
-                    modele d ecriture.
+                  <h4>Etat local</h4>
+                  <p id="publish-status-copy">
+                    Votre espace local contient les brouillons et revisions en cours.
                   </p>
+                  <div id="publish-meta" class="meta-row"></div>
                 </article>
 
                 <article class="helper-card">
-                  <h4>Quand ils servent</h4>
+                  <h4>Version en ligne</h4>
                   <p>
-                    Les modeles s'appliquent aux nouvelles pages et automatiquement quand vous changez
-                    le type d'une page encore vierge ou basee sur son modele.
+                    Publiez un snapshot via <code>knowledge-base.json</code>, puis poussez-le sur GitHub Pages.
                   </p>
+                  <div class="stack-actions compact-actions">
+                    <button id="download-publish-button" class="button button-primary">
+                      Telecharger le snapshot publie
+                    </button>
+                    <button id="download-backup-button" class="button">
+                      Telecharger la sauvegarde complete
+                    </button>
+                    <button id="copy-published-link-button" class="button button-ghost">
+                      Copier le lien publie
+                    </button>
+                  </div>
                 </article>
+              </div>
 
-                <article class="helper-card">
-                  <h4>Bonne pratique</h4>
-                  <p>
-                    Gardez une structure stable par type pour rendre les liens,
-                    tags et quiz plus coherents dans le temps.
-                  </p>
-                </article>
+              <div class="link-section">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow">Protection</p>
+                    <h3>Snapshots locaux</h3>
+                  </div>
+                </div>
+
+                <div class="inline-actions">
+                  <button id="save-snapshot-button" class="button button-primary">
+                    Enregistrer un snapshot local
+                  </button>
+                  <button id="restore-latest-snapshot-button" class="button">
+                    Restaurer le dernier snapshot
+                  </button>
+                </div>
+
+                <div id="snapshot-list" class="snapshot-list"></div>
               </div>
             </section>
           </div>
@@ -924,66 +918,7 @@
           </div>
         </section>
 
-        <section id="publish-tab" class="tab-panel">
-          <div class="publish-layout">
-            <section class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Workflow</p>
-                  <h3>Centre de publication</h3>
-                </div>
-              </div>
-
-              <div class="helper-grid">
-                <article class="helper-card">
-                  <h4>Etat local</h4>
-                  <p id="publish-status-copy">
-                    Votre espace local contient les brouillons et revisions en cours.
-                  </p>
-                  <div id="publish-meta" class="meta-row"></div>
-                </article>
-
-                <article class="helper-card">
-                  <h4>Version en ligne</h4>
-                  <p>
-                    Publiez un snapshot via <code>knowledge-base.json</code>, puis poussez-le sur GitHub Pages.
-                  </p>
-                  <div class="stack-actions compact-actions">
-                    <button id="download-publish-button" class="button button-primary">
-                      Telecharger le snapshot publie
-                    </button>
-                    <button id="download-backup-button" class="button">
-                      Telecharger la sauvegarde complete
-                    </button>
-                    <button id="copy-published-link-button" class="button button-ghost">
-                      Copier le lien publie
-                    </button>
-                  </div>
-                </article>
-              </div>
-            </section>
-
-            <section class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Protection</p>
-                  <h3>Snapshots locaux</h3>
-                </div>
-              </div>
-
-              <div class="inline-actions">
-                <button id="save-snapshot-button" class="button button-primary">
-                  Enregistrer un snapshot local
-                </button>
-                <button id="restore-latest-snapshot-button" class="button">
-                  Restaurer le dernier snapshot
-                </button>
-              </div>
-
-              <div id="snapshot-list" class="snapshot-list"></div>
-            </section>
-          </div>
-        </section>
+        <section id="publish-tab" class="tab-panel"></section>
 
         <div id="workspace-banner" class="workspace-banner"></div>
       </main>
@@ -1073,11 +1008,7 @@
           </button>
           <button class="utility-link" data-utility-tab="settings" type="button">
             <strong>Parametres</strong>
-            <span>Gerer les types de pages et leurs modeles de redaction.</span>
-          </button>
-          <button class="utility-link" data-utility-tab="publish" type="button">
-            <strong>Publication</strong>
-            <span>Exporter, gerer les snapshots et preparer la version en ligne.</span>
+            <span>Gerer les types de pages, la publication et les snapshots.</span>
           </button>
           <button id="theme-toggle-button" class="utility-link" type="button">
             <strong>Mode nuit</strong>

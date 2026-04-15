@@ -113,6 +113,13 @@
       return "";
     }
 
+    if (/^\d{8}$/.test(cleaned)) {
+      const day = cleaned.slice(0, 2);
+      const month = cleaned.slice(2, 4);
+      const year = cleaned.slice(4, 8);
+      return `${year}-${month}-${day}`;
+    }
+
     const parts = cleaned.split("-").filter(Boolean);
     if (!parts.length) {
       return "";
@@ -231,12 +238,12 @@
 
     const monthMatch = normalized.match(/^(\d{1,4})-(\d{2})$/);
     if (monthMatch) {
-      return `${monthMatch[2]}-${monthMatch[1]}`;
+      return `${monthMatch[2]}/${monthMatch[1]}`;
     }
 
     const dayMatch = normalized.match(/^(\d{1,4})-(\d{2})-(\d{2})$/);
     if (dayMatch) {
-      return `${dayMatch[3]}-${dayMatch[2]}-${dayMatch[1]}`;
+      return `${dayMatch[3]}/${dayMatch[2]}/${dayMatch[1]}`;
     }
 
     return normalized;

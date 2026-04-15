@@ -366,9 +366,9 @@
       ["reference", "life", "range"].includes(metadata.dateMode)
         ? metadata.dateMode
         : "reference";
-    context.elements.noteDateSingle.value = metadata.singleDate || "";
-    context.elements.noteDateStart.value = metadata.startDate || "";
-    context.elements.noteDateEnd.value = metadata.endDate || "";
+    context.elements.noteDateSingle.value = metadata.singleDate ? formatFlexibleDate(metadata.singleDate) : "";
+    context.elements.noteDateStart.value = metadata.startDate ? formatFlexibleDate(metadata.startDate) : "";
+    context.elements.noteDateEnd.value = metadata.endDate ? formatFlexibleDate(metadata.endDate) : "";
     context.elements.contentInput.value = note.content;
 
     const templateContent = context.data.buildTemplateContent(note.type, note.title || "Sans titre");
@@ -439,11 +439,11 @@
   }
 
   function renderTemplateEditor() {
+    renderTypeSettingsList();
     if (!context.elements.templateEditor) {
       return;
     }
 
-    renderTypeSettingsList();
     const templates = context.data.getTemplates();
     const draft = context.state.templateDrafts[context.state.activeTemplateType];
     context.elements.templateEditor.value =
@@ -462,7 +462,7 @@
     context.elements.typeSettingsList.innerHTML = "";
 
     entries.forEach((entry) => {
-      const canDelete = entry.isCustom && !context.notes.isTypeUsed(entry.id);
+      const canDelete = !context.notes.isTypeUsed(entry.id);
       const row = document.createElement("label");
       row.className = "settings-type-row";
       row.innerHTML = `
@@ -475,21 +475,17 @@
             data-type-label-input="${entry.id}"
           />
           <span class="pill pill-soft">${escapeHtml(entry.id)}</span>
-          ${
-            entry.isCustom
-              ? `<button
-                  type="button"
-                  class="button button-ghost settings-delete-type"
-                  data-delete-type="${entry.id}"
-                  ${canDelete ? "" : "disabled"}
-                >
-                  Supprimer
-                </button>`
-              : ""
-          }
+          <button
+            type="button"
+            class="button button-ghost settings-delete-type"
+            data-delete-type="${entry.id}"
+            ${canDelete ? "" : "disabled"}
+          >
+            Supprimer
+          </button>
         </div>
         ${
-          entry.isCustom && !canDelete
+          !canDelete
             ? '<span class="helper-copy helper-copy-compact">Ce type est utilise par au moins une page.</span>'
             : ""
         }
@@ -1424,14 +1420,16 @@
       context.elements.quickType?.value || "concept"
     );
 
-    populateSelect(
-      context.elements.templateType,
-      context.data.getNoteTypeEntries().map((entry) => ({
-        value: entry.id,
-        label: entry.label,
-      })),
-      context.state.activeTemplateType
-    );
+    if (context.elements.templateType) {
+      populateSelect(
+        context.elements.templateType,
+        context.data.getNoteTypeEntries().map((entry) => ({
+          value: entry.id,
+          label: entry.label,
+        })),
+        context.state.activeTemplateType
+      );
+    }
 
     populateSelect(
       context.elements.typeFilter,
@@ -1495,7 +1493,9 @@
     context.elements.favoritesFilter.checked = context.state.favoritesOnly;
     context.elements.graphFocusMode.value = context.state.graphFocusMode;
     context.elements.graphShowTags.checked = context.state.graphShowTags;
-    context.elements.templateType.value = context.state.activeTemplateType;
+    if (context.elements.templateType) {
+      context.elements.templateType.value = context.state.activeTemplateType;
+    }
     if (context.elements.timelineScope) {
       context.elements.timelineScope.value = context.state.timeline.scope;
     }
