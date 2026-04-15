@@ -665,10 +665,16 @@
     const orphanNotes = sourceNotes.filter((note) => context.notes.isOrphanNote(note, sourceNotes)).length;
     const dueCount = context.notes.getDueNotes(sourceNotes).length;
 
-    context.elements.pageTotalCount.textContent = String(sourceNotes.length);
-    context.elements.linkCount.textContent = String(totalLinks);
-    context.elements.orphanCount.textContent = String(orphanNotes);
-    context.elements.quizCount.textContent = String(dueCount);
+    setOptionalText(context.elements.pageTotalCount, String(sourceNotes.length));
+    setOptionalText(context.elements.linkCount, String(totalLinks));
+    setOptionalText(context.elements.orphanCount, String(orphanNotes));
+    setOptionalText(context.elements.quizCount, String(dueCount));
+  }
+
+  function setOptionalText(element, value) {
+    if (element) {
+      element.textContent = value;
+    }
   }
 
   function renderInsightList(container, items, emptyMessage) {
@@ -726,6 +732,10 @@
   }
 
   function renderSidebarRecap() {
+    if (!context.elements.sidebarOverview || !context.elements.sidebarHierarchy) {
+      return;
+    }
+
     const orphanCount = context.state.notes.filter((note) => context.notes.isOrphanNote(note)).length;
     const rootCount = context.state.notes.filter((note) => !note.parentId).length;
     const favoritesCount = context.state.notes.filter((note) => note.favorite).length;

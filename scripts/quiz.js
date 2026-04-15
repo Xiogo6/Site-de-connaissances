@@ -32,12 +32,21 @@
     const available = generateQuizQuestions(getQuizNotes(), context.elements.quizMode.value);
     const amount = context.helpers.clamp(Number(context.elements.quizAmount.value) || 6, 3, 20);
     const picked = shuffle(available).slice(0, amount);
+    context.state.revisionMode = "quiz";
     context.state.quiz = {
       questions: picked,
       index: 0,
       score: 0,
       answerVisible: false,
+      streak: 0,
+      bestStreak: 0,
+      lastResult: null,
+      availableCount: available.length,
+      requestedAmount: amount,
+      startedAt: Date.now(),
     };
+    context.renderers.renderRevisionMode();
+    context.renderers.renderTabs();
     renderQuizCard();
   }
 
@@ -77,6 +86,15 @@
       context.state.quiz.score += 1;
     }
 
+    const nextStreak = isCorrect ? (context.state.quiz.streak || 0) + 1 : 0;
+    context.state.quiz.streak = nextStreak;
+    context.state.quiz.bestStreak = Math.max(context.state.quiz.bestStreak || 0, nextStreak);
+    context.state.quiz.lastResult = {
+      answer: current.answer,
+      isCorrect,
+      question: current.question,
+    };
+
     if (current?.noteId) {
       context.data.updateReviewState(current.noteId, isCorrect);
     }
@@ -84,9 +102,9 @@
     context.state.quiz.index += 1;
     context.state.quiz.answerVisible = false;
     context.data.saveNotes();
+    renderQuizCard();
     context.renderers.renderStats();
     context.renderers.renderDueReviewList();
-    renderQuizCard();
   }
 
   function showFlashcardAnswer() {
@@ -123,58 +141,172 @@
 
   function renderQuizCard() {
     const total = context.state.quiz.questions.length;
+    const currentIndex = context.state.quiz.index;
 
     if (!total) {
-      context.elements.quizTitle.textContent = "Aucun quiz lance";
+      context.elements.quizTitle.textContent = "Pret a jouer ?";
       context.elements.quizProgress.textContent = "0 / 0";
-      context.elements.quizCard.className = "quiz-card empty-state";
-      context.elements.quizCard.textContent =
-        "Le quiz apparaitra ici a partir de vos connaissances.";
-      context.elements.quizSummary.textContent =
-        'Ajoutez des definitions, des relations ou des listes pour produire plus de questions.';
-      context.elements.showAnswerButton.disabled = true;
-      context.elements.markCorrectButton.disabled = true;
-      context.elements.markWrongButton.disabled = true;
-      return;
-    }
-
-    if (context.state.quiz.index >= total) {
-      context.elements.quizTitle.textContent = "Session terminee";
-      context.elements.quizProgress.textContent = `${total} / ${total}`;
-      context.elements.quizCard.className = "quiz-card";
+      context.elements.quizCard.className = "quiz-card quiz-game-card quiz-game-empty";
       context.elements.quizCard.innerHTML = `
-        <h4>Score final : ${context.state.quiz.score} / ${total}</h4>
-        <p>Relancez un quiz pour continuer la revision active.</p>
+        <div class="quiz-game-hero">
+          <span class="quiz-game-kicker">Session de revision</span>
+          <h4>Construisez une partie a partir de vos connaissances.</h4>
+          <p>Choisissez une source, un mode, puis lancez le quiz. Chaque bonne reponse nourrit aussi les revisions futures.</p>
+        </div>
+        <div class="quiz-game-rules">
+          <span>1. Lisez la question</span>
+          <span>2. Repondez sans regarder</span>
+          <span>3. Revelez puis validez</span>
+        </div>
       `;
       context.elements.quizSummary.textContent =
-        'Conseil : les paires "Concept : definition" donnent les meilleures questions.';
+        "Astuce : les lignes de type \"Concept : definition\", les dates et les liens produisent les meilleures questions.";
+      context.elements.showAnswerButton.textContent = "Reveler";
+      context.elements.markCorrectButton.textContent = "Bonne reponse";
+      context.elements.markWrongButton.textContent = "A revoir";
       context.elements.showAnswerButton.disabled = true;
       context.elements.markCorrectButton.disabled = true;
       context.elements.markWrongButton.disabled = true;
       return;
     }
 
-    const current = context.state.quiz.questions[context.state.quiz.index];
-    context.elements.quizTitle.textContent = "Quiz de revision";
-    context.elements.quizProgress.textContent = `${context.state.quiz.index + 1} / ${total}`;
-    context.elements.quizCard.className = "quiz-card";
+    if (currentIndex >= total) {
+      const percent = Math.round((context.state.quiz.score / total) * 100);
+      const rank = getQuizRank(percent);
+      const duration = formatQuizDuration(context.state.quiz.startedAt);
+      const lastResult = context.state.quiz.lastResult;
+
+      context.elements.quizTitle.textContent = "Partie terminee";
+      context.elements.quizProgress.textContent = `${total} / ${total}`;
+      context.elements.quizCard.className = "quiz-card quiz-game-card quiz-game-complete";
+      context.elements.quizCard.innerHTML = `
+        <div class="quiz-complete-medal" aria-hidden="true">${rank.icon}</div>
+        <span class="quiz-game-kicker">Resultat final</span>
+        <h4>${escapeHtml(rank.label)}</h4>
+        <div class="quiz-final-score">
+          <strong>${context.state.quiz.score} / ${total}</strong>
+          <span>${percent}% de maitrise</span>
+        </div>
+        <div class="quiz-game-hud">
+          <span class="quiz-score-pill">Meilleure serie <strong>${context.state.quiz.bestStreak || 0}</strong></span>
+          <span class="quiz-score-pill">Temps <strong>${duration}</strong></span>
+          <span class="quiz-score-pill">Mode <strong>${escapeHtml(getQuizModeLabel())}</strong></span>
+        </div>
+        ${
+          lastResult
+            ? `<p class="quiz-last-result">Derniere reponse : ${escapeHtml(lastResult.answer)}</p>`
+            : ""
+        }
+      `;
+      context.elements.quizSummary.textContent =
+        "Relancez une partie avec le meme dossier ou changez de mode pour renforcer les zones faibles.";
+      context.elements.showAnswerButton.textContent = "Partie terminee";
+      context.elements.markCorrectButton.textContent = "Bonne reponse";
+      context.elements.markWrongButton.textContent = "A revoir";
+      context.elements.showAnswerButton.disabled = true;
+      context.elements.markCorrectButton.disabled = true;
+      context.elements.markWrongButton.disabled = true;
+      return;
+    }
+
+    const current = context.state.quiz.questions[currentIndex];
+    const questionNumber = currentIndex + 1;
+    const progress = Math.round((currentIndex / total) * 100);
+    const nextProgress = Math.round((questionNumber / total) * 100);
+    const isAnswerVisible = context.state.quiz.answerVisible;
+
+    context.elements.quizTitle.textContent = "Mission de revision";
+    context.elements.quizProgress.textContent = `${questionNumber} / ${total}`;
+    context.elements.quizCard.className = `quiz-card quiz-game-card${
+      isAnswerVisible ? " is-answer-visible" : ""
+    }`;
     context.elements.quizCard.innerHTML = `
-      <h4>${escapeHtml(current.question)}</h4>
-      <p><strong>Source :</strong> ${escapeHtml(current.source)}</p>
-      <p><strong>Mode :</strong> ${escapeHtml(current.modeLabel)}</p>
-      <p>Essayez de repondre sans regarder la reponse.</p>
+      <div class="quiz-progress-track" aria-hidden="true">
+        <span style="width: ${isAnswerVisible ? nextProgress : progress}%"></span>
+      </div>
+      <div class="quiz-game-hud">
+        <span class="quiz-score-pill">Score <strong>${context.state.quiz.score}</strong></span>
+        <span class="quiz-score-pill quiz-combo">Serie <strong>${context.state.quiz.streak || 0}</strong></span>
+        <span class="quiz-score-pill">Question <strong>${questionNumber}/${total}</strong></span>
+      </div>
+      <div class="quiz-question-stage">
+        <span class="quiz-game-kicker">Question ${questionNumber}</span>
+        <h4>${escapeHtml(current.question)}</h4>
+        <div class="quiz-question-meta">
+          <span>${escapeHtml(current.modeLabel)}</span>
+          <span>${escapeHtml(current.source)}</span>
+          <span>${escapeHtml(getQuizScopeLabel())}</span>
+        </div>
+      </div>
       ${
-        context.state.quiz.answerVisible
-          ? `<p><strong>Reponse :</strong> ${escapeHtml(current.answer)}</p>`
-          : '<p>Utilisez "Voir la reponse" apres avoir tente un rappel actif.</p>'
+        isAnswerVisible
+          ? `<div class="quiz-answer-reveal">
+              <span class="quiz-game-kicker">Reponse</span>
+              <p>${escapeHtml(current.answer)}</p>
+              <small>Validez selon votre vrai rappel, pas selon une intuition apres coup.</small>
+            </div>`
+          : `<div class="quiz-recall-zone">
+              <span>Zone de rappel</span>
+              <p>Formulez la reponse dans votre tete, puis revelez-la.</p>
+            </div>`
       }
     `;
-    context.elements.quizSummary.textContent = context.state.quiz.answerVisible
-      ? "Indiquez ensuite si vous connaissiez la reponse."
-      : "Repondez mentalement avant de reveler la reponse.";
-    context.elements.showAnswerButton.disabled = context.state.quiz.answerVisible;
-    context.elements.markCorrectButton.disabled = !context.state.quiz.answerVisible;
-    context.elements.markWrongButton.disabled = !context.state.quiz.answerVisible;
+    context.elements.quizSummary.textContent = isAnswerVisible
+      ? "Choisissez le resultat pour passer automatiquement a la question suivante."
+      : getQuizSessionHint(total);
+    context.elements.showAnswerButton.textContent = isAnswerVisible ? "Reponse affichee" : "Reveler";
+    context.elements.markCorrectButton.textContent = "Bonne reponse";
+    context.elements.markWrongButton.textContent = "A revoir";
+    context.elements.showAnswerButton.disabled = isAnswerVisible;
+    context.elements.markCorrectButton.disabled = !isAnswerVisible;
+    context.elements.markWrongButton.disabled = !isAnswerVisible;
+  }
+
+  function getQuizRank(percent) {
+    if (percent >= 85) {
+      return { icon: "A", label: "Maitrise solide" };
+    }
+
+    if (percent >= 60) {
+      return { icon: "B", label: "Base en consolidation" };
+    }
+
+    return { icon: "C", label: "A revoir tranquillement" };
+  }
+
+  function formatQuizDuration(startedAt) {
+    if (!startedAt) {
+      return "0 min";
+    }
+
+    const elapsedSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+    const minutes = Math.floor(elapsedSeconds / 60);
+    const seconds = elapsedSeconds % 60;
+    return minutes ? `${minutes}m ${seconds}s` : `${seconds}s`;
+  }
+
+  function getQuizModeLabel() {
+    const selected = context.elements.quizMode.selectedOptions?.[0];
+    return selected?.textContent?.trim() || "Mixte";
+  }
+
+  function getQuizScopeLabel() {
+    const selected = context.elements.quizScope.selectedOptions?.[0];
+    return selected?.textContent?.trim() || "Toutes les pages";
+  }
+
+  function getQuizSessionHint(total) {
+    if (total === 1) {
+      return "Une seule question a ete trouvee dans cette source. Apres validation, la partie se terminera directement.";
+    }
+
+    const available = context.state.quiz.availableCount || total;
+    const requested = context.state.quiz.requestedAmount || total;
+    if (available < requested) {
+      return `${available} question(s) trouvee(s) pour cette source. Ajoutez des definitions, dates, liens ou puces pour enrichir le quiz.`;
+    }
+
+    return "Le bon rythme : lire, rappeler, reveler, valider. Simple et brutalement efficace.";
   }
 
   function getQuizNotes() {
