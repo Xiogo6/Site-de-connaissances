@@ -19,7 +19,6 @@
       sidebarPanels: {
         library: document.querySelector("#sidebar-library"),
         reviews: document.querySelector("#sidebar-reviews"),
-        recap: document.querySelector("#sidebar-recap"),
       },
       sidebarDrawer: document.querySelector("#mobile-sidebar"),
       sidebarDrawerOpen: document.querySelector("#sidebar-drawer-open"),
@@ -94,6 +93,7 @@
       linkCount: document.querySelector("#link-count"),
       orphanCount: document.querySelector("#orphan-count"),
       quizCount: document.querySelector("#quiz-count"),
+      revisionModeButtons: [...document.querySelectorAll("[data-revision-mode]")],
       graphCanvas: document.querySelector("#graph-canvas"),
       graphFocus: document.querySelector("#graph-focus"),
       graphShowTags: document.querySelector("#graph-show-tags"),

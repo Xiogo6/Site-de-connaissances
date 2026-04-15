@@ -106,6 +106,16 @@
       context.state.activeTemplateType = event.target.value;
       context.renderers.renderTemplateEditor();
     });
+
+    context.elements.revisionModeButtons?.forEach((button) => {
+      button.addEventListener("click", () => {
+        context.state.revisionMode = button.dataset.revisionMode || "quiz";
+        context.state.activeTab = "quiz";
+        context.renderers.renderTabs();
+        context.renderers.renderRevisionMode();
+        renderActiveTabContent();
+      });
+    });
     context.elements.templateEditor?.addEventListener("input", (event) => {
       context.state.templateDrafts[context.state.activeTemplateType] = event.target.value;
     });
@@ -419,7 +429,11 @@
     }
 
     if (context.state.activeTab === "quiz") {
-      context.quiz.renderQuizCard();
+      if (context.state.revisionMode === "flashcards") {
+        context.quiz.renderFlashcards();
+      } else {
+        context.quiz.renderQuizCard();
+      }
       return;
     }
 

@@ -69,6 +69,7 @@
         score: 0,
         answerVisible: false,
       },
+      revisionMode: "quiz",
       flashcards: {
         cards: [],
         index: 0,

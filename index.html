@@ -45,7 +45,6 @@
         <nav class="sidebar-tabs" aria-label="Navigation laterale">
           <button class="sidebar-tab is-active" data-sidebar-tab="library">Bibliotheque</button>
           <button class="sidebar-tab" data-sidebar-tab="reviews">Revisions</button>
-          <button class="sidebar-tab" data-sidebar-tab="recap">Recap</button>
         </nav>
 
         <section id="sidebar-library" class="sidebar-panel is-active">
@@ -103,21 +102,6 @@
           </div>
         </section>
 
-        <section id="sidebar-recap" class="sidebar-panel">
-          <div class="sidebar-card">
-            <div class="section-heading">
-              <h2>Recap global</h2>
-            </div>
-            <div id="sidebar-overview" class="insight-list"></div>
-          </div>
-
-          <div class="sidebar-card">
-            <div class="section-heading">
-              <h2>Hierarchie</h2>
-            </div>
-            <div id="sidebar-hierarchy" class="hierarchy-list"></div>
-          </div>
-        </section>
       </aside>
       <button
         id="sidebar-drawer-backdrop"
@@ -173,6 +157,18 @@
               </span>
               <span class="tab-label">Graphe</span>
             </button>
+            <button class="tab" data-tab="timeline" type="button">
+              <span class="tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                  <path d="M4 17h16" />
+                  <path d="M6 17V8M12 17V5M18 17v-7" />
+                  <circle cx="6" cy="8" r="1.8" />
+                  <circle cx="12" cy="5" r="1.8" />
+                  <circle cx="18" cy="10" r="1.8" />
+                </svg>
+              </span>
+              <span class="tab-label">Frises</span>
+            </button>
             <button class="tab" data-tab="quiz" type="button">
               <span class="tab-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" role="presentation">
@@ -181,7 +177,7 @@
                   <circle cx="12" cy="12" r="9" />
                 </svg>
               </span>
-              <span class="tab-label">Quiz</span>
+              <span class="tab-label">Revision</span>
             </button>
             <button id="mobile-search-button" class="tab tab-search" type="button">
               <span class="tab-icon" aria-hidden="true">
@@ -579,6 +575,17 @@
         </section>
 
         <section id="quiz-tab" class="tab-panel">
+          <div class="revision-choice">
+            <button class="revision-choice-card is-active" data-revision-mode="quiz" type="button">
+              <strong>Quiz</strong>
+              <span>Questions courtes pour tester le rappel actif.</span>
+            </button>
+            <button class="revision-choice-card" data-revision-mode="flashcards" type="button">
+              <strong>Flashcards</strong>
+              <span>Cartes recto verso issues de vos tableaux de notes.</span>
+            </button>
+          </div>
+
           <div class="quiz-layout">
             <section class="panel quiz-controls">
               <div class="panel-header">
@@ -998,14 +1005,6 @@
         </div>
 
         <div class="stack-actions">
-          <button class="utility-link" data-utility-tab="flashcards" type="button">
-            <strong>Flashcards</strong>
-            <span>Transformer vos connaissances en cartes recto verso pour memoriser plus vite.</span>
-          </button>
-          <button class="utility-link" data-utility-tab="timeline" type="button">
-            <strong>Frises</strong>
-            <span>Visualiser un dossier ou un tag sous forme de chronologie vivante et didactique.</span>
-          </button>
           <button class="utility-link" data-utility-tab="settings" type="button">
             <strong>Parametres</strong>
             <span>Gerer les types de pages, la publication et les snapshots.</span>
