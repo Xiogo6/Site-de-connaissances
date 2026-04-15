@@ -226,6 +226,15 @@ body[data-theme="dark"] .tab.is-active {
   display: block;
 }
 
+.tab-panel.is-revision-hidden {
+  display: none;
+}
+
+#quiz-tab.is-active + #settings-tab + #flashcards-tab,
+#quiz-tab.is-active ~ #flashcards-tab.is-active {
+  margin-top: 18px;
+}
+
 .panel {
   padding: 22px;
 }
@@ -393,7 +402,7 @@ body[data-theme="dark"] .tab.is-active {
     box-shadow: var(--shadow);
     display: grid;
     gap: 6px;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     left: 50%;
     padding: 8px;
     position: fixed;
@@ -408,7 +417,7 @@ body[data-theme="dark"] .tab.is-active {
     flex-direction: column;
     gap: 6px;
     min-height: 62px;
-    padding: 8px 6px;
+    padding: 8px 4px;
   }
 
   .tab-search {
@@ -434,7 +443,8 @@ body[data-theme="dark"] .tab.is-active {
   }
 
   .form-grid,
-  .helper-grid {
+  .helper-grid,
+  .revision-choice {
     grid-template-columns: 1fr;
   }
 

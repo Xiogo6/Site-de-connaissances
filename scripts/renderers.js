@@ -20,6 +20,7 @@
     renderSidebarDrawer();
     renderFiltersPanel();
     renderTabs();
+    renderRevisionMode();
     renderWorkspaceBanner();
     renderKnowledgeMode();
     renderKnowledgeList();
@@ -50,7 +51,7 @@
       button.classList.toggle("is-active", button.dataset.utilityTab === context.state.activeTab);
     });
 
-    const utilityActive = ["flashcards", "timeline", "settings", "publish"].includes(context.state.activeTab);
+    const utilityActive = ["settings", "publish"].includes(context.state.activeTab);
     context.elements.utilityDrawerOpen.classList.toggle("is-active", utilityActive);
     context.elements.utilityDrawerOpen.setAttribute(
       "aria-expanded",
@@ -64,7 +65,22 @@
     );
 
     Object.entries(context.elements.panels).forEach(([key, panel]) => {
-      panel.classList.toggle("is-active", key === context.state.activeTab);
+      const isRevisionCompanion =
+        context.state.activeTab === "quiz" &&
+        context.state.revisionMode === "flashcards" &&
+        key === "flashcards";
+      const isHiddenQuiz =
+        context.state.activeTab === "quiz" &&
+        context.state.revisionMode === "flashcards" &&
+        key === "quiz";
+      panel.classList.toggle("is-active", key === context.state.activeTab || isRevisionCompanion);
+      panel.classList.toggle("is-revision-hidden", isHiddenQuiz);
+    });
+  }
+
+  function renderRevisionMode() {
+    context.elements.revisionModeButtons?.forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.revisionMode === context.state.revisionMode);
     });
   }
 
@@ -1532,6 +1548,7 @@
     renderPreview,
     renderPublishCenter,
     renderQuickCapture,
+    renderRevisionMode,
     renderSidebarDrawer,
     renderSidebarRecap,
     renderSidebarTabs,
