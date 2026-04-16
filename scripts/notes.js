@@ -77,15 +77,16 @@
 
   function createEmptyNote() {
     const type = context.data.getNoteTypeEntries()[0]?.id || "concept";
+    const title = generateUntitledName();
     const now = new Date().toISOString();
     return {
-      id: context.data.generateId(`page-${Date.now()}`),
-      title: "",
+      id: context.data.generateId(title),
+      title,
       type,
       parentId: null,
       favorite: false,
       tags: [],
-      content: "",
+      content: `# ${title}`,
       metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
@@ -124,12 +125,18 @@
   function syncMarkdownHeadingWithTitle(nextTitle) {
     const content = context.elements.contentInput.value;
     if (!content) {
+      context.elements.contentInput.value = `# ${nextTitle || "Sans titre"}`;
       return;
     }
 
     const lines = content.split("\n");
     const headingIndex = lines.findIndex((line) => line.trim().length > 0);
-    if (headingIndex === -1 || !lines[headingIndex].startsWith("# ")) {
+    if (headingIndex === -1) {
+      context.elements.contentInput.value = `# ${nextTitle || "Sans titre"}`;
+      return;
+    }
+
+    if (!lines[headingIndex].startsWith("# ")) {
       return;
     }
 
@@ -369,6 +376,7 @@
     const previousTitle = current.title;
     const previousParentId = current.parentId;
     const nextTitle = context.elements.titleInput.value.trim() || "Sans titre";
+    syncMarkdownHeadingWithTitle(nextTitle);
 
     current.title = nextTitle;
     current.type = context.elements.typeInput.value;
@@ -731,32 +739,33 @@
   }
 
   function clearOrganizationDropHighlights() {
-    context.elements.organizationTree
-      ?.querySelectorAll("[data-note-id].is-drop-target, [data-note-id].is-dragging")
-      .forEach((node) => {
-        node.classList.remove("is-drop-target", "is-dragging");
-      });
+    [context.elements.organizationTree, context.elements.knowledgeList].forEach((tree) => {
+      tree
+        ?.querySelectorAll("[data-note-id].is-drop-target, [data-note-id].is-dragging")
+        .forEach((node) => {
+          node.classList.remove("is-drop-target", "is-dragging");
+        });
+    });
     context.elements.organizationRootDrop?.classList.remove("is-over");
+    context.elements.knowledgeList?.classList.remove("is-root-drop-target");
   }
 
   function highlightOrganizationTarget(targetId) {
     clearOrganizationDropHighlights();
-    const target = context.elements.organizationTree?.querySelector(
-      `[data-note-id="${targetId}"]`
-    );
-    const source = context.state.dragState.noteId
-      ? context.elements.organizationTree?.querySelector(
-          `[data-note-id="${context.state.dragState.noteId}"]`
-        )
-      : null;
+    [context.elements.organizationTree, context.elements.knowledgeList].forEach((tree) => {
+      const target = tree?.querySelector(`[data-note-id="${targetId}"]`);
+      const source = context.state.dragState.noteId
+        ? tree?.querySelector(`[data-note-id="${context.state.dragState.noteId}"]`)
+        : null;
 
-    if (target) {
-      target.classList.add("is-drop-target");
-    }
+      if (target) {
+        target.classList.add("is-drop-target");
+      }
 
-    if (source) {
-      source.classList.add("is-dragging");
-    }
+      if (source) {
+        source.classList.add("is-dragging");
+      }
+    });
   }
 
   function createFolderFromOrganization() {
@@ -775,7 +784,7 @@
       parentId: active?.type === "folder" ? active.id : null,
       favorite: false,
       tags: [],
-      content: "",
+      content: `# ${title}`,
       metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
@@ -935,7 +944,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
       parentId: null,
       favorite: false,
       tags: [],
-      content: "",
+      content: `# ${trimmedTitle}`,
       metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,

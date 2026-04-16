@@ -264,6 +264,7 @@
     const blocks = [];
     const lines = content.split("\n");
     let listBuffer = [];
+    let paragraphBuffer = [];
 
     const flushList = () => {
       if (!listBuffer.length) {
@@ -274,15 +275,26 @@
       listBuffer = [];
     };
 
+    const flushParagraph = () => {
+      if (!paragraphBuffer.length) {
+        return;
+      }
+
+      blocks.push(`<p>${paragraphBuffer.map(renderInline).join("<br>")}</p>`);
+      paragraphBuffer = [];
+    };
+
     lines.forEach((line) => {
       const trimmed = line.trim();
 
       if (!trimmed) {
+        flushParagraph();
         flushList();
         return;
       }
 
       if (trimmed.startsWith("- ")) {
+        flushParagraph();
         listBuffer.push(renderInline(trimmed.slice(2)));
         return;
       }
@@ -290,18 +302,21 @@
       flushList();
 
       if (trimmed.startsWith("## ")) {
+        flushParagraph();
         blocks.push(`<h2>${renderInline(trimmed.slice(3))}</h2>`);
         return;
       }
 
       if (trimmed.startsWith("# ")) {
+        flushParagraph();
         blocks.push(`<h1>${renderInline(trimmed.slice(2))}</h1>`);
         return;
       }
 
-      blocks.push(`<p>${renderInline(trimmed)}</p>`);
+      paragraphBuffer.push(trimmed);
     });
 
+    flushParagraph();
     flushList();
     return blocks.join("");
   }
