@@ -330,6 +330,7 @@
       duplicateAttr: "data-duplicate-note",
       deleteAttr: "data-delete-note",
       variant: "flat",
+      allowDrag: !filterActive,
       forceExpanded: filterActive,
       emptyMessage: filterActive
         ? "Aucune page ne correspond aux filtres"

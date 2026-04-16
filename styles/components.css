@@ -75,6 +75,12 @@
   overflow: auto;
 }
 
+.knowledge-list.is-root-drop-target {
+  background: rgba(255, 247, 232, 0.72);
+  outline: 1px dashed rgba(191, 91, 44, 0.42);
+  outline-offset: 4px;
+}
+
 #sidebar-library .sidebar-card-plain {
   align-content: start;
   display: flex;
@@ -188,8 +194,12 @@
 .tree-entry-flat .knowledge-item-shell.is-active {
   background: transparent;
   border-color: transparent;
-  border-left: 2px solid var(--accent);
-  padding-left: 8px;
+  box-shadow: inset 2px 0 0 var(--accent);
+  transform: none;
+}
+
+.hierarchy-node .knowledge-item-shell.is-active {
+  box-shadow: inset 2px 0 0 var(--accent);
   transform: none;
 }
 
@@ -636,20 +646,21 @@ body[data-theme="dark"] .button-ghost {
 .rendered-note {
   color: var(--text);
   font-family: var(--content-font);
-  line-height: 1.75;
+  line-height: 1.58;
   margin-top: 18px;
 }
 
 .rendered-note h1,
 .rendered-note h2 {
   font-family: var(--content-font);
-  margin-bottom: 0.55rem;
-  margin-top: 1.4rem;
+  line-height: 1.25;
+  margin-bottom: 0.42rem;
+  margin-top: 1rem;
 }
 
 .rendered-note p,
 .rendered-note ul {
-  margin: 0.85rem 0;
+  margin: 0.45rem 0;
 }
 
 .rendered-note ul {

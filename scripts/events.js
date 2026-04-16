@@ -212,6 +212,11 @@
       "click",
       context.notes.createFolderFromOrganization
     );
+    context.elements.knowledgeList.addEventListener("dragstart", handleOrganizationDragStart);
+    context.elements.knowledgeList.addEventListener("dragend", handleOrganizationDragEnd);
+    context.elements.knowledgeList.addEventListener("dragover", handleKnowledgeListDragOver);
+    context.elements.knowledgeList.addEventListener("dragleave", handleKnowledgeListDragLeave);
+    context.elements.knowledgeList.addEventListener("drop", handleKnowledgeListDrop);
     context.elements.organizationTree.addEventListener("dragstart", handleOrganizationDragStart);
     context.elements.organizationTree.addEventListener("dragend", handleOrganizationDragEnd);
     context.elements.organizationTree.addEventListener("dragover", handleOrganizationDragOver);
@@ -861,6 +866,7 @@
   function handleOrganizationDragEnd() {
     context.notes.resetDragState();
     context.notes.clearOrganizationDropHighlights();
+    context.renderers.renderKnowledgeList();
     context.renderers.renderOrganization();
   }
 
@@ -883,10 +889,38 @@
     context.notes.highlightOrganizationTarget(targetId);
   }
 
+  function handleKnowledgeListDragOver(event) {
+    if (!context.state.dragState.noteId || context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    const node = event.target.closest("[data-note-id]");
+    if (node) {
+      handleOrganizationDragOver(event);
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    context.state.dragState.dropTargetId = null;
+    context.state.dragState.dropToRoot = true;
+    context.notes.clearOrganizationDropHighlights();
+    context.elements.knowledgeList.classList.add("is-root-drop-target");
+  }
+
   function handleOrganizationDragLeave(event) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       context.state.dragState.dropTargetId = null;
       context.notes.clearOrganizationDropHighlights();
+    }
+  }
+
+  function handleKnowledgeListDragLeave(event) {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+      context.state.dragState.dropTargetId = null;
+      context.state.dragState.dropToRoot = false;
+      context.notes.clearOrganizationDropHighlights();
+      context.elements.knowledgeList.classList.remove("is-root-drop-target");
     }
   }
 
@@ -898,6 +932,22 @@
 
     event.preventDefault();
     context.notes.moveNoteToParent(context.state.dragState.noteId, node.dataset.noteId);
+  }
+
+  function handleKnowledgeListDrop(event) {
+    if (!context.state.dragState.noteId || context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    const node = event.target.closest("[data-note-id]");
+    context.elements.knowledgeList.classList.remove("is-root-drop-target");
+    if (node) {
+      handleOrganizationDrop(event);
+      return;
+    }
+
+    event.preventDefault();
+    context.notes.moveNoteToParent(context.state.dragState.noteId, null);
   }
 
   function handleRootDragOver(event) {
