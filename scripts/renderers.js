@@ -402,9 +402,11 @@
     context.elements.tagsInput.value = note.tags.join(", ");
     context.elements.parentInput.value = note.parentId || "";
     context.elements.favoriteInput.checked = Boolean(note.favorite);
-    context.elements.noteHasDate.checked = Boolean(metadata.hasDate);
+    context.elements.noteHasDate.value = metadata.hasDate ? "true" : "false";
     context.elements.noteDateMode.value =
-      ["reference", "life", "range"].includes(metadata.dateMode)
+      !metadata.hasDate
+        ? "none"
+        : ["reference", "life", "range"].includes(metadata.dateMode)
         ? metadata.dateMode
         : "reference";
     context.elements.noteDateSingle.value = metadata.singleDate ? formatFlexibleDate(metadata.singleDate) : "";
@@ -424,8 +426,8 @@
   }
 
   function renderStructuredFields() {
-    const hasDate = context.elements.noteHasDate.checked;
     const mode = context.elements.noteDateMode.value;
+    const hasDate = mode !== "none";
     const isRange = mode === "range";
     const labels = {
       reference: "Date de reference",
@@ -433,8 +435,9 @@
       range: "Date",
     };
 
-    context.elements.noteDateModeLabel.classList.toggle("is-hidden", !hasDate);
+    context.elements.noteHasDate.value = hasDate ? "true" : "false";
     context.elements.genericDateFields.classList.toggle("is-hidden", !hasDate);
+    context.elements.genericDateFields.classList.toggle("is-single-date", mode === "reference");
     context.elements.noteDateSingleLabel.classList.toggle(
       "is-hidden",
       !hasDate || isRange || mode === "life"

@@ -282,6 +282,28 @@ body[data-theme="dark"] .tab.is-active {
   margin-top: 14px;
 }
 
+.editor-parent-field {
+  display: none;
+}
+
+.date-editor-grid {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(142px, 0.78fr) minmax(0, 1.22fr);
+}
+
+.date-fields-grid {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.date-fields-grid.is-single-date {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .editor-label {
   display: grid;
   gap: 8px;
@@ -409,14 +431,14 @@ body[data-theme="dark"] .tab.is-active {
   .tabs {
     background: rgba(255, 249, 240, 0.9);
     border: 1px solid rgba(86, 70, 48, 0.1);
-    border-radius: 28px;
+    border-radius: 30px;
     bottom: 10px;
     box-shadow: 0 18px 40px rgba(81, 55, 30, 0.16);
     display: grid;
-    gap: 4px;
+    gap: 6px;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     left: 50%;
-    padding: 6px;
+    padding: 7px;
     position: fixed;
     right: auto;
     transform: translateX(-50%);
@@ -425,10 +447,10 @@ body[data-theme="dark"] .tab.is-active {
   }
 
   .tab {
-    border-radius: 22px;
+    border-radius: 24px;
     flex-direction: column;
-    gap: 4px;
-    min-height: 56px;
+    gap: 0;
+    min-height: 66px;
     padding: 6px 2px;
     position: relative;
   }
@@ -444,21 +466,25 @@ body[data-theme="dark"] .tab.is-active {
   }
 
   .tab-label {
-    font-size: 0.64rem;
-    font-weight: 650;
-    justify-content: center;
-    line-height: 1.05;
-    text-align: center;
-    white-space: normal;
+    border: 0;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
   }
 
   .tab-icon {
     background: rgba(47, 36, 24, 0.06);
     border-radius: 999px;
-    height: 26px;
+    height: 38px;
     justify-content: center;
-    padding: 5px;
-    width: 26px;
+    padding: 8px;
+    width: 38px;
   }
 
   .tab.is-active .tab-icon {
@@ -519,6 +545,15 @@ body[data-theme="dark"] .tab.is-active {
     grid-template-columns: 1fr;
   }
 
+  .date-editor-grid {
+    gap: 10px;
+    grid-template-columns: minmax(118px, 0.72fr) minmax(0, 1fr);
+  }
+
+  .date-fields-grid {
+    gap: 8px;
+  }
+
   .inline-actions {
     display: grid;
   }
@@ -542,8 +577,13 @@ body[data-theme="dark"] .tab.is-active {
 }
 
 @media (max-width: 420px) {
-  .tab-label {
-    font-size: 0.6rem;
+  .tab {
+    min-height: 62px;
+  }
+
+  .tab-icon {
+    height: 36px;
+    width: 36px;
   }
 }
 
@@ -553,11 +593,12 @@ body[data-theme="dark"] .tab.is-active {
     width: min(calc(100vw - 12px), 414px);
   }
 
-  .tab-label {
-    display: none;
+  .tab {
+    min-height: 58px;
   }
 
-  .tab {
-    min-height: 48px;
+  .tab-icon {
+    height: 34px;
+    width: 34px;
   }
 }
