@@ -116,6 +116,7 @@ Backlink : page qui cite la page actuelle.`,
       person: "Personne",
       event: "Evenement",
       experience: "Experience",
+      daily: "Daily",
       folder: "Dossier",
       hub: "Hub",
       procedure: "Procedure",
@@ -197,6 +198,22 @@ Contexte :
 - 
 
 ## Pages liees
+
+- 
+`,
+      daily: `# {{title}}
+
+Date :
+
+## Aujourd'hui
+
+- 
+
+## A retenir
+
+- 
+
+## Liens
 
 - 
 `,

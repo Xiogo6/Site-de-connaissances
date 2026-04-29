@@ -189,6 +189,8 @@
         '<svg viewBox="0 0 24 24" role="presentation"><path d="M7 4v3M17 4v3M5 8h14"></path><rect x="5" y="6" width="14" height="13" rx="2"></rect></svg>',
       experience:
         '<svg viewBox="0 0 24 24" role="presentation"><path d="M7 5h10M9 5v4l-3 4a4 4 0 0 0 3.3 6h5.4a4 4 0 0 0 3.3-6l-3-4V5"></path><path d="M9 14h6"></path></svg>',
+      daily:
+        '<svg viewBox="0 0 24 24" role="presentation"><path d="M7 4v3M17 4v3M5 8h14"></path><rect x="5" y="6" width="14" height="14" rx="2"></rect><path d="M8 12h8M8 16h5"></path></svg>',
       folder:
         '<svg viewBox="0 0 24 24" role="presentation"><path d="M4 8h6l2 2h8v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path><path d="M4 8V6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2"></path></svg>',
       hub:

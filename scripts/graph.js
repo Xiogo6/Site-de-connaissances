@@ -113,6 +113,14 @@
       };
     }
 
+    if (type === "daily") {
+      return {
+        fill: "#e7ddf2",
+        stroke: "#7b5aa0",
+        label: "#5d4479",
+      };
+    }
+
     if (type === "folder") {
       return {
         fill: "#ece3d2",
@@ -261,7 +269,7 @@
     });
 
     const laneCount = Math.max(components.length, 1);
-    const laneHeight = (height - 120) / laneCount;
+    const laneHeight = (height - 48) / laneCount;
     const positions = new Map();
 
     components.forEach((component, componentIndex) => {
@@ -275,7 +283,7 @@
 
       const maxLevel = Math.max(...levelsMap.keys(), 0);
       const sortedLevels = [...levelsMap.keys()].sort((left, right) => left - right);
-      const laneTop = 60 + componentIndex * laneHeight;
+      const laneTop = 24 + componentIndex * laneHeight;
       const laneCenter = laneTop + laneHeight / 2;
 
       sortedLevels.forEach((level, index) => {
@@ -455,8 +463,8 @@
         const force = forces.get(node.id);
         position.x += force.x + (centerX - position.x) * 0.002;
         position.y += force.y + (centerY - position.y) * 0.002;
-        position.x = context.helpers.clamp(position.x, 60, width - 60);
-        position.y = context.helpers.clamp(position.y, 60, height - 60);
+        position.x = context.helpers.clamp(position.x, 28, width - 28);
+        position.y = context.helpers.clamp(position.y, -90, height + 90);
       });
     }
 
@@ -499,23 +507,20 @@
       const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       circle.setAttribute("cx", position.x);
       circle.setAttribute("cy", position.y);
-      circle.setAttribute(
-        "r",
-        String(
-          node.kind === "tag"
-            ? 10 + Math.min(degree, 2)
-            : isCurrent
-              ? 20 + Math.min(degree, 3)
-              : 14 + Math.min(degree, 4)
-        )
-      );
+      const nodeRadius =
+        node.kind === "tag"
+          ? 8 + Math.min(degree * 2, 8)
+          : isCurrent
+            ? 20 + Math.min(degree * 1.8, 12)
+            : 10 + Math.min(degree * 2.4, 18);
+      circle.setAttribute("r", String(nodeRadius));
       circle.setAttribute("class", `graph-node${isCurrent || isSelected ? " is-current" : ""}`);
       circle.style.fill = palette.fill;
       circle.style.stroke = palette.stroke;
       circle.style.strokeWidth = isCurrent || isSelected ? "3" : "2";
 
       const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      label.setAttribute("x", position.x + 24);
+      label.setAttribute("x", position.x + nodeRadius + 8);
       label.setAttribute("y", position.y + 4);
       label.setAttribute("class", `graph-label${node.kind === "tag" ? " is-tag-label" : ""}`);
       label.style.fill = palette.label;
@@ -675,13 +680,13 @@
 
     position.x = context.helpers.clamp(
       point.x - context.state.graphDrag.offsetX,
-      60,
-      CANVAS_WIDTH - 60
+      28,
+      CANVAS_WIDTH - 28
     );
     position.y = context.helpers.clamp(
       point.y - context.state.graphDrag.offsetY,
-      60,
-      CANVAS_HEIGHT - 60
+      -90,
+      CANVAS_HEIGHT + 90
     );
     context.state.graphDrag.moved = true;
     drawGraph();

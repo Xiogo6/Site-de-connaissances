@@ -60,6 +60,43 @@
     };
   }
 
+  function getTodayFlexibleDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function createDailyMetadata() {
+    return createNoteMetadata({
+      hasDate: true,
+      dateMode: "reference",
+      singleDate: getTodayFlexibleDate(),
+    });
+  }
+
+  function hasAnyDateInput() {
+    return Boolean(
+      context.elements.noteDateSingle.value.trim() ||
+        context.elements.noteDateStart.value.trim() ||
+        context.elements.noteDateEnd.value.trim()
+    );
+  }
+
+  function applyDailyDateToEditorIfEmpty() {
+    if (context.elements.typeInput.value !== "daily" || hasAnyDateInput()) {
+      return;
+    }
+
+    context.elements.noteHasDate.checked = true;
+    context.elements.noteDateMode.value = "reference";
+    context.elements.noteDateSingle.value = context.helpers.formatFlexibleDate(getTodayFlexibleDate());
+    context.elements.noteDateStart.value = "";
+    context.elements.noteDateEnd.value = "";
+    context.renderers.renderStructuredFields();
+  }
+
   function collectMetadataFromInputs() {
     const metadata = createNoteMetadata();
     metadata.hasDate = context.elements.noteHasDate.checked;
@@ -104,6 +141,14 @@
 
   function clearEditorTemplateSeed() {
     context.state.editorTemplateSeed = null;
+  }
+
+  function rememberEditedNote(noteId) {
+    if (!noteId) {
+      return;
+    }
+
+    context.state.settings.lastEditedNoteId = noteId;
   }
 
   function isEditorUsingAutoTemplate() {
@@ -389,6 +434,7 @@
     current.content = context.elements.contentInput.value.trim();
     current.metadata = collectMetadataFromInputs();
     current.updatedAt = new Date().toISOString();
+    rememberEditedNote(current.id);
 
     if (previousTitle !== nextTitle) {
       renameLinksAcrossNotes(previousTitle, nextTitle, current.id);
@@ -405,9 +451,6 @@
     if (current.parentId) {
       const parent = context.state.notes.find((note) => note.id === current.parentId);
       if (parent) {
-        if (parent.type !== "folder") {
-          parent.type = "folder";
-        }
         ensureBidirectionalHierarchyLinks(parent, current);
       }
     }
@@ -584,6 +627,7 @@
   }
 
   function handleEditorTypeChange() {
+    applyDailyDateToEditorIfEmpty();
     context.renderers.renderStructuredFields();
     clearEditorTemplateSeed();
     context.renderers.renderLivePreview();
@@ -640,9 +684,6 @@
     if (sanitizedParentId) {
       const parent = context.state.notes.find((candidate) => candidate.id === sanitizedParentId);
       if (parent) {
-        if (parent.type !== "folder") {
-          parent.type = "folder";
-        }
         context.state.settings.collapsedFolders = context.state.settings.collapsedFolders.filter(
           (id) => id !== sanitizedParentId
         );
@@ -651,6 +692,7 @@
     }
 
     note.updatedAt = new Date().toISOString();
+    rememberEditedNote(note.id);
     context.data.saveNotes();
     context.data.saveAutomaticSnapshot(`Organisation ${note.title}`);
     resetDragState();
@@ -685,6 +727,7 @@
     );
     context.state.notes.unshift(duplicate);
     context.state.activeNoteId = duplicate.id;
+    rememberEditedNote(duplicate.id);
     context.data.saveNotes();
     context.data.saveAutomaticSnapshot(`Duplication ${source.title}`);
     context.renderers.renderEverything();
@@ -785,7 +828,7 @@
       favorite: false,
       tags: [],
       content: `# ${title}`,
-      metadata: createNoteMetadata(),
+      metadata: type === "daily" ? createDailyMetadata() : createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
       review: context.data.createReviewState(),
@@ -872,14 +915,12 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     };
 
     if (note.parentId && active) {
-      if (active.type !== "folder") {
-        active.type = "folder";
-      }
       ensureBidirectionalHierarchyLinks(active, note);
     }
 
     context.state.notes.unshift(note);
     context.state.activeNoteId = note.id;
+    rememberEditedNote(note.id);
     context.elements.quickTitle.value = "";
     context.elements.quickTags.value = "";
     context.elements.quickContent.value = "";
@@ -955,6 +996,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     context.state.activeNoteId = note.id;
     context.state.activeTab = "knowledge";
     context.state.noteViewMode = "read";
+    rememberEditedNote(note.id);
     context.data.saveNotes();
     context.renderers.renderEverything();
   }
@@ -972,6 +1014,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     const separator = note.content.trim().endsWith("\n") ? "" : "\n";
     note.content = `${note.content}${separator}\nVoir aussi : [[${title}]]`;
     note.updatedAt = new Date().toISOString();
+    rememberEditedNote(note.id);
     context.data.saveNotes();
     context.renderers.renderEverything();
   }

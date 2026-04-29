@@ -4,7 +4,10 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: 0 14px 28px rgba(81, 55, 30, 0.08);
+  box-shadow:
+    0 22px 46px rgba(81, 55, 30, 0.13),
+    0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.44);
 }
 
 .sidebar-card {
@@ -37,6 +40,57 @@
   padding: 12px 14px;
   transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
   width: 100%;
+}
+
+.title-field-row {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.favorite-star-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 1.55rem;
+  height: 46px;
+  justify-content: center;
+  line-height: 1;
+  transition: color 160ms ease, filter 160ms ease, transform 160ms ease;
+  width: 46px;
+}
+
+.favorite-star-toggle input {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.favorite-star-toggle:has(input:checked) {
+  color: #e6b64a;
+  filter: drop-shadow(0 8px 12px rgba(202, 161, 90, 0.32));
+  transform: translateY(-1px);
+}
+
+.favorite-star-toggle:has(input:checked) span {
+  font-size: 0;
+}
+
+.favorite-star-toggle:has(input:checked) span::before {
+  content: "★";
+  font-size: 1.55rem;
 }
 
 .text-input:focus,
@@ -130,7 +184,10 @@
 
 .revision-choice-card.is-active {
   border-color: rgba(191, 91, 44, 0.42);
-  box-shadow: 0 14px 24px rgba(81, 55, 30, 0.1);
+  box-shadow:
+    0 18px 34px rgba(81, 55, 30, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
 }
 
 .stack-actions.is-hidden,
@@ -379,7 +436,8 @@
   min-height: 44px;
   padding: 0 16px;
   text-decoration: none;
-  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+  box-shadow: 0 8px 18px rgba(81, 55, 30, 0.06);
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
 
 .button-icon {
@@ -402,12 +460,16 @@
 
 .button:hover {
   border-color: var(--line-strong);
+  box-shadow: 0 12px 24px rgba(81, 55, 30, 0.1);
   transform: translateY(-1px);
 }
 
 .button-primary {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 42%),
+    linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
   border-color: transparent;
+  box-shadow: 0 14px 26px rgba(191, 91, 44, 0.2);
   color: #fff9f1;
 }
 
@@ -466,6 +528,7 @@
 .hierarchy-node {
   background: rgba(255, 255, 255, 0.62);
   border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38);
 }
 
 .workspace-callout {
@@ -609,6 +672,16 @@ body[data-theme="dark"] .button-ghost {
 .tag {
   background: rgba(93, 116, 97, 0.12);
   color: #2c4d36;
+}
+
+.tag:nth-child(3n + 1):not(.tag-type):not(.tag-favorite) {
+  background: rgba(73, 106, 143, 0.13);
+  color: #34506e;
+}
+
+.tag:nth-child(3n + 2):not(.tag-type):not(.tag-favorite) {
+  background: rgba(123, 90, 160, 0.13);
+  color: #5d4479;
 }
 
 .tag.tag-type {
@@ -756,16 +829,23 @@ body[data-theme="dark"] .button-ghost {
 }
 
 .flashcard-surface {
+  background:
+    radial-gradient(circle at top left, rgba(123, 90, 160, 0.16), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(93, 116, 97, 0.16), transparent 32%),
+    rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(86, 70, 48, 0.1);
+  border-radius: 24px;
   display: grid;
   gap: 14px;
-  justify-items: center;
-  min-height: 180px;
+  min-height: 260px;
+  padding: clamp(18px, 5vw, 34px);
   text-align: center;
 }
 
 .flashcard-face {
-  font-size: 1.4rem;
-  line-height: 1.5;
+  align-self: center;
+  font-size: clamp(1.45rem, 4.6vw, 2.65rem);
+  line-height: 1.22;
   margin: 0;
 }
 
@@ -787,6 +867,58 @@ body[data-theme="dark"] .button-ghost {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 8px 12px;
+}
+
+.flashcard-deck-card {
+  background:
+    linear-gradient(150deg, rgba(255, 252, 245, 0.94), rgba(239, 230, 215, 0.72)),
+    radial-gradient(circle at 12% 18%, rgba(123, 90, 160, 0.16), transparent 32%);
+  cursor: grab;
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+  position: relative;
+  touch-action: pan-y;
+  transform: translateX(var(--swipe-x, 0)) rotate(var(--swipe-rotate, 0));
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  user-select: none;
+}
+
+.flashcard-deck-card:active {
+  cursor: grabbing;
+}
+
+.flashcard-deck-card.is-answer-visible .flashcard-surface {
+  background:
+    radial-gradient(circle at top right, rgba(191, 91, 44, 0.18), transparent 36%),
+    radial-gradient(circle at bottom left, rgba(73, 106, 143, 0.16), transparent 34%),
+    rgba(255, 255, 255, 0.64);
+}
+
+.flashcard-topline,
+.flashcard-swipe-cue {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.flashcard-count {
+  background: rgba(47, 36, 24, 0.08);
+  border-radius: 999px;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  padding: 7px 10px;
+}
+
+.flashcard-progress-track {
+  height: 8px;
+}
+
+.flashcard-swipe-cue {
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  opacity: 0.78;
+  text-transform: uppercase;
 }
 
 #template-editor {
