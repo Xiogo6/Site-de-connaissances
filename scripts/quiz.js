@@ -63,6 +63,7 @@
       answerVisible: false,
       noteCount: new Set(picked.map((card) => card.noteId)).size,
       tableCount: new Set(picked.map((card) => card.tableKey)).size,
+      swipeOffset: 0,
     };
     renderFlashcards();
   }
@@ -650,12 +651,21 @@
 
     const current = context.state.flashcards.cards[context.state.flashcards.index];
     const showAnswer = context.state.flashcards.answerVisible;
+    const progress = Math.round(((context.state.flashcards.index + 1) / total) * 100);
     context.elements.flashcardTitle.textContent = "Pile de revision";
     context.elements.flashcardProgress.textContent = `${context.state.flashcards.index + 1} / ${total}`;
-    context.elements.flashcardCard.className = "quiz-card";
+    context.elements.flashcardCard.className = `quiz-card flashcard-deck-card${
+      showAnswer ? " is-answer-visible" : ""
+    }`;
     context.elements.flashcardCard.innerHTML = `
-      <div class="flashcard-surface${showAnswer ? " is-answer-visible" : ""}">
-        <span class="pill pill-soft">${showAnswer ? "Verso" : "Recto"}</span>
+      <div class="quiz-progress-track flashcard-progress-track" aria-hidden="true">
+        <span style="width: ${progress}%"></span>
+      </div>
+      <div class="flashcard-surface">
+        <div class="flashcard-topline">
+          <span class="quiz-game-kicker">${showAnswer ? "Verso" : "Recto"}</span>
+          <span class="flashcard-count">${context.state.flashcards.index + 1}/${total}</span>
+        </div>
         <h4 class="flashcard-face">${escapeHtml(showAnswer ? current.back : current.front)}</h4>
         ${
           !showAnswer && current.hint
@@ -680,6 +690,11 @@
             ? `<span><strong>Tags :</strong> ${escapeHtml(current.tags.join(", "))}</span>`
             : ""
         }
+      </div>
+      <div class="flashcard-swipe-cue" aria-hidden="true">
+        <span>Precedente</span>
+        <span>Swipe</span>
+        <span>Suivante</span>
       </div>
     `;
     const deckCopy = `${context.state.flashcards.tableCount} tableau(x) transforme(s) en ${total} carte(s).`;

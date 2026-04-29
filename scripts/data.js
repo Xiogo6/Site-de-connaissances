@@ -291,12 +291,13 @@
       return {
         publishedUrl: "",
         lastPublishAt: null,
-        theme: "light",
+        theme: "dark",
         typeLabels: {},
         customNoteTypes: [],
         deletedNoteTypes: [],
         templates: {},
         collapsedFolders: [],
+        lastEditedNoteId: null,
       };
     }
 
@@ -356,7 +357,7 @@
           typeof rawSettings?.publishedUrl === "string" ? rawSettings.publishedUrl : "",
         lastPublishAt:
           typeof rawSettings?.lastPublishAt === "string" ? rawSettings.lastPublishAt : null,
-        theme: rawSettings?.theme === "dark" ? "dark" : "light",
+        theme: rawSettings?.theme === "light" ? "light" : "dark",
         typeLabels: normalizeTypeLabels(rawSettings?.typeLabels),
         customNoteTypes: normalizeCustomNoteTypes(rawSettings?.customNoteTypes),
         deletedNoteTypes: Array.isArray(rawSettings?.deletedNoteTypes)
@@ -366,6 +367,8 @@
         collapsedFolders: Array.isArray(rawSettings?.collapsedFolders)
           ? rawSettings.collapsedFolders.filter((value) => typeof value === "string")
           : [],
+        lastEditedNoteId:
+          typeof rawSettings?.lastEditedNoteId === "string" ? rawSettings.lastEditedNoteId : null,
       };
     }
 
@@ -409,6 +412,7 @@
           deletedNoteTypes: context.state.settings.deletedNoteTypes || [],
           templates: context.state.settings.templates || {},
           collapsedFolders: context.state.settings.collapsedFolders || [],
+          lastEditedNoteId: context.state.settings.lastEditedNoteId || null,
         },
         notes: context.state.notes.map((note) => ({
           id: note.id,

@@ -171,7 +171,10 @@
 .tab.is-active {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 10px 20px rgba(81, 55, 30, 0.08);
+  box-shadow:
+    0 14px 28px rgba(81, 55, 30, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36);
+  transform: translateY(-1px);
 }
 
 .tab:hover {
@@ -418,7 +421,7 @@ body[data-theme="dark"] .tab.is-active {
     right: auto;
     transform: translateX(-50%);
     width: min(calc(100vw - 18px), 414px);
-    z-index: 30;
+    z-index: 120;
   }
 
   .tab {
@@ -488,8 +491,27 @@ body[data-theme="dark"] .tab.is-active {
 
   .sidebar,
   .panel {
-    border-radius: 22px;
-    padding: 18px;
+    border-radius: 20px;
+    padding: 16px;
+  }
+
+  .panel-header {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .panel-header h3 {
+    font-size: 1.08rem;
+  }
+
+  .workspace,
+  .graph-layout,
+  .quiz-layout,
+  .timeline-layout,
+  .organization-layout,
+  .templates-layout,
+  .publish-layout {
+    gap: 12px;
   }
 
   .form-grid,

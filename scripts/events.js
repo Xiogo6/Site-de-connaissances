@@ -2,6 +2,8 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createEventsModule = function createEventsModule(context) {
+  let flashcardPointer = null;
+
   function bindEvents() {
     context.elements.sidebarTabs.forEach((tab) => {
       tab.addEventListener("click", () => {
@@ -324,6 +326,10 @@
     );
     context.elements.flashcardPrevButton.addEventListener("click", context.quiz.previousFlashcard);
     context.elements.flashcardNextButton.addEventListener("click", context.quiz.nextFlashcard);
+    context.elements.flashcardCard.addEventListener("pointerdown", handleFlashcardPointerDown);
+    context.elements.flashcardCard.addEventListener("pointermove", handleFlashcardPointerMove);
+    context.elements.flashcardCard.addEventListener("pointerup", handleFlashcardPointerUp);
+    context.elements.flashcardCard.addEventListener("pointercancel", resetFlashcardPointer);
     context.elements.timelineScope?.addEventListener("change", (event) => {
       context.state.timeline.scope = event.target.value;
       context.state.timeline.selectedNoteId = null;
@@ -843,6 +849,69 @@
     const normalized = context.helpers.normalizeFlexibleDateInput(input.value);
     input.value = normalized ? context.helpers.formatFlexibleDate(normalized) : "";
     context.renderers.renderLivePreview();
+  }
+
+  function handleFlashcardPointerDown(event) {
+    if (!context.state.flashcards.cards.length) {
+      return;
+    }
+
+    flashcardPointer = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      moved: false,
+    };
+    context.elements.flashcardCard.setPointerCapture?.(event.pointerId);
+  }
+
+  function handleFlashcardPointerMove(event) {
+    if (!flashcardPointer || flashcardPointer.id !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - flashcardPointer.x;
+    const deltaY = event.clientY - flashcardPointer.y;
+    if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) {
+      return;
+    }
+
+    flashcardPointer.moved = true;
+    const clamped = context.helpers.clamp(deltaX, -90, 90);
+    context.elements.flashcardCard.style.setProperty("--swipe-x", `${clamped}px`);
+    context.elements.flashcardCard.style.setProperty("--swipe-rotate", `${clamped / 18}deg`);
+  }
+
+  function handleFlashcardPointerUp(event) {
+    if (!flashcardPointer || flashcardPointer.id !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - flashcardPointer.x;
+    const deltaY = Math.abs(event.clientY - flashcardPointer.y);
+    const isSwipe = Math.abs(deltaX) > 72 && Math.abs(deltaX) > deltaY * 1.35;
+    const isTap = !flashcardPointer.moved || (Math.abs(deltaX) < 8 && deltaY < 8);
+
+    resetFlashcardPointer();
+
+    if (isSwipe) {
+      if (deltaX < 0) {
+        context.quiz.nextFlashcard();
+      } else {
+        context.quiz.previousFlashcard();
+      }
+      return;
+    }
+
+    if (isTap && !context.state.flashcards.answerVisible) {
+      context.quiz.showFlashcardAnswer();
+    }
+  }
+
+  function resetFlashcardPointer() {
+    flashcardPointer = null;
+    context.elements.flashcardCard.style.removeProperty("--swipe-x");
+    context.elements.flashcardCard.style.removeProperty("--swipe-rotate");
   }
 
   function handleOrganizationDragStart(event) {

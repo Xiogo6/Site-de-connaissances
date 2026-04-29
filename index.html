@@ -20,12 +20,12 @@
             }
           }
 
-          const isDark = theme === "dark";
+          const isDark = theme !== "light";
           document.documentElement.dataset.theme = isDark ? "dark" : "light";
           document.documentElement.classList.toggle("theme-dark", isDark);
         } catch (error) {
-          document.documentElement.dataset.theme = "light";
-          document.documentElement.classList.remove("theme-dark");
+          document.documentElement.dataset.theme = "dark";
+          document.documentElement.classList.add("theme-dark");
         }
       })();
     </script>
@@ -239,10 +239,16 @@
               </div>
 
               <div class="form-grid">
-                <label>
-                  <span class="field-label">Titre</span>
-                  <input id="note-title" class="text-input" type="text" />
-                </label>
+                <div>
+                  <label class="field-label" for="note-title">Titre</label>
+                  <span class="title-field-row">
+                    <input id="note-title" class="text-input" type="text" />
+                    <label class="favorite-star-toggle" for="note-favorite" title="Page favorite" aria-label="Page favorite">
+                      <input id="note-favorite" type="checkbox" />
+                      <span aria-hidden="true">☆</span>
+                    </label>
+                  </span>
+                </div>
 
                 <label>
                   <span class="field-label">Type</span>
@@ -252,6 +258,7 @@
                     <option value="person">Personne</option>
                     <option value="event">Evenement</option>
                     <option value="experience">Experience</option>
+                    <option value="daily">Daily</option>
                     <option value="folder">Dossier</option>
                     <option value="hub">Hub</option>
                     <option value="procedure">Procedure</option>
@@ -281,11 +288,6 @@
               </div>
 
               <div class="form-grid form-grid-meta">
-                <label class="toggle-row toggle-row-editor" for="note-favorite">
-                  <input id="note-favorite" type="checkbox" />
-                  <span>Page favorite</span>
-                </label>
-
                 <label class="toggle-row toggle-row-editor" for="note-has-date">
                   <input id="note-has-date" type="checkbox" />
                   <span>Ajouter une date</span>
@@ -966,6 +968,7 @@
           <option value="person">Personne</option>
           <option value="event">Evenement</option>
           <option value="experience">Experience</option>
+          <option value="daily">Daily</option>
           <option value="folder">Dossier</option>
           <option value="hub">Hub</option>
           <option value="procedure">Procedure</option>
