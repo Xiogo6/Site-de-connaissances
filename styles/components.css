@@ -721,6 +721,9 @@ body[data-theme="dark"] .button-ghost {
   font-family: var(--content-font);
   line-height: 1.58;
   margin-top: 18px;
+  touch-action: pan-y;
+  transform: translateX(var(--read-swipe-x, 0));
+  transition: transform 180ms ease;
 }
 
 .rendered-note h1,
@@ -961,6 +964,27 @@ body[data-theme="dark"] .pill-soft {
 body[data-theme="dark"] .tag,
 body[data-theme="dark"] .pill {
   color: #d9cdbf;
+}
+
+:root[data-theme="dark"] .tag:not(.tag-type):not(.tag-favorite),
+body[data-theme="dark"] .tag:not(.tag-type):not(.tag-favorite) {
+  background: rgba(125, 161, 145, 0.22);
+  border-color: rgba(125, 161, 145, 0.3);
+  color: #d9f1e4;
+}
+
+:root[data-theme="dark"] .tag:nth-child(3n + 1):not(.tag-type):not(.tag-favorite),
+body[data-theme="dark"] .tag:nth-child(3n + 1):not(.tag-type):not(.tag-favorite) {
+  background: rgba(124, 168, 218, 0.22);
+  border-color: rgba(124, 168, 218, 0.32);
+  color: #d9eaff;
+}
+
+:root[data-theme="dark"] .tag:nth-child(3n + 2):not(.tag-type):not(.tag-favorite),
+body[data-theme="dark"] .tag:nth-child(3n + 2):not(.tag-type):not(.tag-favorite) {
+  background: rgba(184, 151, 222, 0.24);
+  border-color: rgba(184, 151, 222, 0.34);
+  color: #f0e3ff;
 }
 
 :root[data-theme="dark"] .tag.tag-type,

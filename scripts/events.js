@@ -3,6 +3,7 @@
 
   AtlasApp.createEventsModule = function createEventsModule(context) {
   let flashcardPointer = null;
+  let readingPointer = null;
 
   function bindEvents() {
     context.elements.sidebarTabs.forEach((tab) => {
@@ -168,10 +169,6 @@
     });
     context.elements.parentInput.addEventListener("change", context.renderers.renderLivePreview);
     context.elements.favoriteInput.addEventListener("change", context.renderers.renderLivePreview);
-    context.elements.noteHasDate.addEventListener("change", () => {
-      context.renderers.renderStructuredFields();
-      context.renderers.renderLivePreview();
-    });
     context.elements.noteDateMode.addEventListener("change", () => {
       context.renderers.renderStructuredFields();
       context.renderers.renderLivePreview();
@@ -349,6 +346,10 @@
     context.elements.timelineFocus?.addEventListener("click", handleTimelineClick);
 
     context.elements.previewContent.addEventListener("click", handleRenderedLinkClick);
+    context.elements.previewContent.addEventListener("pointerdown", handleReadingPointerDown);
+    context.elements.previewContent.addEventListener("pointermove", handleReadingPointerMove);
+    context.elements.previewContent.addEventListener("pointerup", handleReadingPointerUp);
+    context.elements.previewContent.addEventListener("pointercancel", resetReadingPointer);
     context.elements.outgoingLinks.addEventListener("click", handleChipClick);
     context.elements.backlinks.addEventListener("click", handleChipClick);
     context.elements.suggestedLinks.addEventListener("click", handleSuggestedLinkClick);
@@ -523,7 +524,9 @@
         const target = event.target;
         if (
           target instanceof HTMLElement &&
-          target.closest("input, textarea, select, button, .graph-canvas, .quick-capture-panel")
+          target.closest(
+            "input, textarea, select, button, .graph-canvas, .quick-capture-panel, .rendered-note"
+          )
         ) {
           swipe = null;
           return;
@@ -912,6 +915,86 @@
     flashcardPointer = null;
     context.elements.flashcardCard.style.removeProperty("--swipe-x");
     context.elements.flashcardCard.style.removeProperty("--swipe-rotate");
+  }
+
+  function handleReadingPointerDown(event) {
+    if (
+      context.state.activeTab !== "knowledge" ||
+      context.state.noteViewMode !== "read" ||
+      context.state.quickCaptureOpen ||
+      event.target.closest("a, button, input, textarea, select")
+    ) {
+      return;
+    }
+
+    readingPointer = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      moved: false,
+    };
+    context.elements.previewContent.setPointerCapture?.(event.pointerId);
+  }
+
+  function handleReadingPointerMove(event) {
+    if (!readingPointer || readingPointer.id !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - readingPointer.x;
+    const deltaY = event.clientY - readingPointer.y;
+    if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) {
+      return;
+    }
+
+    readingPointer.moved = true;
+    const clamped = context.helpers.clamp(deltaX, -42, 42);
+    context.elements.previewContent.style.setProperty("--read-swipe-x", `${clamped}px`);
+  }
+
+  function handleReadingPointerUp(event) {
+    if (!readingPointer || readingPointer.id !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - readingPointer.x;
+    const deltaY = Math.abs(event.clientY - readingPointer.y);
+    const isSwipe = Math.abs(deltaX) > 86 && Math.abs(deltaX) > deltaY * 1.5;
+
+    resetReadingPointer();
+
+    if (!isSwipe) {
+      return;
+    }
+
+    navigateReadingSibling(deltaX < 0 ? 1 : -1);
+  }
+
+  function resetReadingPointer() {
+    readingPointer = null;
+    context.elements.previewContent.style.removeProperty("--read-swipe-x");
+  }
+
+  function navigateReadingSibling(direction) {
+    const active = context.notes.getActiveNote();
+    if (!active) {
+      return;
+    }
+
+    const siblings = context.state.notes
+      .filter((note) => (note.parentId || "") === (active.parentId || ""))
+      .sort((left, right) => {
+        return left.title.localeCompare(right.title, "fr", { sensitivity: "base" });
+      });
+    const currentIndex = siblings.findIndex((note) => note.id === active.id);
+    if (siblings.length < 2 || currentIndex < 0) {
+      return;
+    }
+
+    const nextIndex = (currentIndex + direction + siblings.length) % siblings.length;
+    context.state.activeNoteId = siblings[nextIndex].id;
+    context.state.noteViewMode = "read";
+    context.renderers.renderEverything();
   }
 
   function handleOrganizationDragStart(event) {

@@ -279,7 +279,7 @@
                   <div id="note-tag-suggestions" class="tag-suggestion-list is-hidden"></div>
                 </label>
 
-                <label>
+                <label class="editor-parent-field">
                   <span class="field-label">Page parente</span>
                   <select id="note-parent" class="select-input">
                     <option value="">Aucune</option>
@@ -287,63 +287,54 @@
                 </label>
               </div>
 
-              <div class="form-grid form-grid-meta">
-                <label class="toggle-row toggle-row-editor" for="note-has-date">
-                  <input id="note-has-date" type="checkbox" />
-                  <span>Ajouter une date</span>
-                </label>
-              </div>
-
               <div id="structured-fields-panel" class="note-detail-panel">
-                <div class="form-grid form-grid-meta">
-                  <label id="note-date-mode-label" class="is-hidden">
+                <input id="note-has-date" type="hidden" />
+                <div class="date-editor-grid">
+                  <label id="note-date-mode-label">
                     <span class="field-label">Type de date</span>
                     <select id="note-date-mode" class="select-input">
+                      <option value="none">Aucune</option>
                       <option value="reference">Date de reference</option>
                       <option value="life">Naissance et deces</option>
                       <option value="range">Date debut-fin</option>
                     </select>
                   </label>
+
+                  <div id="generic-date-fields" class="note-detail-group date-fields-grid is-hidden">
+                    <label id="note-date-single-label">
+                      <span id="note-date-single-copy" class="field-label">Date de reference</span>
+                      <input
+                        id="note-date-single"
+                        class="text-input"
+                        type="text"
+                        inputmode="numeric"
+                        placeholder="JJ-MM-AAAA"
+                      />
+                    </label>
+
+                    <label id="note-date-start-label" class="is-hidden">
+                      <span class="field-label">Date de debut</span>
+                      <input
+                        id="note-date-start"
+                        class="text-input"
+                        type="text"
+                        inputmode="numeric"
+                        placeholder="JJ-MM-AAAA"
+                      />
+                    </label>
+
+                    <label id="note-date-end-label" class="is-hidden">
+                      <span class="field-label">Date de fin</span>
+                      <input
+                        id="note-date-end"
+                        class="text-input"
+                        type="text"
+                        inputmode="numeric"
+                        placeholder="JJ-MM-AAAA"
+                      />
+                    </label>
+                  </div>
                 </div>
-
-                <div id="generic-date-fields" class="note-detail-group form-grid form-grid-meta is-hidden">
-                  <label id="note-date-single-label">
-                    <span id="note-date-single-copy" class="field-label">Date</span>
-                    <input
-                      id="note-date-single"
-                      class="text-input"
-                      type="text"
-                      inputmode="numeric"
-                      placeholder="AAAA, MM-AAAA ou JJ-MM-AAAA"
-                    />
-                  </label>
-
-                  <label id="note-date-start-label" class="is-hidden">
-                    <span class="field-label">Date de debut</span>
-                    <input
-                      id="note-date-start"
-                      class="text-input"
-                      type="text"
-                      inputmode="numeric"
-                      placeholder="AAAA, MM-AAAA ou JJ-MM-AAAA"
-                    />
-                  </label>
-
-                  <label id="note-date-end-label" class="is-hidden">
-                    <span class="field-label">Date de fin</span>
-                    <input
-                      id="note-date-end"
-                      class="text-input"
-                      type="text"
-                      inputmode="numeric"
-                      placeholder="AAAA, MM-AAAA ou JJ-MM-AAAA"
-                    />
-                  </label>
-                </div>
-                <p class="helper-copy helper-copy-compact">
-                  Formats acceptes : <code>900</code>, <code>05-1453</code> ou
-                  <code>14-07-1789</code>.
-                </p>
               </div>
 
               <label class="editor-label">

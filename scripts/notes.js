@@ -89,7 +89,7 @@
       return;
     }
 
-    context.elements.noteHasDate.checked = true;
+    context.elements.noteHasDate.value = "true";
     context.elements.noteDateMode.value = "reference";
     context.elements.noteDateSingle.value = context.helpers.formatFlexibleDate(getTodayFlexibleDate());
     context.elements.noteDateStart.value = "";
@@ -99,8 +99,13 @@
 
   function collectMetadataFromInputs() {
     const metadata = createNoteMetadata();
-    metadata.hasDate = context.elements.noteHasDate.checked;
     metadata.dateMode = context.elements.noteDateMode.value;
+    metadata.hasDate = metadata.dateMode !== "none";
+
+    if (!metadata.hasDate) {
+      metadata.dateMode = "reference";
+      return metadata;
+    }
 
     if (metadata.dateMode === "range" || metadata.dateMode === "life") {
       metadata.startDate = normalizeFlexibleDateInput(context.elements.noteDateStart.value);
