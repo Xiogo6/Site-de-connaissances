@@ -22,6 +22,10 @@
     };
 
     let remoteSyncQueue = Promise.resolve();
+    let dailySnapshotTimer = null;
+    const dailySnapshotHour = 3;
+    const dailySnapshotRetentionDays = 7;
+    const dayInMs = 24 * 60 * 60 * 1000;
 
     function getDefaultRemoteState() {
       return {
@@ -263,7 +267,57 @@
     }
 
     function normalizeSnapshotCollection(rawSnapshots) {
-      return Array.isArray(rawSnapshots) ? rawSnapshots.map(normalizeSnapshot) : [];
+      return Array.isArray(rawSnapshots)
+        ? rawSnapshots
+            .map(normalizeSnapshot)
+            .sort((first, second) => Date.parse(second.createdAt) - Date.parse(first.createdAt))
+        : [];
+    }
+
+    function getDailySnapshotSlotStart(date = new Date()) {
+      const slotStart = new Date(date);
+      slotStart.setHours(dailySnapshotHour, 0, 0, 0);
+
+      if (date < slotStart) {
+        slotStart.setDate(slotStart.getDate() - 1);
+      }
+
+      return slotStart;
+    }
+
+    function getNextDailySnapshotAt(date = new Date()) {
+      const nextSnapshotAt = new Date(date);
+      nextSnapshotAt.setHours(dailySnapshotHour, 0, 0, 0);
+
+      if (date >= nextSnapshotAt) {
+        nextSnapshotAt.setDate(nextSnapshotAt.getDate() + 1);
+      }
+
+      return nextSnapshotAt;
+    }
+
+    function pruneExpiredSnapshots(date = new Date()) {
+      const cutoff =
+        getDailySnapshotSlotStart(date).getTime() -
+        (dailySnapshotRetentionDays - 1) * dayInMs;
+      const previousLength = context.state.snapshots.length;
+      context.state.snapshots = normalizeSnapshotCollection(context.state.snapshots).filter(
+        (snapshot) => {
+          const createdAt = Date.parse(snapshot.createdAt);
+          return Number.isNaN(createdAt) || createdAt >= cutoff;
+        }
+      );
+      return context.state.snapshots.length !== previousLength;
+    }
+
+    function hasSnapshotForCurrentSlot(date = new Date()) {
+      const slotStart = getDailySnapshotSlotStart(date).getTime();
+      const slotEnd = slotStart + dayInMs;
+
+      return context.state.snapshots.some((snapshot) => {
+        const createdAt = Date.parse(snapshot.createdAt);
+        return !Number.isNaN(createdAt) && createdAt >= slotStart && createdAt < slotEnd;
+      });
     }
 
     function loadNotes() {
@@ -298,6 +352,40 @@
         templates: {},
         collapsedFolders: [],
         lastEditedNoteId: null,
+        sport: {
+          massEntries: [],
+          performanceEntries: [],
+        },
+      };
+    }
+
+    function normalizeSportEntry(entry = {}, fields = []) {
+      return fields.reduce((result, field) => {
+        const value = entry?.[field];
+        result[field] = typeof value === "boolean" ? value : typeof value === "string" ? value : "";
+        return result;
+      }, {});
+    }
+
+    function normalizeSportSettings(rawSport = {}) {
+      return {
+        massEntries: Array.isArray(rawSport?.massEntries)
+          ? rawSport.massEntries.map((entry) =>
+              normalizeSportEntry(entry, ["date", "mass", "fasted"])
+            )
+          : [],
+        performanceEntries: Array.isArray(rawSport?.performanceEntries)
+          ? rawSport.performanceEntries.map((entry) =>
+              normalizeSportEntry(entry, [
+                "date",
+                "exercise",
+                "sets",
+                "reps",
+                "weight",
+                "rest",
+              ])
+            )
+          : [],
       };
     }
 
@@ -369,6 +457,7 @@
           : [],
         lastEditedNoteId:
           typeof rawSettings?.lastEditedNoteId === "string" ? rawSettings.lastEditedNoteId : null,
+        sport: normalizeSportSettings(rawSettings?.sport),
       };
     }
 
@@ -413,6 +502,7 @@
           templates: context.state.settings.templates || {},
           collapsedFolders: context.state.settings.collapsedFolders || [],
           lastEditedNoteId: context.state.settings.lastEditedNoteId || null,
+          sport: context.state.settings.sport || { massEntries: [], performanceEntries: [] },
         },
         notes: context.state.notes.map((note) => ({
           id: note.id,
@@ -464,11 +554,14 @@
 
     function saveSnapshots(options = {}) {
       const { skipRemote = false } = options;
+      const didPrune = pruneExpiredSnapshots();
       window.localStorage.setItem(snapshotStorageKey, JSON.stringify(context.state.snapshots));
 
       if (!skipRemote) {
         queueRemoteSync({ includeSnapshots: true });
       }
+
+      return didPrune;
     }
 
     function getTemplates() {
@@ -612,12 +705,15 @@
           context.state.settings = remoteSettings;
           context.state.snapshots = remoteSnapshots;
           saveNotes({ skipRemote: true });
-          saveSnapshots({ skipRemote: true });
+          const prunedRemoteSnapshots = saveSnapshots({ skipRemote: true });
           setRemoteState({
             status: "synced",
             lastSyncedAt: new Date().toISOString(),
             lastError: "",
           });
+          if (prunedRemoteSnapshots) {
+            queueRemoteSync({ includeSnapshots: true });
+          }
           return true;
         }
 
@@ -677,6 +773,8 @@
 
       if (!isRemoteConfigured()) {
         setRemoteState({ status: "local" });
+        ensureDailySnapshot("Snapshot quotidien");
+        scheduleDailySnapshot();
         return;
       }
 
@@ -684,6 +782,9 @@
       if (!loaded && context.state.notes.length) {
         queueRemoteSync({ includeSnapshots: true });
       }
+
+      ensureDailySnapshot("Snapshot quotidien");
+      scheduleDailySnapshot();
     }
 
     function downloadPublishedSnapshot() {
@@ -725,22 +826,59 @@
         return;
       }
 
-      saveAutomaticSnapshot("Snapshot manuel");
+      ensureDailySnapshot("Snapshot manuel");
       context.renderers?.renderPublishCenter();
     }
 
     function saveAutomaticSnapshot(label) {
-      const now = new Date().toISOString();
+      ensureDailySnapshot(label || "Snapshot quotidien");
+    }
+
+    function createSnapshot(label, date = new Date()) {
       const snapshot = {
         id: `${Date.now()}`,
         label,
-        createdAt: now,
+        createdAt: date.toISOString(),
         noteCount: context.state.notes.length,
         notes: normalizeNoteCollection(context.state.notes),
       };
       context.state.snapshots.unshift(snapshot);
-      context.state.snapshots = context.state.snapshots.slice(0, 12);
       saveSnapshots();
+    }
+
+    function ensureDailySnapshot(label, date = new Date()) {
+      if (isReadOnlyMode()) {
+        return false;
+      }
+
+      const pruned = pruneExpiredSnapshots(date);
+      if (hasSnapshotForCurrentSlot(date)) {
+        if (pruned) {
+          saveSnapshots();
+        }
+        return false;
+      }
+
+      createSnapshot(label || "Snapshot quotidien", date);
+      return true;
+    }
+
+    function scheduleDailySnapshot() {
+      if (dailySnapshotTimer) {
+        window.clearTimeout(dailySnapshotTimer);
+      }
+
+      if (isReadOnlyMode()) {
+        return;
+      }
+
+      const now = new Date();
+      const nextSnapshotAt = getNextDailySnapshotAt(now);
+      dailySnapshotTimer = window.setTimeout(() => {
+        ensureDailySnapshot("Snapshot quotidien", new Date());
+        context.renderers?.renderPublishCenter();
+        scheduleDailySnapshot();
+      }, nextSnapshotAt.getTime() - now.getTime());
     }
 
     function restoreLatestSnapshot() {

@@ -211,9 +211,19 @@
               <div class="panel-header">
                 <div>
                   <p class="eyebrow">Edition</p>
-                  <h3>Page active</h3>
                 </div>
                 <div class="inline-actions">
+                  <button id="delete-active-note-button" class="button button-danger button-mobile-icon" type="button">
+                    <span class="button-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" role="presentation">
+                        <path d="M4 7h16" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M6 7l1 13h10l1-13" />
+                        <path d="M9 7V5h6v2" />
+                      </svg>
+                    </span>
+                    <span class="button-label">Supprimer</span>
+                  </button>
                   <button id="save-button" class="button button-primary button-mobile-icon" type="button">
                     <span class="button-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" role="presentation">
@@ -224,25 +234,22 @@
                     </span>
                     <span class="button-label">Enregistrer</span>
                   </button>
+                  <button id="cancel-note-button" class="button button-ghost button-mobile-icon is-hidden" type="button">
+                    <span class="button-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" role="presentation">
+                        <path d="M6 6l12 12M18 6L6 18" />
+                      </svg>
+                    </span>
+                    <span class="button-label">Annuler</span>
+                  </button>
                 </div>
-              </div>
-
-              <div class="editor-secondary-actions">
-                <button id="cancel-note-button" class="button button-ghost button-mobile-icon is-hidden" type="button">
-                  <span class="button-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" role="presentation">
-                      <path d="M6 6l12 12M18 6L6 18" />
-                    </svg>
-                  </span>
-                  <span class="button-label">Annuler</span>
-                </button>
               </div>
 
               <div class="form-grid">
                 <div>
                   <label class="field-label" for="note-title">Titre</label>
                   <span class="title-field-row">
-                    <input id="note-title" class="text-input" type="text" />
+                    <input id="note-title" class="text-input" type="text" placeholder="Titre de la page" />
                     <label class="favorite-star-toggle" for="note-favorite" title="Page favorite" aria-label="Page favorite">
                       <input id="note-favorite" type="checkbox" />
                       <span aria-hidden="true">☆</span>
@@ -349,6 +356,12 @@
                   <button class="button button-inline" data-format-action="bullet" type="button">
                     Puce
                   </button>
+                  <button class="button button-inline" data-format-action="checklist" type="button">
+                    Case
+                  </button>
+                  <button class="button button-inline" data-format-action="today" type="button">
+                    Date
+                  </button>
                   <button class="button button-inline" data-format-action="bold" type="button">
                     Gras
                   </button>
@@ -383,7 +396,6 @@
             <section class="panel panel-preview">
               <div class="panel-header">
                 <div>
-                  <p class="eyebrow">Lecture</p>
                   <h3 id="preview-title">Apercu</h3>
                 </div>
                 <div class="inline-actions">
@@ -396,13 +408,13 @@
                     </span>
                     <span class="button-label">Editer</span>
                   </button>
-                  <span id="note-status" class="pill pill-soft">Brouillon</span>
+                  <span id="note-status" class="pill pill-soft is-hidden" hidden></span>
                 </div>
               </div>
 
+              <article id="preview-content" class="rendered-note"></article>
               <div id="preview-tags" class="tag-list"></div>
               <div id="preview-meta" class="meta-row"></div>
-              <article id="preview-content" class="rendered-note"></article>
             </section>
 
             <section class="panel panel-links">
@@ -497,11 +509,9 @@
           <div class="revision-choice mode-switcher">
             <button class="revision-choice-card is-active" data-visualization-mode="graph" type="button">
               <strong>Graphe</strong>
-              <span>Carte vivante des liens et des tags.</span>
             </button>
             <button class="revision-choice-card" data-visualization-mode="timeline" type="button">
               <strong>Frise</strong>
-              <span>Lecture chronologique par dossier ou tag.</span>
             </button>
           </div>
         </section>
@@ -572,11 +582,9 @@
           <div class="revision-choice mode-switcher">
             <button class="revision-choice-card is-active" data-revision-mode="quiz" type="button">
               <strong>Quiz</strong>
-              <span>Questions courtes pour tester le rappel actif.</span>
             </button>
             <button class="revision-choice-card" data-revision-mode="flashcards" type="button">
               <strong>Flashcards</strong>
-              <span>Cartes recto verso issues de vos tableaux de notes.</span>
             </button>
           </div>
 
@@ -812,18 +820,6 @@
                 <span>Generer aussi les cartes inversees</span>
               </label>
 
-              <article class="helper-card flashcard-guide">
-                <h4>Format conseille</h4>
-                <p>Les cartes sont generees a partir de tableaux markdown dans vos pages.</p>
-                <pre><code>| Recto | Verso | Indice |
-| --- | --- | --- |
-| Capitale de l'Italie | Rome | Europe |</code></pre>
-                <p>
-                  Colonnes reconnues: <code>Recto</code>, <code>Verso</code>, <code>Indice</code>,
-                  <code>Exemple</code>, <code>Tags</code>.
-                </p>
-              </article>
-
               <button id="generate-flashcards-button" class="button button-primary" type="button">
                 Generer le paquet
               </button>
@@ -891,14 +887,6 @@
                 </select>
               </label>
 
-              <article class="helper-card timeline-guide">
-                <h4>Ce que montre la frise</h4>
-                <p>
-                  Toutes les pages datees reliees au dossier ou au tag choisi. Les vies
-                  apparaissent comme des trajectoires, les periodes comme des bandes, et
-                  les dates uniques comme des repères.
-                </p>
-              </article>
             </section>
 
             <section class="panel timeline-panel">
@@ -920,6 +908,67 @@
         </section>
 
         <section id="publish-tab" class="tab-panel"></section>
+
+        <section id="sport-tab" class="tab-panel">
+          <div class="sport-layout">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Suivi personnel</p>
+                  <h3>Sport</h3>
+                </div>
+              </div>
+
+              <div class="revision-choice sport-mode-switcher">
+                <button class="revision-choice-card is-active" data-sport-mode="mass" type="button">
+                  <strong>Masse</strong>
+                </button>
+                <button class="revision-choice-card" data-sport-mode="performance" type="button">
+                  <strong>Salle</strong>
+                </button>
+              </div>
+
+              <div id="sport-mass-panel" class="sport-table-panel">
+                <div class="sport-table-shell">
+                  <table class="sport-table">
+                    <thead>
+                      <tr>
+                        <th>Jour</th>
+                        <th>Masse</th>
+                        <th>A jeun</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sport-mass-body"></tbody>
+                  </table>
+                </div>
+                <button id="add-sport-mass-row" class="button button-primary" type="button">
+                  Ajouter une ligne
+                </button>
+              </div>
+
+              <div id="sport-performance-panel" class="sport-table-panel is-hidden">
+                <div class="sport-table-shell">
+                  <table class="sport-table sport-performance-table">
+                    <thead>
+                      <tr>
+                        <th>Jour</th>
+                        <th>Exercice</th>
+                        <th>Series</th>
+                        <th>Repetitions</th>
+                        <th>Poids</th>
+                        <th>Repos</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sport-performance-body"></tbody>
+                  </table>
+                </div>
+                <button id="add-sport-performance-row" class="button button-primary" type="button">
+                  Ajouter une ligne
+                </button>
+              </div>
+            </section>
+          </div>
+        </section>
 
         <div id="workspace-banner" class="workspace-banner"></div>
       </main>
@@ -1002,11 +1051,12 @@
         <div class="stack-actions">
           <button class="utility-link" data-utility-tab="settings" type="button">
             <strong>Parametres</strong>
-            <span>Gerer les types de pages, la publication et les snapshots.</span>
+          </button>
+          <button class="utility-link" data-utility-tab="sport" type="button">
+            <strong>Sport</strong>
           </button>
           <button id="theme-toggle-button" class="utility-link" type="button">
             <strong>Mode nuit</strong>
-            <span>Basculer entre l'affichage clair et l'affichage sombre.</span>
           </button>
         </div>
       </aside>

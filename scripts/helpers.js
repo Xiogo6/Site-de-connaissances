@@ -271,7 +271,7 @@
         return;
       }
 
-      blocks.push(`<ul>${listBuffer.map((item) => `<li>${item}</li>`).join("")}</ul>`);
+      blocks.push(`<ul>${listBuffer.join("")}</ul>`);
       listBuffer = [];
     };
 
@@ -284,7 +284,7 @@
       paragraphBuffer = [];
     };
 
-    lines.forEach((line) => {
+    lines.forEach((line, lineIndex) => {
       const trimmed = line.trim();
 
       if (!trimmed) {
@@ -293,9 +293,22 @@
         return;
       }
 
+      const checklistMatch = trimmed.match(/^-\s+\[( |x|X)\]\s+(.*)$/);
+      if (checklistMatch) {
+        flushParagraph();
+        const checked = checklistMatch[1].toLowerCase() === "x";
+        const text = renderInline(checklistMatch[2]);
+        listBuffer.push(
+          `<li class="checklist-item"><label><input type="checkbox" data-checklist-line="${lineIndex}" ${
+            checked ? "checked" : ""
+          } /> <span>${text}</span></label></li>`
+        );
+        return;
+      }
+
       if (trimmed.startsWith("- ")) {
         flushParagraph();
-        listBuffer.push(renderInline(trimmed.slice(2)));
+        listBuffer.push(`<li>${renderInline(trimmed.slice(2))}</li>`);
         return;
       }
 

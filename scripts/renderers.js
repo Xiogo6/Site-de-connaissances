@@ -36,6 +36,7 @@
     context.quiz.renderQuizCard();
     context.quiz.renderFlashcards();
     renderTimelineView();
+    renderSportTracker();
     renderTemplateEditor();
     renderPublishCenter();
     renderQuickCapture();
@@ -44,6 +45,7 @@
   }
 
   function renderTabs() {
+    document.body.classList.toggle("utility-drawer-open", context.state.utilityDrawerOpen);
     context.elements.tabs.forEach((tab) => {
       tab.classList.toggle("is-active", tab.dataset.tab === context.state.activeTab);
     });
@@ -52,7 +54,7 @@
       button.classList.toggle("is-active", button.dataset.utilityTab === context.state.activeTab);
     });
 
-    const utilityActive = ["settings", "publish"].includes(context.state.activeTab);
+    const utilityActive = ["settings", "publish", "sport"].includes(context.state.activeTab);
     context.elements.utilityDrawerOpen.classList.toggle("is-active", utilityActive);
     context.elements.utilityDrawerOpen.setAttribute(
       "aria-expanded",
@@ -141,22 +143,6 @@
 
   function renderWorkspaceBanner() {
     context.elements.workspaceBanner.innerHTML = "";
-
-    const callout = document.createElement("div");
-    callout.className = "workspace-callout";
-
-    const syncCopy =
-      context.data.isRemoteConfigured() && context.state.remote.lastSyncedAt
-        ? `Synchronise le ${escapeHtml(
-            context.helpers.formatDate(context.state.remote.lastSyncedAt)
-          )}`
-        : context.data.isRemoteConfigured()
-          ? "Synchronisation Supabase en attente"
-          : "Supabase non configure";
-
-    callout.innerHTML = `<span>${syncCopy}</span>`;
-
-    context.elements.workspaceBanner.appendChild(callout);
   }
 
   function renderTheme() {
@@ -168,12 +154,10 @@
     document.body.classList.toggle("theme-dark", isDark);
     if (context.elements.themeToggleButton) {
       context.elements.themeToggleButton.classList.toggle("is-active", isDark);
-      context.elements.themeToggleButton.querySelector("strong").textContent = isDark
-        ? "Mode clair"
-        : "Mode nuit";
-      context.elements.themeToggleButton.querySelector("span").textContent = isDark
-        ? "Revenir a l'affichage clair."
-        : "Basculer vers un affichage sombre.";
+      const themeTitle = context.elements.themeToggleButton.querySelector("strong");
+      if (themeTitle) {
+        themeTitle.textContent = isDark ? "Mode clair" : "Mode nuit";
+      }
     }
   }
 
@@ -208,6 +192,9 @@
   function renderKnowledgeMode() {
     const isEditing = context.state.noteViewMode === "edit";
     context.elements.knowledgeWorkspace.classList.toggle("is-editing", isEditing);
+    if (!isEditing) {
+      document.body.classList.remove("editor-writing");
+    }
     setActionButtonLabel(
       context.elements.noteModeToggle,
       isEditing ? "Lecture" : "Editer"
@@ -217,6 +204,10 @@
     context.elements.cancelNoteButton.classList.toggle(
       "is-hidden",
       !isEditing
+    );
+    context.elements.deleteActiveNoteButton?.classList.toggle(
+      "is-hidden",
+      !isEditing || !context.state.activeNoteId
     );
     renderPrimaryActionButton(isEditing);
     renderQuickActionButton(isEditing);
@@ -284,6 +275,7 @@
       context.elements.noteDateEnd,
       ...context.elements.formatButtons,
       context.elements.contentInput,
+      context.elements.deleteActiveNoteButton,
       context.elements.templateType,
       context.elements.templateEditor,
       context.elements.saveTemplateButton,
@@ -549,8 +541,10 @@
     )}</span>`;
     context.elements.previewTags.innerHTML = "";
     context.elements.previewMeta.innerHTML = "";
-    context.elements.previewContent.innerHTML = renderNoteHtml(note.content);
-    context.elements.noteStatus.textContent = context.data.getSaveStatusLabel(isDraft);
+    context.elements.previewContent.innerHTML = renderNoteHtml(getReadablePreviewContent(note));
+    context.elements.noteStatus.textContent = "";
+    context.elements.noteStatus.classList.add("is-hidden");
+    context.elements.noteStatus.hidden = true;
 
     const typeTag = document.createElement("span");
     typeTag.className = "tag tag-type";
@@ -573,16 +567,7 @@
 
     const updatedMeta = document.createElement("span");
     updatedMeta.textContent = `Maj: ${context.helpers.formatDate(note.updatedAt)}`;
-    const reviewMeta = document.createElement("span");
-    reviewMeta.textContent = `Revision: ${context.notes.describeReviewState(note)}`;
-    const parentMeta = document.createElement("span");
-    parentMeta.textContent = `Parent: ${context.notes.getParentTitle(note) || "Aucun"}`;
-    const childMeta = document.createElement("span");
-    childMeta.textContent = `Enfants: ${context.notes.getChildNotes(note.id).length}`;
     context.elements.previewMeta.appendChild(updatedMeta);
-    context.elements.previewMeta.appendChild(reviewMeta);
-    context.elements.previewMeta.appendChild(parentMeta);
-    context.elements.previewMeta.appendChild(childMeta);
 
     if (metadata.hasDate) {
       const labels = {
@@ -590,6 +575,22 @@
         life: "Naissance / deces",
         range: "Periode",
       };
+      const hasStartDate = hasKnownStructuredDate(metadata.startDate);
+      const hasEndDate = hasKnownStructuredDate(metadata.endDate);
+      const hasSingleDate = hasKnownStructuredDate(metadata.singleDate);
+
+      if (metadata.dateMode === "range" && !hasStartDate && !hasEndDate) {
+        return;
+      }
+
+      if (metadata.dateMode === "life" && !hasStartDate && !hasEndDate) {
+        return;
+      }
+
+      if (metadata.dateMode !== "range" && metadata.dateMode !== "life" && !hasSingleDate) {
+        return;
+      }
+
       const dateMeta = document.createElement("span");
       dateMeta.textContent =
         metadata.dateMode === "range"
@@ -603,6 +604,43 @@
           : `${labels[metadata.dateMode] || "Date"}: ${formatStructuredDate(metadata.singleDate)}`;
       context.elements.previewMeta.appendChild(dateMeta);
     }
+  }
+
+  function hasKnownStructuredDate(value) {
+    return Boolean(value && formatStructuredDate(value) !== "inconnue");
+  }
+
+  function getReadablePreviewContent(note) {
+    const lines = String(note.content || "").split("\n");
+    const firstContentIndex = lines.findIndex((line) => line.trim());
+    if (firstContentIndex === -1) {
+      return "";
+    }
+
+    const firstLine = lines[firstContentIndex].trim();
+    if (!firstLine.startsWith("# ")) {
+      return note.content || "";
+    }
+
+    const headingTitle = normalizePreviewTitle(firstLine.slice(2));
+    const noteTitle = normalizePreviewTitle(note.title || "");
+    if (headingTitle !== noteTitle) {
+      return note.content || "";
+    }
+
+    return lines
+      .filter((_, index) => index !== firstContentIndex)
+      .join("\n")
+      .replace(/^\s+/, "");
+  }
+
+  function normalizePreviewTitle(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ");
   }
 
   function formatStructuredDate(value) {
@@ -1412,6 +1450,105 @@
       disableMutating || !context.state.snapshots.length;
   }
 
+  function getSportSettings() {
+    context.state.settings.sport = context.state.settings.sport || {
+      massEntries: [],
+      performanceEntries: [],
+    };
+    context.state.settings.sport.massEntries = context.state.settings.sport.massEntries || [];
+    context.state.settings.sport.performanceEntries =
+      context.state.settings.sport.performanceEntries || [];
+    return context.state.settings.sport;
+  }
+
+  function renderSportTracker() {
+    if (!context.elements.sportMassBody || !context.elements.sportPerformanceBody) {
+      return;
+    }
+
+    const sport = getSportSettings();
+    const massEntries = sport.massEntries.length ? sport.massEntries : [createEmptySportMassEntry()];
+    const performanceEntries = sport.performanceEntries.length
+      ? sport.performanceEntries
+      : [createEmptySportPerformanceEntry()];
+
+    context.elements.sportModeButtons.forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.sportMode === context.state.sportMode);
+    });
+    context.elements.sportMassPanel.classList.toggle("is-hidden", context.state.sportMode !== "mass");
+    context.elements.sportPerformancePanel.classList.toggle(
+      "is-hidden",
+      context.state.sportMode !== "performance"
+    );
+
+    context.elements.sportMassBody.innerHTML = massEntries
+      .map((entry, index) => buildSportMassRow(entry, index))
+      .join("");
+    context.elements.sportPerformanceBody.innerHTML = performanceEntries
+      .map((entry, index) => buildSportPerformanceRow(entry, index, performanceEntries))
+      .join("");
+  }
+
+  function createEmptySportMassEntry() {
+    return { date: "", mass: "", fasted: false };
+  }
+
+  function createEmptySportPerformanceEntry() {
+    return { date: "", exercise: "", sets: "", reps: "", weight: "", rest: "" };
+  }
+
+  function buildSportMassRow(entry, index) {
+    return `
+      <tr>
+        <td>
+          <input class="sport-input" type="date" value="${escapeHtml(entry.date || "")}" data-sport-table="mass" data-sport-index="${index}" data-sport-field="date" />
+        </td>
+        <td>
+          <input class="sport-input" type="number" inputmode="decimal" step="0.1" value="${escapeHtml(entry.mass || "")}" data-sport-table="mass" data-sport-index="${index}" data-sport-field="mass" />
+        </td>
+        <td class="sport-check-cell">
+          <input type="checkbox" ${entry.fasted ? "checked" : ""} data-sport-table="mass" data-sport-index="${index}" data-sport-field="fasted" />
+        </td>
+      </tr>
+    `;
+  }
+
+  function buildSportPerformanceRow(entry, index, entries) {
+    const datalistId = `sport-exercises-${index}`;
+    const suggestions = unique(
+      entries
+        .slice(0, index)
+        .map((item) => String(item.exercise || "").trim())
+        .filter(Boolean)
+    );
+
+    return `
+      <tr>
+        <td>
+          <input class="sport-input" type="date" value="${escapeHtml(entry.date || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="date" />
+        </td>
+        <td>
+          <input class="sport-input sport-exercise-input" type="text" value="${escapeHtml(entry.exercise || "")}" list="${datalistId}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="exercise" />
+          <datalist id="${datalistId}">
+            ${suggestions.map((exercise) => `<option value="${escapeHtml(exercise)}"></option>`).join("")}
+          </datalist>
+        </td>
+        <td>
+          <input class="sport-input" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(entry.sets || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="sets" />
+        </td>
+        <td>
+          <input class="sport-input" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(entry.reps || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="reps" />
+        </td>
+        <td>
+          <input class="sport-input" type="text" inputmode="decimal" value="${escapeHtml(entry.weight || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="weight" />
+        </td>
+        <td>
+          <input class="sport-input" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(entry.rest || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="rest" />
+        </td>
+      </tr>
+    `;
+  }
+
   function renderTagSuggestions(target) {
     const input =
       target === "quick" ? context.elements.quickTags : context.elements.tagsInput;
@@ -1592,6 +1729,7 @@
     renderSidebarRecap,
     renderSidebarTabs,
     renderStats,
+    renderSportTracker,
     renderStructuredFields,
     renderTagSuggestions,
     renderTabs,
