@@ -67,6 +67,13 @@
     });
 
     context.elements.saveButton.addEventListener("click", context.notes.saveCurrentNote);
+    context.elements.deleteActiveNoteButton?.addEventListener("click", () => {
+      if (!context.state.activeNoteId) {
+        return;
+      }
+
+      context.notes.deleteNoteById(context.state.activeNoteId);
+    });
     context.elements.noteModeToggle.addEventListener("click", () => {
       if (context.state.noteViewMode === "edit") {
         context.notes.cancelEditingNote();
@@ -183,10 +190,30 @@
     ].forEach((input) => {
       input.addEventListener("blur", () => normalizeDateInputField(input));
     });
+    bindEnterFocusFlow([
+      context.elements.titleInput,
+      context.elements.typeInput,
+      context.elements.tagsInput,
+      context.elements.noteDateMode,
+      context.elements.noteDateSingle,
+      context.elements.noteDateStart,
+      context.elements.noteDateEnd,
+      context.elements.contentInput,
+    ]);
     context.elements.contentInput.addEventListener("input", () => {
       context.notes.handleEditorContentChange();
       context.renderers.renderLivePreview();
+      scheduleEditorViewportFollow();
     });
+    context.elements.contentInput.addEventListener("focus", () => {
+      setEditorWritingMode(true);
+      scheduleEditorViewportFollow();
+    });
+    context.elements.contentInput.addEventListener("blur", () => {
+      window.setTimeout(() => setEditorWritingMode(false), 120);
+    });
+    context.elements.contentInput.addEventListener("click", scheduleEditorViewportFollow);
+    context.elements.contentInput.addEventListener("keyup", scheduleEditorViewportFollow);
     context.elements.formatButtons.forEach((button) => {
       button.addEventListener("click", () => {
         applyEditorFormat(button.dataset.formatAction);
@@ -344,8 +371,23 @@
     });
     context.elements.timelineCanvas?.addEventListener("click", handleTimelineClick);
     context.elements.timelineFocus?.addEventListener("click", handleTimelineClick);
+    context.elements.sportModeButtons?.forEach((button) => {
+      button.addEventListener("click", () => {
+        context.state.sportMode = button.dataset.sportMode || "mass";
+        context.renderers.renderSportTracker();
+      });
+    });
+    context.elements.addSportMassRowButton?.addEventListener("click", () => addSportRow("mass"));
+    context.elements.addSportPerformanceRowButton?.addEventListener("click", () =>
+      addSportRow("performance")
+    );
+    context.elements.sportMassBody?.addEventListener("input", handleSportInput);
+    context.elements.sportMassBody?.addEventListener("change", handleSportInput);
+    context.elements.sportPerformanceBody?.addEventListener("input", handleSportInput);
+    context.elements.sportPerformanceBody?.addEventListener("change", handleSportInput);
 
     context.elements.previewContent.addEventListener("click", handleRenderedLinkClick);
+    context.elements.previewContent.addEventListener("change", handleChecklistToggle);
     context.elements.previewContent.addEventListener("pointerdown", handleReadingPointerDown);
     context.elements.previewContent.addEventListener("pointermove", handleReadingPointerMove);
     context.elements.previewContent.addEventListener("pointerup", handleReadingPointerUp);
@@ -370,6 +412,12 @@
     context.elements.quickTags.addEventListener("blur", () => {
       window.setTimeout(() => context.renderers.renderTagSuggestions("quick"), 80);
     });
+    bindEnterFocusFlow([
+      context.elements.quickTitle,
+      context.elements.quickTags,
+      context.elements.quickType,
+      context.elements.quickContent,
+    ]);
     context.elements.noteTagSuggestions?.addEventListener("click", handleTagSuggestionClick);
     context.elements.quickTagSuggestions?.addEventListener("click", handleTagSuggestionClick);
 
@@ -439,6 +487,96 @@
     context.renderers.renderSidebarDrawer();
   }
 
+  function bindEnterFocusFlow(fields) {
+    const controls = fields.filter(Boolean);
+    controls.forEach((control) => {
+      control.addEventListener("keydown", (event) => {
+        if (
+          event.key !== "Enter" ||
+          event.shiftKey ||
+          event.ctrlKey ||
+          event.metaKey ||
+          event.altKey ||
+          event.isComposing ||
+          event.target.tagName === "TEXTAREA"
+        ) {
+          return;
+        }
+
+        const currentIndex = controls.indexOf(control);
+        const nextControl = controls
+          .slice(currentIndex + 1)
+          .find((candidate) => isFocusableFormControl(candidate));
+
+        if (!nextControl) {
+          return;
+        }
+
+        event.preventDefault();
+        nextControl.focus();
+        if (typeof nextControl.select === "function" && nextControl.tagName !== "SELECT") {
+          nextControl.select();
+        }
+      });
+    });
+  }
+
+  function isFocusableFormControl(control) {
+    return (
+      control &&
+      !control.disabled &&
+      !control.closest(".is-hidden") &&
+      control.offsetParent !== null
+    );
+  }
+
+  function setEditorWritingMode(isWriting) {
+    const shouldHideBars =
+      isWriting &&
+      context.state.activeTab === "knowledge" &&
+      context.state.noteViewMode === "edit" &&
+      document.activeElement === context.elements.contentInput;
+    document.body.classList.toggle("editor-writing", shouldHideBars);
+  }
+
+  function scheduleEditorViewportFollow() {
+    window.requestAnimationFrame(() => {
+      resizeEditorToContent();
+      keepEditorCaretReadable();
+    });
+  }
+
+  function resizeEditorToContent() {
+    const textarea = context.elements.contentInput;
+    if (!textarea || document.activeElement !== textarea) {
+      return;
+    }
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.max(textarea.scrollHeight, textarea.clientHeight)}px`;
+  }
+
+  function keepEditorCaretReadable() {
+    const textarea = context.elements.contentInput;
+    if (!textarea || document.activeElement !== textarea) {
+      return;
+    }
+
+    const computed = window.getComputedStyle(textarea);
+    const lineHeight = Number.parseFloat(computed.lineHeight) || 22;
+    const textBeforeCaret = textarea.value.slice(0, textarea.selectionStart);
+    const caretLine = textBeforeCaret.split("\n").length - 1;
+    const caretY = textarea.getBoundingClientRect().top + caretLine * lineHeight - textarea.scrollTop;
+    const comfortBottom = window.innerHeight - 150;
+    const comfortTop = 120;
+
+    if (caretY > comfortBottom) {
+      window.scrollBy({ top: caretY - comfortBottom, behavior: "smooth" });
+    } else if (caretY < comfortTop) {
+      window.scrollBy({ top: caretY - comfortTop, behavior: "smooth" });
+    }
+  }
+
   function renderActiveTabContent() {
     if (context.state.activeTab === "organisation") {
       context.renderers.renderOrganization();
@@ -478,6 +616,11 @@
     if (context.state.activeTab === "settings") {
       context.renderers.renderTemplateEditor();
       context.renderers.renderPublishCenter();
+      return;
+    }
+
+    if (context.state.activeTab === "sport") {
+      context.renderers.renderSportTracker();
     }
   }
 
@@ -525,7 +668,7 @@
         if (
           target instanceof HTMLElement &&
           target.closest(
-            "input, textarea, select, button, .graph-canvas, .quick-capture-panel, .rendered-note"
+            "input, textarea, select, button, .graph-canvas, .quick-capture-panel, .rendered-note, .timeline-canvas, .timeline-stage-shell"
           )
         ) {
           swipe = null;
@@ -748,12 +891,45 @@
   }
 
   function handleRenderedLinkClick(event) {
+    if (event.target.closest("[data-checklist-line]")) {
+      return;
+    }
+
     const link = event.target.closest("[data-link-title]");
     if (!link) {
       return;
     }
 
     context.notes.openOrCreateNote(link.dataset.linkTitle);
+  }
+
+  function handleChecklistToggle(event) {
+    const checkbox = event.target.closest("[data-checklist-line]");
+    if (!checkbox || context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    const note = context.notes.getActiveNote();
+    if (!note) {
+      return;
+    }
+
+    const lineIndex = Number(checkbox.dataset.checklistLine);
+    const lines = note.content.split("\n");
+    if (!Number.isInteger(lineIndex) || !lines[lineIndex]) {
+      return;
+    }
+
+    lines[lineIndex] = lines[lineIndex].replace(
+      /^(\s*-\s+\[)( |x|X)(\]\s+)/,
+      `$1${checkbox.checked ? "x" : " "}$3`
+    );
+    note.content = lines.join("\n");
+    note.updatedAt = new Date().toISOString();
+    context.state.settings.lastEditedNoteId = note.id;
+    context.elements.contentInput.value = note.content;
+    context.data.saveNotes();
+    context.renderers.renderEverything();
   }
 
   function handleChipClick(event) {
@@ -792,6 +968,24 @@
       replacement = lines.map((line) => `- ${line.replace(/^- /, "")}`).join("\n");
       nextStart = start;
       nextEnd = start + replacement.length;
+    } else if (action === "checklist") {
+      const lines = (selection || "Action").split("\n");
+      replacement = lines
+        .map((line) => `- [ ] ${line.replace(/^-\s+\[[ xX]\]\s+/, "").replace(/^- /, "")}`)
+        .join("\n");
+      nextStart = start;
+      nextEnd = start + replacement.length;
+    } else if (action === "today") {
+      const today = new Intl.DateTimeFormat("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(new Date());
+      const prefix = start > 0 && value[start - 1] !== "\n" ? "\n" : "";
+      const suffix = end < value.length && value[end] !== "\n" ? "\n" : "";
+      replacement = `${prefix}${today}${suffix}`;
+      nextStart = start + prefix.length;
+      nextEnd = nextStart + today.length;
     } else if (action === "heading-1") {
       replacement = `# ${selection || "Titre"}`;
       nextStart = start + 2;
@@ -973,6 +1167,95 @@
   function resetReadingPointer() {
     readingPointer = null;
     context.elements.previewContent.style.removeProperty("--read-swipe-x");
+  }
+
+  function getSportSettings() {
+    context.state.settings.sport = context.state.settings.sport || {
+      massEntries: [],
+      performanceEntries: [],
+    };
+    context.state.settings.sport.massEntries = context.state.settings.sport.massEntries || [];
+    context.state.settings.sport.performanceEntries =
+      context.state.settings.sport.performanceEntries || [];
+    return context.state.settings.sport;
+  }
+
+  function addSportRow(table) {
+    const sport = getSportSettings();
+    if (table === "performance") {
+      sport.performanceEntries.push({
+        date: getPreviousPerformanceDate() || getTodayInputDate(),
+        exercise: "",
+        sets: "",
+        reps: "",
+        weight: "",
+        rest: "",
+      });
+      context.state.sportMode = "performance";
+    } else {
+      sport.massEntries.push({ date: getTodayInputDate(), mass: "", fasted: false });
+      context.state.sportMode = "mass";
+    }
+
+    context.data.saveNotes();
+    context.renderers.renderSportTracker();
+  }
+
+  function handleSportInput(event) {
+    const input = event.target.closest("[data-sport-table][data-sport-index][data-sport-field]");
+    if (!input) {
+      return;
+    }
+
+    const sport = getSportSettings();
+    const table = input.dataset.sportTable;
+    const index = Number(input.dataset.sportIndex);
+    const field = input.dataset.sportField;
+    const entries =
+      table === "performance" ? sport.performanceEntries : sport.massEntries;
+    ensureSportEntry(entries, table, index);
+    const entry = entries[index];
+    entry[field] = input.type === "checkbox" ? input.checked : input.value;
+
+    if (table === "performance" && field === "exercise" && input.value.trim() && !entry.date) {
+      entry.date = getPreviousPerformanceDate(index) || getTodayInputDate();
+      const row = input.closest("tr");
+      const dateInput = row?.querySelector('[data-sport-field="date"]');
+      if (dateInput) {
+        dateInput.value = entry.date;
+      }
+    }
+
+    context.data.saveNotes();
+  }
+
+  function ensureSportEntry(entries, table, index) {
+    while (entries.length <= index) {
+      entries.push(
+        table === "performance"
+          ? { date: "", exercise: "", sets: "", reps: "", weight: "", rest: "" }
+          : { date: "", mass: "", fasted: false }
+      );
+    }
+  }
+
+  function getPreviousPerformanceDate(beforeIndex = null) {
+    const entries = getSportSettings().performanceEntries;
+    const endIndex = beforeIndex == null ? entries.length : beforeIndex;
+    for (let index = endIndex - 1; index >= 0; index -= 1) {
+      if (entries[index]?.date) {
+        return entries[index].date;
+      }
+    }
+    return "";
+  }
+
+  function getTodayInputDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
 
   function navigateReadingSibling(direction) {

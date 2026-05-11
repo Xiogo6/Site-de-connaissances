@@ -119,16 +119,16 @@
 
   function createEmptyNote() {
     const type = context.data.getNoteTypeEntries()[0]?.id || "concept";
-    const title = generateUntitledName();
+    const title = "";
     const now = new Date().toISOString();
     return {
-      id: context.data.generateId(title),
+      id: context.data.generateId("page"),
       title,
       type,
       parentId: null,
       favorite: false,
       tags: [],
-      content: `# ${title}`,
+      content: "",
       metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,

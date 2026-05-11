@@ -71,6 +71,7 @@
         answerVisible: false,
       },
       revisionMode: "quiz",
+      sportMode: "mass",
       flashcards: {
         cards: [],
         index: 0,

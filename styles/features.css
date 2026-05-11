@@ -361,6 +361,7 @@
 
 .timeline-stage-shell {
   overflow: auto;
+  touch-action: pan-x;
   padding-bottom: 6px;
 }
 
@@ -626,6 +627,12 @@ body[data-theme="dark"] .flashcard-guide {
   min-width: 140px;
 }
 
+body.utility-drawer-open .quick-capture-toggle {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px) scale(0.96);
+}
+
 .quick-capture-panel {
   background: rgba(255, 249, 240, 0.98);
   border: 1px solid var(--line);
@@ -681,13 +688,18 @@ body[data-theme="dark"] .flashcard-guide {
   border-left: 1px solid var(--line);
   box-shadow: var(--shadow);
   display: grid;
-  gap: 14px;
+  gap: 10px;
   height: 100%;
   margin-left: auto;
   max-width: min(340px, calc(100vw - 42px));
-  padding: 24px;
+  padding: 18px;
   position: relative;
   width: 100%;
+}
+
+.utility-drawer-panel .stack-actions {
+  align-content: start;
+  gap: 10px;
 }
 
 .utility-drawer-header {
@@ -696,43 +708,81 @@ body[data-theme="dark"] .flashcard-guide {
 
 .utility-link {
   align-items: center;
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(86, 70, 48, 0.1);
-  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 240, 227, 0.92));
+  border: 1px solid rgba(191, 91, 44, 0.18);
+  border-radius: 16px;
+  box-shadow: 0 10px 22px rgba(81, 55, 30, 0.09);
   color: var(--text);
   cursor: pointer;
-  display: flex;
+  display: grid;
   gap: 10px;
   min-height: 48px;
-  padding: 0 14px;
+  overflow: hidden;
+  padding: 10px 14px;
   position: relative;
   text-align: left;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  width: 100%;
 }
 
 .utility-link::before {
-  background: rgba(191, 91, 44, 0.14);
-  border: 1px solid rgba(191, 91, 44, 0.16);
-  border-radius: 999px;
-  content: "";
-  height: 12px;
-  width: 12px;
+  display: none;
 }
 
 .utility-link strong {
-  font-size: 0.94rem;
-  font-weight: 720;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.utility-link:hover {
+  border-color: rgba(191, 91, 44, 0.34);
+  box-shadow: 0 14px 28px rgba(81, 55, 30, 0.12);
+  transform: translateY(-1px);
 }
 
 .utility-link.is-active {
-  background: rgba(255, 247, 232, 0.94);
-  border-color: rgba(191, 91, 44, 0.3);
-  box-shadow: 0 10px 22px rgba(81, 55, 30, 0.08);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 42%),
+    rgba(255, 247, 232, 0.96);
+  border-color: rgba(191, 91, 44, 0.42);
+  box-shadow: 0 14px 30px rgba(191, 91, 44, 0.14);
   color: var(--accent-strong);
+  transform: translateY(-1px);
 }
 
-.utility-link.is-active::before {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+.utility-link[data-utility-tab="settings"] {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 44%),
+    linear-gradient(135deg, rgba(73, 106, 143, 0.22), rgba(73, 106, 143, 0.06)),
+    rgba(255, 255, 255, 0.9);
+  border-color: rgba(73, 106, 143, 0.28);
+}
+
+.utility-link[data-utility-tab="sport"] {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 44%),
+    linear-gradient(135deg, rgba(93, 116, 97, 0.24), rgba(93, 116, 97, 0.06)),
+    rgba(255, 255, 255, 0.9);
+  border-color: rgba(93, 116, 97, 0.3);
+}
+
+#theme-toggle-button.utility-link {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 44%),
+    linear-gradient(135deg, rgba(191, 91, 44, 0.26), rgba(191, 91, 44, 0.07)),
+    rgba(255, 255, 255, 0.9);
+  border-color: rgba(191, 91, 44, 0.34);
+}
+
+.utility-link[data-utility-tab="settings"].is-active {
+  color: #34506e;
+}
+
+.utility-link[data-utility-tab="sport"].is-active {
+  color: #35523e;
 }
 
 .utility-link span {
@@ -743,15 +793,47 @@ body[data-theme="dark"] .flashcard-guide {
 
 :root[data-theme="dark"] .utility-link,
 body[data-theme="dark"] .utility-link {
-  background: rgba(24, 28, 33, 0.82);
-  border-color: rgba(215, 201, 185, 0.16);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 42%),
+    linear-gradient(180deg, rgba(24, 28, 33, 0.96), rgba(30, 35, 41, 0.96));
+  border-color: rgba(208, 122, 76, 0.2);
+  box-shadow: 0 10px 22px rgba(5, 7, 10, 0.28);
 }
 
 :root[data-theme="dark"] .utility-link.is-active,
 body[data-theme="dark"] .utility-link.is-active {
-  background: rgba(43, 49, 57, 0.94);
-  border-color: rgba(208, 122, 76, 0.35);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 42%),
+    rgba(43, 49, 57, 0.96);
+  border-color: rgba(208, 122, 76, 0.42);
   color: #f0b08a;
+}
+
+:root[data-theme="dark"] .utility-link[data-utility-tab="settings"],
+body[data-theme="dark"] .utility-link[data-utility-tab="settings"] {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 44%),
+    linear-gradient(135deg, rgba(73, 106, 143, 0.34), rgba(73, 106, 143, 0.08)),
+    rgba(24, 28, 33, 0.96);
+  border-color: rgba(124, 168, 218, 0.28);
+}
+
+:root[data-theme="dark"] .utility-link[data-utility-tab="sport"],
+body[data-theme="dark"] .utility-link[data-utility-tab="sport"] {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 44%),
+    linear-gradient(135deg, rgba(93, 116, 97, 0.36), rgba(93, 116, 97, 0.08)),
+    rgba(24, 28, 33, 0.96);
+  border-color: rgba(125, 161, 145, 0.3);
+}
+
+:root[data-theme="dark"] #theme-toggle-button.utility-link,
+body[data-theme="dark"] #theme-toggle-button.utility-link {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 44%),
+    linear-gradient(135deg, rgba(208, 122, 76, 0.38), rgba(208, 122, 76, 0.1)),
+    rgba(24, 28, 33, 0.96);
+  border-color: rgba(208, 122, 76, 0.38);
 }
 
 :root[data-theme="dark"] .utility-link span,
@@ -916,7 +998,9 @@ body[data-theme="dark"] .graph-label.is-tag-label {
   }
 
   body.quick-capture-open .tabs,
-  body.quick-capture-open .quick-capture-toggle {
+  body.quick-capture-open .quick-capture-toggle,
+  body.editor-writing .tabs,
+  body.editor-writing .quick-capture-toggle {
     opacity: 0;
     pointer-events: none;
   }
