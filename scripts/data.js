@@ -154,6 +154,69 @@
       };
     }
 
+    function createQuizQuestionStats(stats = {}) {
+      return {
+        asked: Number(stats?.asked) || 0,
+        correct: Number(stats?.correct) || 0,
+        lastAskedAt: typeof stats?.lastAskedAt === "string" ? stats.lastAskedAt : null,
+        lastCorrectAt: typeof stats?.lastCorrectAt === "string" ? stats.lastCorrectAt : null,
+      };
+    }
+
+    function normalizeQuizQuestionAnswers(value) {
+      const raw = Array.isArray(value)
+        ? value.flatMap((item) => String(item || "").split(","))
+        : String(value || "").split(",");
+
+      const seen = new Set();
+      return raw
+        .map((answer) => answer.trim())
+        .filter(Boolean)
+        .filter((answer) => {
+          const normalized = answer.toLowerCase();
+          if (seen.has(normalized)) {
+            return false;
+          }
+          seen.add(normalized);
+          return true;
+        });
+    }
+
+    function normalizeQuizQuestionCollection(rawQuestions, noteId = "note") {
+      const seen = new Set();
+      return Array.isArray(rawQuestions)
+        ? rawQuestions
+            .map((item, index) => {
+              const question = typeof item?.question === "string" ? item.question.trim() : "";
+              const answers = normalizeQuizQuestionAnswers(
+                item?.answers ?? item?.answer ?? item?.responses ?? item?.response
+              );
+              if (!question || !answers.length) {
+                return null;
+              }
+
+              let id =
+                typeof item?.id === "string" && item.id.trim()
+                  ? item.id.trim()
+                  : `${noteId}-question-${index + 1}`;
+              let suffix = 2;
+              while (seen.has(id)) {
+                id = `${noteId}-question-${index + 1}-${suffix}`;
+                suffix += 1;
+              }
+              seen.add(id);
+
+              return {
+                id,
+                question,
+                answers,
+                stats: createQuizQuestionStats(item?.stats),
+              };
+            })
+            .filter(Boolean)
+        : [];
+    }
+
     function getDefaultMetadata() {
       return {
         hasDate: false,
@@ -232,6 +295,7 @@
         favorite: Boolean(note.favorite),
         tags: Array.isArray(note.tags) ? normalizeTagList(note.tags.map(String)) : [],
         content: typeof note.content === "string" ? note.content : "",
+        quizQuestions: normalizeQuizQuestionCollection(note.quizQuestions, note.id),
         createdAt: typeof note.createdAt === "string" ? note.createdAt : new Date().toISOString(),
         updatedAt: typeof note.updatedAt === "string" ? note.updatedAt : new Date().toISOString(),
         metadata: normalizeMetadata(note.metadata),
@@ -512,6 +576,7 @@
           favorite: Boolean(note.favorite),
           tags: [...note.tags],
           content: note.content,
+          quizQuestions: normalizeQuizQuestionCollection(note.quizQuestions, note.id),
           metadata: normalizeMetadata(note.metadata),
           createdAt: note.createdAt,
           updatedAt: note.updatedAt,
@@ -975,9 +1040,11 @@
       loadSnapshots,
       normalizeImportedNote,
       normalizeNoteCollection,
+      normalizeQuizQuestionCollection,
       normalizeSettings,
       normalizeSnapshot,
       normalizeSnapshotCollection,
+      createQuizQuestionStats,
       normalizeTemplates,
       queueRemoteSync,
       registerServiceWorker,

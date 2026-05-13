@@ -1,6 +1,6 @@
 # Atlas de Connaissance
 
-Site statique pour organiser vos connaissances en reseau, visualiser les liens entre les pages et generer des quiz a partir de vos notes.
+Site statique pour organiser vos connaissances en reseau, visualiser les liens entre les pages et generer des quiz simples a partir de vos notes.
 
 ## Structure du projet
 

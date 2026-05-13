@@ -2,7 +2,6 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createEventsModule = function createEventsModule(context) {
-  let flashcardPointer = null;
   let readingPointer = null;
 
   function bindEvents() {
@@ -117,15 +116,6 @@
       context.renderers.renderTemplateEditor();
     });
 
-    context.elements.revisionModeButtons?.forEach((button) => {
-      button.addEventListener("click", () => {
-        context.state.revisionMode = button.dataset.revisionMode || "quiz";
-        context.state.activeTab = "quiz";
-        context.renderers.renderTabs();
-        context.renderers.renderRevisionMode();
-        renderActiveTabContent();
-      });
-    });
     context.elements.visualizationModeButtons?.forEach((button) => {
       button.addEventListener("click", () => {
         context.state.visualizationMode = button.dataset.visualizationMode || "graph";
@@ -331,29 +321,12 @@
     context.elements.quizTag.addEventListener("input", context.renderers.renderStats);
     context.elements.quizMode.addEventListener("change", context.renderers.renderStats);
     context.elements.generateQuizButton.addEventListener("click", context.quiz.buildQuizSession);
-    context.elements.showAnswerButton.addEventListener("click", context.quiz.showQuizAnswer);
-    context.elements.markCorrectButton.addEventListener("click", () => context.quiz.scoreQuiz(true));
-    context.elements.markWrongButton.addEventListener("click", () => context.quiz.scoreQuiz(false));
-    context.elements.flashcardScope.addEventListener("change", () => {
-      context.elements.flashcardTagWrapper.classList.toggle(
-        "is-hidden",
-        context.elements.flashcardScope.value !== "tag"
-      );
-    });
-    context.elements.generateFlashcardsButton.addEventListener(
-      "click",
-      context.quiz.buildFlashcardsSession
-    );
-    context.elements.flashcardFlipButton.addEventListener(
-      "click",
-      context.quiz.showFlashcardAnswer
-    );
-    context.elements.flashcardPrevButton.addEventListener("click", context.quiz.previousFlashcard);
-    context.elements.flashcardNextButton.addEventListener("click", context.quiz.nextFlashcard);
-    context.elements.flashcardCard.addEventListener("pointerdown", handleFlashcardPointerDown);
-    context.elements.flashcardCard.addEventListener("pointermove", handleFlashcardPointerMove);
-    context.elements.flashcardCard.addEventListener("pointerup", handleFlashcardPointerUp);
-    context.elements.flashcardCard.addEventListener("pointercancel", resetFlashcardPointer);
+    context.elements.addQuizQuestionButton?.addEventListener("click", addQuizQuestionRow);
+    context.elements.noteQuizQuestionsBody?.addEventListener("input", handleQuizQuestionDraftInput);
+    context.elements.noteQuizQuestionsBody?.addEventListener("click", handleQuizQuestionDraftClick);
+    context.elements.quizCard?.addEventListener("input", handleQuizSessionAnswerInput);
+    context.elements.quizCard?.addEventListener("click", handleQuizSessionClick);
+    context.elements.quizCard?.addEventListener("keydown", handleQuizSessionKeydown);
     context.elements.timelineScope?.addEventListener("change", (event) => {
       context.state.timeline.scope = event.target.value;
       context.state.timeline.selectedNoteId = null;
@@ -405,6 +378,7 @@
       context.notes.openQuickCapture();
     });
     context.elements.quickCaptureClose.addEventListener("click", context.notes.closeQuickCapture);
+    context.elements.quickCaptureCancel?.addEventListener("click", context.notes.closeQuickCapture);
     context.elements.quickSaveButton.addEventListener("click", context.notes.saveQuickCapture);
     context.elements.quickTags.addEventListener("input", () => {
       context.renderers.renderTagSuggestions("quick");
@@ -592,16 +566,7 @@
     }
 
     if (context.state.activeTab === "quiz") {
-      if (context.state.revisionMode === "flashcards") {
-        context.quiz.renderFlashcards();
-      } else {
-        context.quiz.renderQuizCard();
-      }
-      return;
-    }
-
-    if (context.state.activeTab === "flashcards") {
-      context.quiz.renderFlashcards();
+      context.quiz.renderQuizCard();
       return;
     }
 
@@ -622,6 +587,109 @@
     if (context.state.activeTab === "sport") {
       context.renderers.renderSportTracker();
     }
+  }
+
+  function addQuizQuestionRow() {
+    if (context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    if (context.state.noteViewMode !== "edit") {
+      context.state.noteViewMode = "edit";
+      context.renderers.renderKnowledgeMode();
+    }
+
+    context.state.editorQuizQuestions.push({
+      id: `question-${Date.now()}`,
+      question: "",
+      answers: [""],
+      stats: {
+        asked: 0,
+        correct: 0,
+        lastAskedAt: null,
+        lastCorrectAt: null,
+      },
+    });
+    context.renderers.renderQuizQuestionBank();
+    context.renderers.renderPreview(context.notes.getActiveNote(), true);
+    window.requestAnimationFrame(() => {
+      const lastInput = context.elements.noteQuizQuestionsBody?.querySelector(
+        "tr:last-child [data-quiz-question-field=\"question\"]"
+      );
+      if (lastInput && typeof lastInput.focus === "function") {
+        lastInput.focus();
+      }
+    });
+  }
+
+  function handleQuizQuestionDraftInput(event) {
+    const input = event.target.closest("[data-quiz-question-field]");
+    if (!input) {
+      return;
+    }
+
+    const index = Number(input.dataset.quizQuestionIndex);
+    const field = input.dataset.quizQuestionField;
+    const draft = context.state.editorQuizQuestions[index];
+    if (!draft) {
+      return;
+    }
+
+    if (field === "question") {
+      draft.question = input.value;
+    }
+
+    if (field === "answers") {
+      draft.answers = input.value
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+    }
+
+    context.renderers.renderPreview(context.notes.getActiveNote(), true);
+  }
+
+  function handleQuizQuestionDraftClick(event) {
+    const button = event.target.closest("[data-remove-quiz-question]");
+    if (!button || context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    const index = Number(button.dataset.removeQuizQuestion);
+    context.state.editorQuizQuestions.splice(index, 1);
+    context.renderers.renderQuizQuestionBank();
+    context.renderers.renderPreview(context.notes.getActiveNote(), true);
+  }
+
+  function handleQuizSessionAnswerInput(event) {
+    const input = event.target.closest("[data-quiz-session-answer]");
+    if (!input) {
+      return;
+    }
+
+    const index = Number(input.dataset.quizSessionAnswer);
+    context.quiz.setQuizAnswer(index, input.value);
+  }
+
+  function handleQuizSessionClick(event) {
+    const button = event.target.closest("[data-quiz-session-validate]");
+    if (!button) {
+      return;
+    }
+
+    const index = Number(button.dataset.quizSessionValidate);
+    context.quiz.validateQuizQuestion(index);
+  }
+
+  function handleQuizSessionKeydown(event) {
+    const input = event.target.closest("[data-quiz-session-answer]");
+    if (!input || event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    const index = Number(input.dataset.quizSessionAnswer);
+    context.quiz.validateQuizQuestion(index);
   }
 
   function scrollToTop(smooth = true) {
@@ -1046,69 +1114,6 @@
     const normalized = context.helpers.normalizeFlexibleDateInput(input.value);
     input.value = normalized ? context.helpers.formatFlexibleDate(normalized) : "";
     context.renderers.renderLivePreview();
-  }
-
-  function handleFlashcardPointerDown(event) {
-    if (!context.state.flashcards.cards.length) {
-      return;
-    }
-
-    flashcardPointer = {
-      id: event.pointerId,
-      x: event.clientX,
-      y: event.clientY,
-      moved: false,
-    };
-    context.elements.flashcardCard.setPointerCapture?.(event.pointerId);
-  }
-
-  function handleFlashcardPointerMove(event) {
-    if (!flashcardPointer || flashcardPointer.id !== event.pointerId) {
-      return;
-    }
-
-    const deltaX = event.clientX - flashcardPointer.x;
-    const deltaY = event.clientY - flashcardPointer.y;
-    if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) {
-      return;
-    }
-
-    flashcardPointer.moved = true;
-    const clamped = context.helpers.clamp(deltaX, -90, 90);
-    context.elements.flashcardCard.style.setProperty("--swipe-x", `${clamped}px`);
-    context.elements.flashcardCard.style.setProperty("--swipe-rotate", `${clamped / 18}deg`);
-  }
-
-  function handleFlashcardPointerUp(event) {
-    if (!flashcardPointer || flashcardPointer.id !== event.pointerId) {
-      return;
-    }
-
-    const deltaX = event.clientX - flashcardPointer.x;
-    const deltaY = Math.abs(event.clientY - flashcardPointer.y);
-    const isSwipe = Math.abs(deltaX) > 72 && Math.abs(deltaX) > deltaY * 1.35;
-    const isTap = !flashcardPointer.moved || (Math.abs(deltaX) < 8 && deltaY < 8);
-
-    resetFlashcardPointer();
-
-    if (isSwipe) {
-      if (deltaX < 0) {
-        context.quiz.nextFlashcard();
-      } else {
-        context.quiz.previousFlashcard();
-      }
-      return;
-    }
-
-    if (isTap && !context.state.flashcards.answerVisible) {
-      context.quiz.showFlashcardAnswer();
-    }
-  }
-
-  function resetFlashcardPointer() {
-    flashcardPointer = null;
-    context.elements.flashcardCard.style.removeProperty("--swipe-x");
-    context.elements.flashcardCard.style.removeProperty("--swipe-rotate");
   }
 
   function handleReadingPointerDown(event) {

@@ -129,6 +129,7 @@
       favorite: false,
       tags: [],
       content: "",
+      quizQuestions: [],
       metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
@@ -437,6 +438,10 @@
     );
     current.favorite = context.elements.favoriteInput.checked;
     current.content = context.elements.contentInput.value.trim();
+    current.quizQuestions = context.data.normalizeQuizQuestionCollection(
+      context.state.editorQuizQuestions,
+      current.id
+    );
     current.metadata = collectMetadataFromInputs();
     current.updatedAt = new Date().toISOString();
     rememberEditedNote(current.id);
@@ -460,6 +465,11 @@
       }
     }
 
+    context.state.editorQuizQuestions = context.data.normalizeQuizQuestionCollection(
+      current.quizQuestions,
+      current.id
+    );
+    context.state.editorQuizQuestionsNoteId = current.id;
     context.data.saveNotes();
     context.data.saveAutomaticSnapshot(`Maj ${current.title}`);
     if (context.state.pendingNewNoteId === current.id) {
@@ -833,6 +843,7 @@
       favorite: false,
       tags: [],
       content: `# ${title}`,
+      quizQuestions: [],
       metadata: type === "daily" ? createDailyMetadata() : createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
@@ -888,7 +899,19 @@
 
   function closeQuickCapture() {
     context.state.quickCaptureOpen = false;
+    resetQuickCaptureDraft();
     context.renderers.renderQuickCapture();
+  }
+
+  function resetQuickCaptureDraft() {
+    context.elements.quickTitle.value = "";
+    context.elements.quickTags.value = "";
+    context.elements.quickContent.value = "";
+    context.elements.quickLinkActive.checked = false;
+    if (context.elements.quickType) {
+      context.elements.quickType.value = "concept";
+    }
+    context.renderers.renderTagSuggestions("quick");
   }
 
   function saveQuickCapture() {
@@ -913,6 +936,7 @@
       content: `# ${title}
 
 ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title}]]` : ""}`,
+      quizQuestions: [],
       metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
@@ -926,13 +950,6 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     context.state.notes.unshift(note);
     context.state.activeNoteId = note.id;
     rememberEditedNote(note.id);
-    context.elements.quickTitle.value = "";
-    context.elements.quickTags.value = "";
-    context.elements.quickContent.value = "";
-    context.elements.quickLinkActive.checked = false;
-    if (context.elements.quickType) {
-      context.elements.quickType.value = "concept";
-    }
     closeQuickCapture();
     context.data.saveNotes();
     context.data.saveAutomaticSnapshot("Note rapide");
@@ -991,6 +1008,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
       favorite: false,
       tags: [],
       content: `# ${trimmedTitle}`,
+      quizQuestions: [],
       metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,

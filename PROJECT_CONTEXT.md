@@ -7,7 +7,7 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
 - ecrire des pages reliees par liens wiki `[[...]]`
 - organiser les pages en dossiers et sous-dossiers
 - visualiser le reseau dans un graphe
-- generer des quiz et des flashcards
+- generer des quiz simples
 - rester utilisable sur mobile et desktop
 
 ## Architecture rapide
@@ -33,7 +33,7 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
 - `scripts/graph.js`
   Graphe, zoom, drag de noeuds, pan tactile.
 - `scripts/quiz.js`
-  Quiz et flashcards.
+  Quiz.
 - `styles/*.css`
   Base visuelle et responsive.
 
@@ -107,19 +107,6 @@ Scopes actuels :
 - pages a revoir
 
 Le scope `dossier` inclut le dossier et toutes ses descendances.
-
-## Flashcards
-
-Les flashcards sont alimentees par des tableaux markdown dans les notes.
-
-Colonnes reconnues :
-
-- `Recto`
-- `Verso`
-- `Indice`
-- `Exemple`
-- `Tags`
-- `Inverse`
 
 ## Mobile
 

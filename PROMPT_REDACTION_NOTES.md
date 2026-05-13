@@ -6,7 +6,6 @@ Objectif :
 - clarifier la note
 - uniformiser la structure
 - rendre la note exploitable par un systeme de quiz
-- rendre la note exploitable par un systeme de flashcards
 
 Contraintes de redaction :
 
@@ -40,23 +39,6 @@ Regles :
 - si la note contient une date, formule une ligne explicite avec cette date
 - si la note concerne une personne, formule clairement naissance, deces, role, realisations
 - si la note concerne un evenement, formule clairement debut, fin, cause, consequence
-
-## Elements pour flashcards
-
-Si le contenu s y prete, cree un tableau markdown avec au minimum deux colonnes `Recto` et `Verso`.
-
-Exemple :
-
-| Recto | Verso | Indice |
-| --- | --- | --- |
-| Question breve | Reponse breve | Contexte utile |
-
-Consignes supplementaires :
-
-- le recto doit etre court
-- le verso doit etre precis
-- l indice est optionnel mais utile
-- cree plusieurs lignes si plusieurs notions sont memorisables
 
 Sortie attendue :
 
