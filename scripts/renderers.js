@@ -20,7 +20,6 @@
     renderSidebarDrawer();
     renderFiltersPanel();
     renderTabs();
-    renderRevisionMode();
     renderVisualizationMode();
     renderWorkspaceBanner();
     renderKnowledgeMode();
@@ -29,12 +28,12 @@
     renderStructuredFields();
     syncEditorAvailability();
     renderPreview();
+    renderQuizQuestionBank();
     renderConnections();
     renderStats();
     renderDueReviewList();
     context.graph.drawGraph();
     context.quiz.renderQuizCard();
-    context.quiz.renderFlashcards();
     renderTimelineView();
     renderSportTracker();
     renderTemplateEditor();
@@ -68,20 +67,12 @@
     );
 
     Object.entries(context.elements.panels).forEach(([key, panel]) => {
-      const isRevisionCompanion =
-        context.state.activeTab === "quiz" &&
-        context.state.revisionMode === "flashcards" &&
-        key === "flashcards";
       const isVisualizationCompanion =
         context.state.activeTab === "visualization" &&
         key === context.state.visualizationMode;
       panel.classList.toggle(
         "is-active",
-        key === context.state.activeTab || isRevisionCompanion || isVisualizationCompanion
-      );
-      panel.classList.toggle(
-        "is-showing-flashcards",
-        key === "quiz" && context.state.activeTab === "quiz" && context.state.revisionMode !== "quiz"
+        key === context.state.activeTab || isVisualizationCompanion
       );
       panel.classList.toggle("is-revision-hidden", false);
       panel.classList.toggle(
@@ -90,12 +81,6 @@
           context.state.activeTab === "visualization" &&
           key !== context.state.visualizationMode
       );
-    });
-  }
-
-  function renderRevisionMode() {
-    context.elements.revisionModeButtons?.forEach((button) => {
-      button.classList.toggle("is-active", button.dataset.revisionMode === context.state.revisionMode);
     });
   }
 
@@ -290,6 +275,7 @@
       context.elements.quickContent,
       context.elements.quickLinkActive,
       context.elements.quickSaveButton,
+      context.elements.addQuizQuestionButton,
     ].forEach((element) => {
       if (!element) {
         return;
@@ -385,6 +371,8 @@
     const note = context.notes.getActiveNote();
     if (!note) {
       context.state.editorTemplateSeed = null;
+      context.state.editorQuizQuestions = [];
+      context.state.editorQuizQuestionsNoteId = null;
       return;
     }
 
@@ -405,6 +393,10 @@
     context.elements.noteDateStart.value = metadata.startDate ? formatFlexibleDate(metadata.startDate) : "";
     context.elements.noteDateEnd.value = metadata.endDate ? formatFlexibleDate(metadata.endDate) : "";
     context.elements.contentInput.value = note.content;
+    if (context.state.editorQuizQuestionsNoteId !== note.id) {
+      context.state.editorQuizQuestions = structuredClone(note.quizQuestions || []);
+      context.state.editorQuizQuestionsNoteId = note.id;
+    }
 
     const templateContent = context.data.buildTemplateContent(note.type, note.title || "Sans titre");
     context.state.editorTemplateSeed =
@@ -467,6 +459,7 @@
       favorite: context.elements.favoriteInput.checked,
       metadata: context.notes.collectMetadataFromInputs(),
       content: context.elements.contentInput.value,
+      quizQuestions: context.state.editorQuizQuestions,
     };
 
     renderPreview(draftNote, true);
@@ -532,6 +525,9 @@
 
   function renderPreview(note = context.notes.getActiveNote(), isDraft = false) {
     if (!note) {
+      if (context.elements.previewQuizQuestionsBody) {
+        context.elements.previewQuizQuestionsBody.innerHTML = "";
+      }
       return;
     }
 
@@ -604,6 +600,120 @@
           : `${labels[metadata.dateMode] || "Date"}: ${formatStructuredDate(metadata.singleDate)}`;
       context.elements.previewMeta.appendChild(dateMeta);
     }
+
+    renderQuizQuestionPreview(note, isDraft);
+  }
+
+  function renderQuizQuestionBank() {
+    const editable = context.state.noteViewMode === "edit" && !context.data.isReadOnlyMode();
+    if (context.elements.addQuizQuestionButton) {
+      context.elements.addQuizQuestionButton.disabled = context.data.isReadOnlyMode();
+    }
+    renderQuizQuestionTable(
+      context.elements.noteQuizQuestionsBody,
+      context.state.editorQuizQuestions || [],
+      {
+        editable,
+        emptyMessage: "Aucune question pour l instant. Ajoutez-en une pour alimenter le quiz.",
+      }
+    );
+  }
+
+  function renderQuizQuestionPreview(note, isDraft = false) {
+    if (!context.elements.previewQuizQuestionsBody) {
+      return;
+    }
+
+    const questions =
+      (isDraft || context.state.noteViewMode === "edit") &&
+      context.state.editorQuizQuestionsNoteId === note.id
+        ? context.state.editorQuizQuestions || []
+        : note.quizQuestions || [];
+
+    renderQuizQuestionTable(context.elements.previewQuizQuestionsBody, questions, {
+      editable: false,
+      emptyMessage: "Aucune question enregistree sur cette note.",
+      readOnlyPreview: true,
+    });
+  }
+
+  function renderQuizQuestionTable(container, questions, options = {}) {
+    if (!container) {
+      return;
+    }
+
+    container.innerHTML = "";
+
+    if (!questions.length) {
+      const row = document.createElement("tr");
+      row.className = "quiz-question-empty-row";
+      const cell = document.createElement("td");
+      cell.colSpan = options.readOnlyPreview ? 2 : 3;
+      cell.textContent = options.emptyMessage || "Aucune question";
+      row.appendChild(cell);
+      container.appendChild(row);
+      return;
+    }
+
+    questions.forEach((question, index) => {
+      const row = document.createElement("tr");
+      row.dataset.quizQuestionIndex = String(index);
+
+      const questionCell = document.createElement("td");
+      if (options.editable) {
+        const input = document.createElement("textarea");
+        input.className = "text-input quiz-question-input";
+        input.rows = 2;
+        input.dataset.quizQuestionField = "question";
+        input.dataset.quizQuestionIndex = String(index);
+        input.placeholder = "Question";
+        input.value = question.question || "";
+        input.disabled = context.data.isReadOnlyMode();
+        questionCell.appendChild(input);
+      } else {
+        questionCell.innerHTML = `<span class="quiz-question-text">${escapeHtml(
+          question.question || ""
+        )}</span>`;
+      }
+
+      const answersCell = document.createElement("td");
+      if (options.editable) {
+        const input = document.createElement("input");
+        input.className = "text-input quiz-answer-input";
+        input.type = "text";
+        input.dataset.quizQuestionField = "answers";
+        input.dataset.quizQuestionIndex = String(index);
+        input.placeholder = "Réponse 1, Réponse 2";
+        input.value = (question.answers || []).join(", ");
+        input.disabled = context.data.isReadOnlyMode();
+        answersCell.appendChild(input);
+      } else {
+        answersCell.innerHTML = `<span class="quiz-answer-text">${escapeHtml(
+          (question.answers || []).join(", ")
+        )}</span>`;
+      }
+
+      row.appendChild(questionCell);
+      row.appendChild(answersCell);
+
+      if (!options.readOnlyPreview) {
+        const actionCell = document.createElement("td");
+        if (options.editable) {
+          const removeButton = document.createElement("button");
+          removeButton.type = "button";
+          removeButton.className = "button button-ghost quiz-question-remove";
+          removeButton.dataset.removeQuizQuestion = String(index);
+          removeButton.disabled = context.data.isReadOnlyMode();
+          removeButton.textContent = "Supprimer";
+          actionCell.appendChild(removeButton);
+        } else {
+          actionCell.textContent = "En lecture";
+        }
+        row.appendChild(actionCell);
+      }
+
+      container.appendChild(row);
+    });
   }
 
   function hasKnownStructuredDate(value) {
@@ -729,12 +839,11 @@
       return count + unique(extractLinks(note.content)).length;
     }, 0);
     const orphanNotes = sourceNotes.filter((note) => context.notes.isOrphanNote(note, sourceNotes)).length;
-    const dueCount = context.notes.getDueNotes(sourceNotes).length;
 
     setOptionalText(context.elements.pageTotalCount, String(sourceNotes.length));
     setOptionalText(context.elements.linkCount, String(totalLinks));
     setOptionalText(context.elements.orphanCount, String(orphanNotes));
-    setOptionalText(context.elements.quizCount, String(dueCount));
+    setOptionalText(context.elements.quizCount, "0");
   }
 
   function setOptionalText(element, value) {
@@ -1723,7 +1832,7 @@
     renderPreview,
     renderPublishCenter,
     renderQuickCapture,
-    renderRevisionMode,
+    renderQuizQuestionBank,
     renderVisualizationMode,
     renderSidebarDrawer,
     renderSidebarRecap,

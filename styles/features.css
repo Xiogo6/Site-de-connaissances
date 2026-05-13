@@ -158,7 +158,8 @@
   min-height: 70px;
 }
 
-.quiz-game-card {
+.quiz-game-card,
+.quiz-session-card {
   background:
     radial-gradient(circle at top right, rgba(191, 91, 44, 0.16), transparent 32%),
     linear-gradient(135deg, rgba(255, 252, 245, 0.98), rgba(246, 235, 216, 0.74));
@@ -168,27 +169,66 @@
   position: relative;
 }
 
-.quiz-game-card h4 {
+.quiz-game-card h4,
+.quiz-session-card h4 {
   font-size: clamp(1.35rem, 2.4vw, 2.1rem);
   line-height: 1.25;
   margin: 0;
 }
 
-.quiz-game-card p {
+.quiz-game-card p,
+.quiz-session-card p {
   margin: 0;
 }
 
-.quiz-game-empty {
+.quiz-game-empty,
+.quiz-session-empty {
   align-items: stretch;
   justify-content: stretch;
   text-align: left;
 }
 
-.quiz-game-hero {
+.quiz-game-hero,
+.quiz-session-hero {
   align-content: center;
   display: grid;
   gap: 12px;
   min-height: 156px;
+}
+
+.quiz-session-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.quiz-session-score {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(86, 70, 48, 0.1);
+  border-radius: 18px;
+  display: grid;
+  gap: 4px;
+  min-width: 132px;
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.quiz-session-score strong {
+  font-size: clamp(1.8rem, 4.6vw, 3rem);
+  line-height: 1;
+}
+
+.quiz-session-score span {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
+.quiz-session-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .quiz-game-kicker {
@@ -201,7 +241,8 @@
 
 .quiz-game-rules,
 .quiz-game-hud,
-.quiz-question-meta {
+.quiz-question-meta,
+.quiz-session-hud {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -320,6 +361,10 @@
   color: var(--text-soft);
 }
 
+.quiz-session-table .quiz-score-pill {
+  display: inline-flex;
+}
+
 .timeline-summary {
   margin-bottom: 18px;
 }
@@ -375,8 +420,7 @@
   position: relative;
 }
 
-.timeline-guide,
-.flashcard-guide {
+.timeline-guide {
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -384,26 +428,18 @@
 }
 
 :root[data-theme="dark"] .timeline-guide,
-:root[data-theme="dark"] .flashcard-guide,
-body[data-theme="dark"] .timeline-guide,
-body[data-theme="dark"] .flashcard-guide {
+body[data-theme="dark"] .timeline-guide {
   background: transparent;
   border: 0;
   box-shadow: none;
 }
 
-.timeline-guide h4,
-.flashcard-guide h4 {
+.timeline-guide h4 {
   margin-bottom: 10px;
 }
 
-.timeline-guide p,
-.flashcard-guide p {
+.timeline-guide p {
   margin: 0 0 12px;
-}
-
-.flashcard-guide pre {
-  border: 1px solid rgba(215, 201, 185, 0.12);
 }
 
 .timeline-axis {
@@ -883,7 +919,9 @@ body[data-theme="dark"] .graph-canvas {
 }
 
 :root[data-theme="dark"] .quiz-game-card,
-body[data-theme="dark"] .quiz-game-card {
+:root[data-theme="dark"] .quiz-session-card,
+body[data-theme="dark"] .quiz-game-card,
+body[data-theme="dark"] .quiz-session-card {
   background:
     radial-gradient(circle at top right, rgba(208, 122, 76, 0.16), transparent 32%),
     linear-gradient(135deg, rgba(24, 28, 33, 0.98), rgba(32, 38, 44, 0.9));
@@ -891,10 +929,12 @@ body[data-theme="dark"] .quiz-game-card {
 
 :root[data-theme="dark"] .quiz-question-stage,
 :root[data-theme="dark"] .quiz-game-rules span,
+:root[data-theme="dark"] .quiz-session-score,
 :root[data-theme="dark"] .quiz-score-pill,
 :root[data-theme="dark"] .quiz-question-meta span,
 body[data-theme="dark"] .quiz-question-stage,
 body[data-theme="dark"] .quiz-game-rules span,
+body[data-theme="dark"] .quiz-session-score,
 body[data-theme="dark"] .quiz-score-pill,
 body[data-theme="dark"] .quiz-question-meta span {
   background: rgba(18, 22, 26, 0.78);
@@ -911,30 +951,6 @@ body[data-theme="dark"] .quiz-recall-zone {
 body[data-theme="dark"] .quiz-answer-reveal {
   background: rgba(94, 124, 112, 0.18);
   border-color: rgba(125, 161, 145, 0.28);
-}
-
-:root[data-theme="dark"] .flashcard-deck-card,
-body[data-theme="dark"] .flashcard-deck-card {
-  background:
-    linear-gradient(150deg, rgba(24, 28, 33, 0.98), rgba(32, 38, 44, 0.9)),
-    radial-gradient(circle at 12% 18%, rgba(123, 90, 160, 0.18), transparent 32%);
-}
-
-:root[data-theme="dark"] .flashcard-surface,
-body[data-theme="dark"] .flashcard-surface {
-  background:
-    radial-gradient(circle at top left, rgba(123, 90, 160, 0.2), transparent 34%),
-    radial-gradient(circle at bottom right, rgba(94, 124, 112, 0.18), transparent 32%),
-    rgba(18, 22, 26, 0.72);
-  border-color: rgba(215, 201, 185, 0.14);
-}
-
-:root[data-theme="dark"] .flashcard-deck-card.is-answer-visible .flashcard-surface,
-body[data-theme="dark"] .flashcard-deck-card.is-answer-visible .flashcard-surface {
-  background:
-    radial-gradient(circle at top right, rgba(208, 122, 76, 0.2), transparent 36%),
-    radial-gradient(circle at bottom left, rgba(73, 106, 143, 0.18), transparent 34%),
-    rgba(18, 22, 26, 0.78);
 }
 
 :root[data-theme="dark"] .timeline-band,

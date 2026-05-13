@@ -29,6 +29,6 @@ Dans les choses à rajouter il y a les choses suivantes :
 
 2.	Pour les quiz rajoute d'autres dynamiques comme celle que tu as déjà fait pour le concept : définition, Par exemple pour les fiches de type événement demander la date correspondante. Trouve d'autres chose comme celle-ci pour faciliter la création de quiz par la suite. Je te laisse libre d'innover sur ce point
 
-3.	Dans la navigation secondaire proposer des flash Cards écrit tout un programme qui permettrait la création de flashcard pour la révision. La dynamique peut être proche que la même réflexion lors de la création de quiz
+3.	Dans la navigation secondaire proposer une logique de révision plus simple et plus rapide à manier, en restant cohérent avec les quiz
 
 Question autre, explique-moi comment fonctionnent les snapshots, leur présence demande elle une mémoire démesurée surtout dans le temps quand les données du site vont grandir ?

@@ -2,723 +2,589 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createQuizModule = function createQuizModule(context) {
-    const { escapeHtml, extractLinks, formatFlexibleDate, shuffle } = AtlasApp.helpers;
-  function getScopedNotes(scope, tagValue, folderId = "") {
-    const active = context.notes.getActiveNote();
+    const { escapeHtml, shuffle } = AtlasApp.helpers;
 
-    if (scope === "current") {
-      return active ? [active] : [];
-    }
+    function getScopedNotes(scope, tagValue, folderId = "") {
+      const active = context.notes.getActiveNote();
 
-    if (scope === "tag") {
-      const tag = tagValue.trim().toLowerCase();
-      return context.state.notes.filter((note) =>
-        note.tags.some((candidate) => candidate.toLowerCase() === tag)
-      );
-    }
-
-    if (scope === "folder") {
-      return context.notes.getFolderDescendantNotes(folderId);
-    }
-
-    if (scope === "due") {
-      return context.notes.getDueNotes();
-    }
-
-    return context.state.notes;
-  }
-
-  function buildQuizSession() {
-    const available = generateQuizQuestions(getQuizNotes(), context.elements.quizMode.value);
-    const amount = context.helpers.clamp(Number(context.elements.quizAmount.value) || 6, 3, 20);
-    const picked = shuffle(available).slice(0, amount);
-    context.state.revisionMode = "quiz";
-    context.state.quiz = {
-      questions: picked,
-      index: 0,
-      score: 0,
-      answerVisible: false,
-      streak: 0,
-      bestStreak: 0,
-      lastResult: null,
-      availableCount: available.length,
-      requestedAmount: amount,
-      startedAt: Date.now(),
-    };
-    context.renderers.renderRevisionMode();
-    context.renderers.renderTabs();
-    renderQuizCard();
-  }
-
-  function buildFlashcardsSession() {
-    const available = generateFlashcardCards(getFlashcardNotes(), {
-      includeReversed: context.elements.flashcardReversed.checked,
-    });
-    const amount =
-      context.helpers.clamp(Number(context.elements.flashcardAmount.value) || 8, 4, 30);
-    const picked = shuffle(available).slice(0, amount);
-    context.state.flashcards = {
-      cards: picked,
-      index: 0,
-      answerVisible: false,
-      noteCount: new Set(picked.map((card) => card.noteId)).size,
-      tableCount: new Set(picked.map((card) => card.tableKey)).size,
-      swipeOffset: 0,
-    };
-    renderFlashcards();
-  }
-
-  function showQuizAnswer() {
-    if (!context.state.quiz.questions.length || context.state.quiz.index >= context.state.quiz.questions.length) {
-      return;
-    }
-
-    context.state.quiz.answerVisible = true;
-    renderQuizCard();
-  }
-
-  function scoreQuiz(isCorrect) {
-    if (!context.state.quiz.questions.length || context.state.quiz.index >= context.state.quiz.questions.length) {
-      return;
-    }
-
-    const current = context.state.quiz.questions[context.state.quiz.index];
-    if (isCorrect) {
-      context.state.quiz.score += 1;
-    }
-
-    const nextStreak = isCorrect ? (context.state.quiz.streak || 0) + 1 : 0;
-    context.state.quiz.streak = nextStreak;
-    context.state.quiz.bestStreak = Math.max(context.state.quiz.bestStreak || 0, nextStreak);
-    context.state.quiz.lastResult = {
-      answer: current.answer,
-      isCorrect,
-      question: current.question,
-    };
-
-    if (current?.noteId) {
-      context.data.updateReviewState(current.noteId, isCorrect);
-    }
-
-    context.state.quiz.index += 1;
-    context.state.quiz.answerVisible = false;
-    context.data.saveNotes();
-    renderQuizCard();
-    context.renderers.renderStats();
-    context.renderers.renderDueReviewList();
-  }
-
-  function showFlashcardAnswer() {
-    if (!context.state.flashcards.cards.length) {
-      return;
-    }
-
-    context.state.flashcards.answerVisible = true;
-    renderFlashcards();
-  }
-
-  function previousFlashcard() {
-    if (!context.state.flashcards.cards.length) {
-      return;
-    }
-
-    context.state.flashcards.index = Math.max(context.state.flashcards.index - 1, 0);
-    context.state.flashcards.answerVisible = false;
-    renderFlashcards();
-  }
-
-  function nextFlashcard() {
-    if (!context.state.flashcards.cards.length) {
-      return;
-    }
-
-    context.state.flashcards.index = Math.min(
-      context.state.flashcards.index + 1,
-      context.state.flashcards.cards.length - 1
-    );
-    context.state.flashcards.answerVisible = false;
-    renderFlashcards();
-  }
-
-  function renderQuizCard() {
-    const total = context.state.quiz.questions.length;
-    const currentIndex = context.state.quiz.index;
-
-    if (!total) {
-      context.elements.quizTitle.textContent = "Pret a jouer ?";
-      context.elements.quizProgress.textContent = "0 / 0";
-      context.elements.quizCard.className = "quiz-card quiz-game-card quiz-game-empty";
-      context.elements.quizCard.innerHTML = `
-        <div class="quiz-game-hero">
-          <span class="quiz-game-kicker">Session de revision</span>
-          <h4>Construisez une partie a partir de vos connaissances.</h4>
-          <p>Choisissez une source, un mode, puis lancez le quiz. Chaque bonne reponse nourrit aussi les revisions futures.</p>
-        </div>
-        <div class="quiz-game-rules">
-          <span>1. Lisez la question</span>
-          <span>2. Repondez sans regarder</span>
-          <span>3. Revelez puis validez</span>
-        </div>
-      `;
-      context.elements.quizSummary.textContent =
-        "Astuce : les lignes de type \"Concept : definition\", les dates et les liens produisent les meilleures questions.";
-      context.elements.showAnswerButton.textContent = "Reveler";
-      context.elements.markCorrectButton.textContent = "Bonne reponse";
-      context.elements.markWrongButton.textContent = "A revoir";
-      context.elements.showAnswerButton.disabled = true;
-      context.elements.markCorrectButton.disabled = true;
-      context.elements.markWrongButton.disabled = true;
-      return;
-    }
-
-    if (currentIndex >= total) {
-      const percent = Math.round((context.state.quiz.score / total) * 100);
-      const rank = getQuizRank(percent);
-      const duration = formatQuizDuration(context.state.quiz.startedAt);
-      const lastResult = context.state.quiz.lastResult;
-
-      context.elements.quizTitle.textContent = "Partie terminee";
-      context.elements.quizProgress.textContent = `${total} / ${total}`;
-      context.elements.quizCard.className = "quiz-card quiz-game-card quiz-game-complete";
-      context.elements.quizCard.innerHTML = `
-        <div class="quiz-complete-medal" aria-hidden="true">${rank.icon}</div>
-        <span class="quiz-game-kicker">Resultat final</span>
-        <h4>${escapeHtml(rank.label)}</h4>
-        <div class="quiz-final-score">
-          <strong>${context.state.quiz.score} / ${total}</strong>
-          <span>${percent}% de maitrise</span>
-        </div>
-        <div class="quiz-game-hud">
-          <span class="quiz-score-pill">Meilleure serie <strong>${context.state.quiz.bestStreak || 0}</strong></span>
-          <span class="quiz-score-pill">Temps <strong>${duration}</strong></span>
-          <span class="quiz-score-pill">Mode <strong>${escapeHtml(getQuizModeLabel())}</strong></span>
-        </div>
-        ${
-          lastResult
-            ? `<p class="quiz-last-result">Derniere reponse : ${escapeHtml(lastResult.answer)}</p>`
-            : ""
-        }
-      `;
-      context.elements.quizSummary.textContent =
-        "Relancez une partie avec le meme dossier ou changez de mode pour renforcer les zones faibles.";
-      context.elements.showAnswerButton.textContent = "Partie terminee";
-      context.elements.markCorrectButton.textContent = "Bonne reponse";
-      context.elements.markWrongButton.textContent = "A revoir";
-      context.elements.showAnswerButton.disabled = true;
-      context.elements.markCorrectButton.disabled = true;
-      context.elements.markWrongButton.disabled = true;
-      return;
-    }
-
-    const current = context.state.quiz.questions[currentIndex];
-    const questionNumber = currentIndex + 1;
-    const progress = Math.round((currentIndex / total) * 100);
-    const nextProgress = Math.round((questionNumber / total) * 100);
-    const isAnswerVisible = context.state.quiz.answerVisible;
-
-    context.elements.quizTitle.textContent = "Mission de revision";
-    context.elements.quizProgress.textContent = `${questionNumber} / ${total}`;
-    context.elements.quizCard.className = `quiz-card quiz-game-card${
-      isAnswerVisible ? " is-answer-visible" : ""
-    }`;
-    context.elements.quizCard.innerHTML = `
-      <div class="quiz-progress-track" aria-hidden="true">
-        <span style="width: ${isAnswerVisible ? nextProgress : progress}%"></span>
-      </div>
-      <div class="quiz-game-hud">
-        <span class="quiz-score-pill">Score <strong>${context.state.quiz.score}</strong></span>
-        <span class="quiz-score-pill quiz-combo">Serie <strong>${context.state.quiz.streak || 0}</strong></span>
-        <span class="quiz-score-pill">Question <strong>${questionNumber}/${total}</strong></span>
-      </div>
-      <div class="quiz-question-stage">
-        <span class="quiz-game-kicker">Question ${questionNumber}</span>
-        <h4>${escapeHtml(current.question)}</h4>
-        <div class="quiz-question-meta">
-          <span>${escapeHtml(current.modeLabel)}</span>
-          <span>${escapeHtml(current.source)}</span>
-          <span>${escapeHtml(getQuizScopeLabel())}</span>
-        </div>
-      </div>
-      ${
-        isAnswerVisible
-          ? `<div class="quiz-answer-reveal">
-              <span class="quiz-game-kicker">Reponse</span>
-              <p>${escapeHtml(current.answer)}</p>
-              <small>Validez selon votre vrai rappel, pas selon une intuition apres coup.</small>
-            </div>`
-          : `<div class="quiz-recall-zone">
-              <span>Zone de rappel</span>
-              <p>Formulez la reponse dans votre tete, puis revelez-la.</p>
-            </div>`
-      }
-    `;
-    context.elements.quizSummary.textContent = isAnswerVisible
-      ? "Choisissez le resultat pour passer automatiquement a la question suivante."
-      : getQuizSessionHint(total);
-    context.elements.showAnswerButton.textContent = isAnswerVisible ? "Reponse affichee" : "Reveler";
-    context.elements.markCorrectButton.textContent = "Bonne reponse";
-    context.elements.markWrongButton.textContent = "A revoir";
-    context.elements.showAnswerButton.disabled = isAnswerVisible;
-    context.elements.markCorrectButton.disabled = !isAnswerVisible;
-    context.elements.markWrongButton.disabled = !isAnswerVisible;
-  }
-
-  function getQuizRank(percent) {
-    if (percent >= 85) {
-      return { icon: "A", label: "Maitrise solide" };
-    }
-
-    if (percent >= 60) {
-      return { icon: "B", label: "Base en consolidation" };
-    }
-
-    return { icon: "C", label: "A revoir tranquillement" };
-  }
-
-  function formatQuizDuration(startedAt) {
-    if (!startedAt) {
-      return "0 min";
-    }
-
-    const elapsedSeconds = Math.max(0, Math.round((Date.now() - startedAt) / 1000));
-    const minutes = Math.floor(elapsedSeconds / 60);
-    const seconds = elapsedSeconds % 60;
-    return minutes ? `${minutes}m ${seconds}s` : `${seconds}s`;
-  }
-
-  function getQuizModeLabel() {
-    const selected = context.elements.quizMode.selectedOptions?.[0];
-    return selected?.textContent?.trim() || "Mixte";
-  }
-
-  function getQuizScopeLabel() {
-    const selected = context.elements.quizScope.selectedOptions?.[0];
-    return selected?.textContent?.trim() || "Toutes les pages";
-  }
-
-  function getQuizSessionHint(total) {
-    if (total === 1) {
-      return "Une seule question a ete trouvee dans cette source. Apres validation, la partie se terminera directement.";
-    }
-
-    const available = context.state.quiz.availableCount || total;
-    const requested = context.state.quiz.requestedAmount || total;
-    if (available < requested) {
-      return `${available} question(s) trouvee(s) pour cette source. Ajoutez des definitions, dates, liens ou puces pour enrichir le quiz.`;
-    }
-
-    return "Le bon rythme : lire, rappeler, reveler, valider. Simple et brutalement efficace.";
-  }
-
-  function getQuizNotes() {
-    return getScopedNotes(
-      context.elements.quizScope.value,
-      context.elements.quizTag.value,
-      context.elements.quizFolder.value
-    );
-  }
-
-  function getFlashcardNotes() {
-    return getScopedNotes(
-      context.elements.flashcardScope.value,
-      context.elements.flashcardTag.value
-    );
-  }
-
-  function generateFlashcardCards(notes, options = {}) {
-    const cards = [];
-
-    notes.forEach((note) => {
-      cards.push(...extractFlashcardsFromTables(note, options));
-    });
-
-    return cards;
-  }
-
-  function extractFlashcardsFromTables(note, options = {}) {
-    const lines = note.content.split("\n");
-    const cards = [];
-
-    for (let index = 0; index < lines.length - 1; index += 1) {
-      if (!isMarkdownTableRow(lines[index]) || !isMarkdownTableDivider(lines[index + 1])) {
-        continue;
+      if (scope === "current") {
+        return active ? [active] : [];
       }
 
-      const headerCells = splitMarkdownTableRow(lines[index]);
-      const headerMap = buildFlashcardHeaderMap(headerCells);
-      let rowIndex = 0;
-      index += 2;
+      if (scope === "tag") {
+        const tag = tagValue.trim().toLowerCase();
+        return context.state.notes.filter((note) =>
+          note.tags.some((candidate) => candidate.toLowerCase() === tag)
+        );
+      }
 
-      while (index < lines.length && isMarkdownTableRow(lines[index])) {
-        const cells = splitMarkdownTableRow(lines[index]);
-        if (cells.some((cell) => cell)) {
-          const row = mapFlashcardRow(headerMap, cells);
-          const front = row.front || "";
-          const back = row.back || "";
-          const hint = row.hint || "";
-          const example = row.example || "";
-          const tags = parseFlashcardTags(row.tags || "");
-          const reverseRequested =
-            options.includeReversed || isTruthyFlashcardCell(row.reverse || "");
+      if (scope === "folder") {
+        return context.notes.getFolderDescendantNotes(folderId);
+      }
 
-          if (front && back) {
-            const tableKey = `${note.id}::${index - rowIndex}`;
-            cards.push({
-              noteId: note.id,
-              source: note.title,
-              front,
-              back,
-              hint,
-              example,
-              tags,
-              direction: "direct",
-              tableKey,
-            });
+      if (scope === "due") {
+        return context.notes.getDueNotes();
+      }
 
-            if (reverseRequested) {
-              cards.push({
-                noteId: note.id,
-                source: note.title,
-                front: back,
-                back: front,
-                hint: example,
-                example: hint,
-                tags,
-                direction: "reverse",
-                tableKey,
-              });
-            }
+      return context.state.notes;
+    }
+
+    function buildQuizSession() {
+      const availableNotes = getScopedNotes(
+        context.elements.quizScope.value,
+        context.elements.quizTag.value,
+        context.elements.quizFolder.value
+      ).filter((note) => Array.isArray(note.quizQuestions) && note.quizQuestions.length);
+
+      const requestedAmount = context.helpers.clamp(Number(context.elements.quizAmount.value) || 6, 1, 50);
+      const picked = pickQuizQuestionsForSession(availableNotes, requestedAmount);
+
+      context.state.quiz = {
+        questions: picked,
+        score: 0,
+        validatedCount: 0,
+        startedAt: Date.now(),
+        finishedAt: null,
+        requestedAmount,
+      };
+
+      context.renderers.renderTabs();
+      renderQuizCard();
+    }
+
+    function pickQuizQuestionsForSession(notes, requestedAmount) {
+      if (!notes.length || requestedAmount <= 0) {
+        return [];
+      }
+
+      const noteCandidates = notes
+        .map((note) => {
+          const question = pickQuestionForNote(note.quizQuestions || []);
+          if (!question) {
+            return null;
           }
-        }
 
-        rowIndex += 1;
-        index += 1;
-      }
-
-      index -= 1;
-    }
-
-    return cards;
-  }
-
-  function isMarkdownTableRow(line) {
-    const trimmed = line.trim();
-    return trimmed.startsWith("|") && trimmed.endsWith("|") && trimmed.includes("|");
-  }
-
-  function isMarkdownTableDivider(line) {
-    const trimmed = line.trim();
-    return /^[\s|:-]+$/.test(trimmed) && trimmed.includes("-");
-  }
-
-  function splitMarkdownTableRow(line) {
-    return line
-      .trim()
-      .replace(/^\|/, "")
-      .replace(/\|$/, "")
-      .split("|")
-      .map((cell) => cell.trim());
-  }
-
-  function normalizeFlashcardHeader(value) {
-    return String(value)
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "");
-  }
-
-  function buildFlashcardHeaderMap(headers) {
-    const aliases = {
-      front: ["recto", "front", "question", "terme", "mot", "concept", "prompt"],
-      back: ["verso", "back", "reponse", "answer", "definition", "explication"],
-      hint: ["indice", "hint", "aide"],
-      example: ["exemple", "example", "cas"],
-      tags: ["tags", "tag"],
-      reverse: ["inverse", "inversee", "reverse"],
-    };
-
-    return headers.map((header) => {
-      const normalized = normalizeFlashcardHeader(header);
-      const match = Object.entries(aliases).find(([, values]) => values.includes(normalized));
-      return match?.[0] || "";
-    });
-  }
-
-  function mapFlashcardRow(headerMap, cells) {
-    return headerMap.reduce((result, key, index) => {
-      if (key) {
-        result[key] = cells[index] || "";
-      }
-      return result;
-    }, {});
-  }
-
-  function parseFlashcardTags(value) {
-    return value
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
-  }
-
-  function isTruthyFlashcardCell(value) {
-    return ["oui", "yes", "true", "1", "x"].includes(String(value).trim().toLowerCase());
-  }
-
-  function generateQuizQuestions(notes, mode = "mixed") {
-    const questions = [];
-
-    notes.forEach((note) => {
-      const lines = note.content
-        .split("\n")
-        .map((line) => line.trim())
+          return buildSessionQuestion(note, question);
+        })
         .filter(Boolean);
 
-      lines.forEach((line) => {
-        if (line.startsWith("#")) {
+      if (!noteCandidates.length) {
+        return [];
+      }
+
+      const quotas = computeDifficultyQuotas(requestedAmount);
+      const pools = {
+        difficult: [],
+        intermediate: [],
+        easy: [],
+      };
+
+      noteCandidates.forEach((candidate) => {
+        pools[candidate.difficulty].push(candidate);
+      });
+
+      const selected = [];
+      const usedKeys = new Set();
+      ["difficult", "intermediate", "easy"].forEach((difficulty) => {
+        const quota = quotas[difficulty];
+        if (!quota) {
           return;
         }
 
-        if (line.includes(" : ")) {
-          const [concept, ...rest] = line.split(" : ");
-          const answer = rest.join(" : ").trim();
-          if (concept && answer && (mode === "mixed" || mode === "definition")) {
-            questions.push({
-              noteId: note.id,
-              source: note.title,
-              question: `Que signifie "${concept.trim()}" ?`,
-              answer,
-              mode: "definition",
-              modeLabel: "Definition",
-            });
-          }
-        }
-
-        if (line.startsWith("- ")) {
-          const statement = line.slice(2).trim();
-          const words = statement.split(" ");
-          if (words.length > 3 && (mode === "mixed" || mode === "bullet")) {
-            const hidden = words[0];
-            questions.push({
-              noteId: note.id,
-              source: note.title,
-              question: `Completez : ${statement.replace(hidden, "...")}`,
-              answer: statement,
-              mode: "bullet",
-              modeLabel: "Phrase a completer",
-            });
-          }
-        }
-
-        const relation = line.match(/^(.+?) est (.+)$/i);
-        if (relation && (mode === "mixed" || mode === "definition")) {
-          questions.push({
-            noteId: note.id,
-            source: note.title,
-            question: `Qu'est-ce que "${relation[1].trim()}" ?`,
-            answer: relation[2].trim(),
-            mode: "definition",
-            modeLabel: "Definition",
-          });
-        }
+        pickFromPool(pools[difficulty], quota, usedKeys).forEach((item) => selected.push(item));
       });
 
-      if (mode === "mixed" || mode === "link") {
-        [...new Set(extractLinks(note.content))].forEach((linkedTitle) => {
-          questions.push({
-            noteId: note.id,
-            source: note.title,
-            question: `Quelle page est liee depuis "${note.title}" ?`,
-            answer: linkedTitle,
-            mode: "link",
-            modeLabel: "Lien",
-          });
+      if (selected.length < requestedAmount) {
+        const remainder = noteCandidates.filter((item) => !usedKeys.has(item.sessionKey));
+        pickFromPool(remainder, requestedAmount - selected.length, usedKeys).forEach((item) =>
+          selected.push(item)
+        );
+      }
+
+      return shuffle(selected).slice(0, requestedAmount);
+    }
+
+    function pickQuestionForNote(questions) {
+      const pool = (questions || [])
+        .map((question, index) => normalizeQuizQuestion(question, index))
+        .filter(Boolean);
+
+      if (!pool.length) {
+        return null;
+      }
+
+      return weightedPick(pool, (item) => questionWeight(item));
+    }
+
+    function normalizeQuizQuestion(question, index = 0) {
+      const questionText = String(question?.question || "").trim();
+      const answers = normalizeQuizAnswers(question?.answers);
+      if (!questionText || !answers.length) {
+        return null;
+      }
+
+      const stats = normalizeQuestionStats(question?.stats);
+      const id =
+        typeof question?.id === "string" && question.id.trim()
+          ? question.id.trim()
+          : `question-${index + 1}`;
+
+      return {
+        id,
+        question: questionText,
+        answers,
+        stats,
+      };
+    }
+
+    function normalizeQuizAnswers(rawAnswers) {
+      const source = Array.isArray(rawAnswers)
+        ? rawAnswers.flatMap((value) => String(value || "").split(","))
+        : String(rawAnswers || "").split(",");
+
+      const seen = new Set();
+      return source
+        .map((answer) => answer.trim())
+        .filter(Boolean)
+        .filter((answer) => {
+          const normalized = normalizeAnswerText(answer);
+          if (seen.has(normalized)) {
+            return false;
+          }
+          seen.add(normalized);
+          return true;
         });
-      }
+    }
 
-      if (note.metadata?.hasDate && (mode === "mixed" || mode === "date")) {
-        questions.push(...generateDateQuestions(note));
-      }
-    });
+    function normalizeQuestionStats(stats = {}) {
+      return {
+        asked: Number(stats?.asked) || 0,
+        correct: Number(stats?.correct) || 0,
+        lastAskedAt: typeof stats?.lastAskedAt === "string" ? stats.lastAskedAt : null,
+        lastCorrectAt: typeof stats?.lastCorrectAt === "string" ? stats.lastCorrectAt : null,
+      };
+    }
 
-    return deduplicateQuestions(questions);
-  }
-
-  function generateDateQuestions(note) {
-    const metadata = note.metadata || {};
-    const questions = [];
-
-    if (metadata.dateMode === "reference" && metadata.singleDate) {
-      const answer = formatDateAnswer(metadata.singleDate);
-      questions.push({
+    function buildSessionQuestion(note, question) {
+      const difficulty = getQuestionDifficulty(question.stats);
+      const sessionKey = `${note.id}:${question.id}`;
+      return {
+        sessionKey,
         noteId: note.id,
-        source: note.title,
-        question: `Quelle est la date de reference de "${note.title}" ?`,
-        answer,
-        mode: "date",
-        modeLabel: "Date",
-      });
+        noteTitle: note.title,
+        questionId: question.id,
+        question: question.question,
+        acceptedAnswers: question.answers,
+        difficulty,
+        difficultyLabel: getDifficultyLabel(difficulty),
+        userAnswer: "",
+        validated: false,
+        isCorrect: null,
+        matchedAnswer: "",
+        statsBefore: { ...question.stats },
+      };
     }
 
-    if (metadata.dateMode === "life") {
-      if (metadata.startDate) {
-        const answer = formatDateAnswer(metadata.startDate);
-        questions.push({
-          noteId: note.id,
-          source: note.title,
-          question: `Quelle est la date de naissance de "${note.title}" ?`,
-          answer,
-          mode: "date",
-          modeLabel: "Date",
-        });
+    function getQuestionDifficulty(stats = {}) {
+      const asked = Number(stats?.asked) || 0;
+      const correct = Number(stats?.correct) || 0;
+
+      if (asked < 5) {
+        return "difficult";
       }
 
-      if (metadata.endDate) {
-        const answer = formatDateAnswer(metadata.endDate);
-        questions.push({
-          noteId: note.id,
-          source: note.title,
-          question: `Quelle est la date de deces de "${note.title}" ?`,
-          answer,
-          mode: "date",
-          modeLabel: "Date",
-        });
+      if (asked < 7) {
+        if (correct === 5) {
+          return "easy";
+        }
+
+        if (correct >= 3) {
+          return "intermediate";
+        }
+
+        return "difficult";
       }
+
+      const ratio = asked > 0 ? correct / asked : 0;
+      if (ratio >= 0.7) {
+        return "easy";
+      }
+
+      if (ratio >= 0.3) {
+        return "intermediate";
+      }
+
+      return "difficult";
     }
 
-    if (metadata.dateMode === "range") {
-      if (metadata.startDate) {
-        const answer = formatDateAnswer(metadata.startDate);
-        questions.push({
-          noteId: note.id,
-          source: note.title,
-          question: `Quand commence "${note.title}" ?`,
-          answer,
-          mode: "date",
-          modeLabel: "Date",
-        });
-      }
-
-      if (metadata.endDate) {
-        const answer = formatDateAnswer(metadata.endDate);
-        questions.push({
-          noteId: note.id,
-          source: note.title,
-          question: `Quand se termine "${note.title}" ?`,
-          answer,
-          mode: "date",
-          modeLabel: "Date",
-        });
-      }
+    function getDifficultyLabel(difficulty) {
+      return {
+        difficult: "Difficile",
+        intermediate: "Intermediaire",
+        easy: "Facile",
+      }[difficulty] || "Difficile";
     }
 
-    return questions;
-  }
+    function computeDifficultyQuotas(amount) {
+      const easy = Math.round(amount * 0.2);
+      const intermediate = Math.round(amount * 0.4);
+      const difficult = Math.max(amount - easy - intermediate, 0);
 
-  function formatDateAnswer(value) {
-    return formatFlexibleDate(value);
-  }
-
-  function deduplicateQuestions(questions) {
-    const seen = new Set();
-    return questions.filter((item) => {
-      const key = `${item.source}|${item.question}|${item.answer}`;
-      if (seen.has(key)) {
-        return false;
-      }
-      seen.add(key);
-      return true;
-    });
-  }
-
-  function renderFlashcards() {
-    const total = context.state.flashcards.cards.length;
-
-    if (!total) {
-      context.elements.flashcardTitle.textContent = "Aucune pile lancee";
-      context.elements.flashcardProgress.textContent = "0 / 0";
-      context.elements.flashcardCard.className = "quiz-card empty-state";
-      context.elements.flashcardCard.textContent =
-        "Les cartes apparaitront ici a partir des tableaux markdown presents dans vos pages.";
-      context.elements.flashcardSummary.textContent =
-        "Creez un tableau Recto / Verso, puis relancez la generation.";
-      context.elements.flashcardFlipButton.textContent = "Retourner";
-      context.elements.flashcardFlipButton.disabled = true;
-      context.elements.flashcardPrevButton.disabled = true;
-      context.elements.flashcardNextButton.disabled = true;
-      return;
+      return {
+        difficult,
+        intermediate,
+        easy,
+      };
     }
 
-    const current = context.state.flashcards.cards[context.state.flashcards.index];
-    const showAnswer = context.state.flashcards.answerVisible;
-    const progress = Math.round(((context.state.flashcards.index + 1) / total) * 100);
-    context.elements.flashcardTitle.textContent = "Pile de revision";
-    context.elements.flashcardProgress.textContent = `${context.state.flashcards.index + 1} / ${total}`;
-    context.elements.flashcardCard.className = `quiz-card flashcard-deck-card${
-      showAnswer ? " is-answer-visible" : ""
-    }`;
-    context.elements.flashcardCard.innerHTML = `
-      <div class="quiz-progress-track flashcard-progress-track" aria-hidden="true">
-        <span style="width: ${progress}%"></span>
-      </div>
-      <div class="flashcard-surface">
-        <div class="flashcard-topline">
-          <span class="quiz-game-kicker">${showAnswer ? "Verso" : "Recto"}</span>
-          <span class="flashcard-count">${context.state.flashcards.index + 1}/${total}</span>
+    function questionWeight(question) {
+      const asked = Number(question.stats?.asked) || 0;
+      const baseWeight = 1 / (asked + 1);
+      const freshness = question.stats?.lastAskedAt ? 0.15 : 0.35;
+      return baseWeight + freshness;
+    }
+
+    function weightedPick(items, weightGetter) {
+      if (!items.length) {
+        return null;
+      }
+
+      const totalWeight = items.reduce((sum, item) => sum + Math.max(weightGetter(item), 0), 0);
+      if (totalWeight <= 0) {
+        return items[Math.floor(Math.random() * items.length)];
+      }
+
+      let cursor = Math.random() * totalWeight;
+      for (const item of items) {
+        cursor -= Math.max(weightGetter(item), 0);
+        if (cursor <= 0) {
+          return item;
+        }
+      }
+
+      return items[items.length - 1];
+    }
+
+    function pickFromPool(pool, count, usedKeys) {
+      const available = pool.filter((item) => !usedKeys.has(item.sessionKey));
+      const chosen = [];
+
+      while (available.length && chosen.length < count) {
+        const selected = weightedPick(available, (item) => 1 / ((item.statsBefore?.asked || 0) + 1));
+        if (!selected) {
+          break;
+        }
+
+        chosen.push(selected);
+        usedKeys.add(selected.sessionKey);
+        const index = available.findIndex((item) => item.sessionKey === selected.sessionKey);
+        if (index >= 0) {
+          available.splice(index, 1);
+        }
+      }
+
+      return chosen;
+    }
+
+    function setQuizAnswer(index, value) {
+      const question = context.state.quiz.questions[index];
+      if (!question || question.validated) {
+        return;
+      }
+
+      question.userAnswer = value;
+    }
+
+    function validateQuizQuestion(index) {
+      const question = context.state.quiz.questions[index];
+      if (!question || question.validated) {
+        return;
+      }
+
+      const userAnswer = String(question.userAnswer || "").trim();
+      const matchedAnswer = findMatchingAcceptedAnswer(userAnswer, question.acceptedAnswers);
+      const isCorrect = Boolean(matchedAnswer);
+      const now = new Date().toISOString();
+
+      question.validated = true;
+      question.isCorrect = isCorrect;
+      question.matchedAnswer = matchedAnswer || question.acceptedAnswers[0] || "";
+      question.validatedAt = now;
+
+      const note = context.state.notes.find((candidate) => candidate.id === question.noteId);
+      const storedQuestion = note?.quizQuestions?.find((item) => item.id === question.questionId);
+      if (storedQuestion) {
+        storedQuestion.stats = normalizeQuestionStats(storedQuestion.stats);
+        storedQuestion.stats.asked += 1;
+        if (isCorrect) {
+          storedQuestion.stats.correct += 1;
+          storedQuestion.stats.lastCorrectAt = now;
+        }
+        storedQuestion.stats.lastAskedAt = now;
+        context.state.editorQuizQuestionsNoteId = note.id;
+      }
+
+      question.statsAfter = storedQuestion ? { ...storedQuestion.stats } : null;
+      context.state.quiz.validatedCount = context.state.quiz.questions.filter(
+        (item) => item.validated
+      ).length;
+      context.state.quiz.score = context.state.quiz.questions.filter(
+        (item) => item.validated && item.isCorrect
+      ).length;
+      if (context.state.quiz.validatedCount >= context.state.quiz.questions.length) {
+        context.state.quiz.finishedAt = Date.now();
+      }
+
+      if (context.state.editorQuizQuestionsNoteId === note?.id) {
+        context.state.editorQuizQuestions = (context.state.editorQuizQuestions || []).map(
+          (draftQuestion) =>
+            draftQuestion.id === question.questionId
+              ? {
+                  ...draftQuestion,
+                  stats: storedQuestion ? { ...storedQuestion.stats } : draftQuestion.stats,
+                }
+              : draftQuestion
+        );
+      }
+
+      context.data.saveNotes();
+      renderQuizCard();
+    }
+
+    function findMatchingAcceptedAnswer(userAnswer, acceptedAnswers) {
+      if (!userAnswer) {
+        return "";
+      }
+
+      const normalizedUser = normalizeAnswerText(userAnswer);
+      return (
+        acceptedAnswers.find((answer) => normalizeAnswerText(answer) === normalizedUser) || ""
+      );
+    }
+
+    function normalizeAnswerText(value) {
+      return String(value || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function getSessionDuration(startedAt, finishedAt = null) {
+      const end = finishedAt || Date.now();
+      if (!startedAt) {
+        return "0s";
+      }
+
+      const elapsedSeconds = Math.max(0, Math.round((end - startedAt) / 1000));
+      const minutes = Math.floor(elapsedSeconds / 60);
+      const seconds = elapsedSeconds % 60;
+      return minutes ? `${minutes}m ${seconds}s` : `${seconds}s`;
+    }
+
+    function renderQuizCard() {
+      const total = context.state.quiz.questions.length;
+
+      if (!total) {
+        context.elements.quizTitle.textContent = "Aucun quiz cree";
+        context.elements.quizProgress.textContent = "0 / 0";
+        context.elements.quizCard.className = "quiz-card quiz-session-card quiz-session-empty";
+        context.elements.quizCard.innerHTML = `
+          <div class="quiz-session-hero">
+            <span class="quiz-game-kicker">Questions ecrites</span>
+            <h4>Créez d’abord des questions sur une note.</h4>
+            <p>Ajoutez des questions dans le tableau de la note, puis lancez un quiz ecrit sur l’onglet Revision.</p>
+          </div>
+          <div class="quiz-game-rules">
+            <span>1. Redigez les questions sous une note</span>
+            <span>2. Choisissez un nombre de questions</span>
+            <span>3. Validez chaque reponse a l’ecrit</span>
+          </div>
+        `;
+        context.elements.quizSummary.textContent =
+          "Le quiz pioche au maximum une question par note et favorise les questions les moins vues.";
+        return;
+      }
+
+      const validatedCount = context.state.quiz.questions.filter((item) => item.validated).length;
+      const correctCount = context.state.quiz.questions.filter(
+        (item) => item.validated && item.isCorrect
+      ).length;
+      const wrongCount = validatedCount - correctCount;
+      const percent = Math.round((correctCount / total) * 100);
+      const completed = validatedCount >= total;
+      const duration = getSessionDuration(context.state.quiz.startedAt, context.state.quiz.finishedAt);
+
+      context.elements.quizTitle.textContent = completed
+        ? "Quiz termine"
+        : "Quiz en cours";
+      context.elements.quizProgress.textContent = `${validatedCount} / ${total}`;
+      context.elements.quizCard.className = `quiz-card quiz-session-card${
+        completed ? " quiz-session-complete" : ""
+      }`;
+      context.elements.quizCard.innerHTML = `
+        <div class="quiz-session-header">
+          <div>
+            <span class="quiz-game-kicker">Quiz ecrit</span>
+            <h4>${completed ? "Bravo, vous avez termine" : "Repondez ligne par ligne"}</h4>
+            <p>${completed ? "Les résultats sont affichés ci-dessous." : "Une ligne par question, une validation, puis la ligne passe en vert ou en rouge."}</p>
+          </div>
+          <div class="quiz-session-score">
+            <strong>${correctCount}/${total}</strong>
+            <span>${percent}% de reussite</span>
+          </div>
         </div>
-        <h4 class="flashcard-face">${escapeHtml(showAnswer ? current.back : current.front)}</h4>
-        ${
-          !showAnswer && current.hint
-            ? `<p class="flashcard-helper"><strong>Indice :</strong> ${escapeHtml(current.hint)}</p>`
-            : ""
-        }
-        ${
-          showAnswer && current.example
-            ? `<p class="flashcard-helper"><strong>Exemple :</strong> ${escapeHtml(current.example)}</p>`
-            : ""
-        }
-      </div>
-      <div class="flashcard-meta">
-        <span><strong>Source :</strong> ${escapeHtml(current.source)}</span>
-        ${
-          current.direction === "reverse"
-            ? "<span><strong>Sens :</strong> Carte inversee</span>"
-            : "<span><strong>Sens :</strong> Carte directe</span>"
-        }
-        ${
-          current.tags.length
-            ? `<span><strong>Tags :</strong> ${escapeHtml(current.tags.join(", "))}</span>`
-            : ""
-        }
-      </div>
-      <div class="flashcard-swipe-cue" aria-hidden="true">
-        <span>Precedente</span>
-        <span>Swipe</span>
-        <span>Suivante</span>
-      </div>
-    `;
-    const deckCopy = `${context.state.flashcards.tableCount} tableau(x) transforme(s) en ${total} carte(s).`;
-    context.elements.flashcardSummary.textContent = showAnswer
-      ? `${deckCopy} Passez a la suivante quand la reponse est stable.`
-      : `${deckCopy} Essayez de rappeler le verso avant de retourner la carte.`;
-    context.elements.flashcardFlipButton.disabled = false;
-    context.elements.flashcardFlipButton.textContent = showAnswer ? "Voir le recto" : "Retourner";
-    context.elements.flashcardPrevButton.disabled = context.state.flashcards.index === 0;
-    context.elements.flashcardNextButton.disabled =
-      context.state.flashcards.index >= total - 1;
-  }
+        <div class="quiz-session-hud">
+          <span class="quiz-score-pill">Validees <strong>${validatedCount}</strong></span>
+          <span class="quiz-score-pill">Justes <strong>${correctCount}</strong></span>
+          <span class="quiz-score-pill">Fausses <strong>${wrongCount}</strong></span>
+          <span class="quiz-score-pill">Temps <strong>${duration}</strong></span>
+        </div>
+        <div class="table-shell quiz-session-shell">
+          <table class="data-table quiz-session-table">
+            <thead>
+              <tr>
+                <th>Question</th>
+                <th>Réponse</th>
+                <th>Valider</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${renderQuizSessionRows(context.state.quiz.questions)}
+            </tbody>
+          </table>
+        </div>
+      `;
 
-  return {
-    buildFlashcardsSession,
-    buildQuizSession,
-    generateQuizQuestions,
-    nextFlashcard,
-    previousFlashcard,
-    renderFlashcards,
-    renderQuizCard,
-    scoreQuiz,
-    showFlashcardAnswer,
-    showQuizAnswer,
-  };
+      context.elements.quizSummary.innerHTML = completed
+        ? renderQuizCompletionSummary(correctCount, total, context.state.quiz.questions)
+        : renderQuizProgressSummary(context.state.quiz.questions);
+    }
+
+    function renderQuizSessionRows(questions) {
+      return questions
+        .map((question, index) => {
+          const rowClass = question.validated
+            ? question.isCorrect
+              ? "is-correct"
+              : "is-wrong"
+            : "";
+          const statusLabel = question.validated
+            ? question.isCorrect
+              ? "Correct"
+              : "Incorrect"
+            : "En attente";
+          const acceptedAnswers = question.acceptedAnswers.join(", ");
+
+          return `
+            <tr class="${rowClass}">
+              <td>
+                <div class="quiz-question-cell">
+                  <strong>${escapeHtml(question.question)}</strong>
+                  <span>${escapeHtml(question.noteTitle)} · ${escapeHtml(question.difficultyLabel)}</span>
+                </div>
+              </td>
+              <td>
+                <div class="quiz-answer-cell">
+                  <input
+                    class="text-input quiz-session-answer"
+                    type="text"
+                    data-quiz-session-answer="${index}"
+                    value="${escapeHtml(question.userAnswer || "")}"
+                    placeholder="Tapez votre reponse"
+                    ${question.validated ? "disabled" : ""}
+                  />
+                  <small>${escapeHtml(acceptedAnswers)}</small>
+                </div>
+              </td>
+              <td class="quiz-session-action-cell">
+                <button
+                  type="button"
+                  class="button button-primary quiz-session-validate"
+                  data-quiz-session-validate="${index}"
+                  ${question.validated ? "disabled" : ""}
+                >
+                  Valider
+                </button>
+              </td>
+              <td class="quiz-session-status-cell">
+                <span class="pill ${question.validated ? (question.isCorrect ? "pill-success" : "pill-danger") : "pill-soft"}">
+                  ${statusLabel}
+                </span>
+                ${
+                  question.validated && !question.isCorrect
+                    ? `<small>Attendu : ${escapeHtml(question.matchedAnswer || acceptedAnswers)}</small>`
+                    : ""
+                }
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+    }
+
+    function renderQuizProgressSummary(questions) {
+      const remaining = questions.filter((item) => !item.validated).length;
+      const nextQuestions = questions
+        .filter((item) => !item.validated)
+        .slice(0, 3)
+        .map((question) => question.question);
+
+      return `
+        <p class="quiz-summary-line">
+          ${remaining} question(s) restent a valider. Les questions les moins vues sont favorisees automatiquement.
+        </p>
+        ${
+          nextQuestions.length
+            ? `<div class="quiz-summary-list">
+                ${nextQuestions
+                  .map((item) => `<span class="pill pill-soft">${escapeHtml(item)}</span>`)
+                  .join("")}
+              </div>`
+            : ""
+        }
+      `;
+    }
+
+    function renderQuizCompletionSummary(correctCount, total, questions) {
+      const hard = questions.filter((item) => item.difficulty === "difficult").length;
+      const intermediate = questions.filter((item) => item.difficulty === "intermediate").length;
+      const easy = questions.filter((item) => item.difficulty === "easy").length;
+      const wrongRows = questions.filter((item) => item.validated && !item.isCorrect);
+
+      return `
+        <p class="quiz-summary-line">
+          Score final : <strong>${correctCount}/${total}</strong>. Répartition du tirage : ${hard} difficiles, ${intermediate} intermédiaires, ${easy} faciles.
+        </p>
+        ${
+          wrongRows.length
+            ? `<div class="quiz-summary-corrections">
+                ${wrongRows
+                  .map(
+                    (item) => `
+                      <article class="quiz-correction-card">
+                        <strong>${escapeHtml(item.question)}</strong>
+                        <p>Votre réponse : ${escapeHtml(item.userAnswer || "Aucune")}</p>
+                        <p>Réponse attendue : ${escapeHtml(item.matchedAnswer || item.acceptedAnswers.join(", "))}</p>
+                      </article>
+                    `
+                  )
+                  .join("")}
+              </div>`
+            : `<p class="quiz-summary-line">Toutes les réponses ont été validées.</p>`
+        }
+      `;
+    }
+
+    return {
+      buildQuizSession,
+      renderQuizCard,
+      setQuizAnswer,
+      validateQuizQuestion,
+    };
   };
 })(window);

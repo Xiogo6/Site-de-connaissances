@@ -66,17 +66,14 @@
       },
       quiz: {
         questions: [],
-        index: 0,
         score: 0,
-        answerVisible: false,
+        validatedCount: 0,
+        startedAt: null,
+        finishedAt: null,
       },
-      revisionMode: "quiz",
       sportMode: "mass",
-      flashcards: {
-        cards: [],
-        index: 0,
-        answerVisible: false,
-      },
+      editorQuizQuestions: [],
+      editorQuizQuestionsNoteId: null,
       timeline: {
         scope: "folder",
         folderId: "",

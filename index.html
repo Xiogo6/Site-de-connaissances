@@ -380,16 +380,35 @@
                 ></textarea>
               </label>
 
-              <div class="helper-grid">
-                <article class="helper-card">
-                  <h4>Syntaxe utile</h4>
-                  <ul>
-                    <li><code>[[Page cible]]</code> pour lier une idee</li>
-                    <li><code># Titre</code> et <code>## Sous-titre</code></li>
-                    <li><code>- point cle</code> pour les listes</li>
-                    <li><code>Concept : definition</code> pour nourrir les quiz</li>
-                  </ul>
-                </article>
+              <div class="link-section quiz-bank-panel">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">Questions de quiz</p>
+                    <h4>Tableau de la note</h4>
+                  </div>
+                  <button
+                    id="add-quiz-question-button"
+                    class="button button-primary button-inline"
+                    type="button"
+                  >
+                    Ajouter une ligne
+                  </button>
+                </div>
+                <p class="helper-copy helper-copy-compact">
+                  Saisissez une question et les réponses acceptees separees par des virgules.
+                </p>
+                <div class="table-shell quiz-bank-shell">
+                  <table class="data-table quiz-bank-table">
+                    <thead>
+                      <tr>
+                        <th>Question</th>
+                        <th>Réponses</th>
+                        <th>Supprimer</th>
+                      </tr>
+                    </thead>
+                    <tbody id="note-quiz-questions-body"></tbody>
+                  </table>
+                </div>
               </div>
             </section>
 
@@ -415,6 +434,20 @@
               <article id="preview-content" class="rendered-note"></article>
               <div id="preview-tags" class="tag-list"></div>
               <div id="preview-meta" class="meta-row"></div>
+              <div class="link-section">
+                <h4>Questions de la note</h4>
+                <div class="table-shell quiz-preview-shell">
+                  <table class="data-table quiz-preview-table">
+                    <thead>
+                      <tr>
+                        <th>Question</th>
+                        <th>Réponses</th>
+                      </tr>
+                    </thead>
+                    <tbody id="preview-quiz-questions-body"></tbody>
+                  </table>
+                </div>
+              </div>
             </section>
 
             <section class="panel panel-links">
@@ -579,21 +612,12 @@
         </section>
 
         <section id="quiz-tab" class="tab-panel">
-          <div class="revision-choice mode-switcher">
-            <button class="revision-choice-card is-active" data-revision-mode="quiz" type="button">
-              <strong>Quiz</strong>
-            </button>
-            <button class="revision-choice-card" data-revision-mode="flashcards" type="button">
-              <strong>Flashcards</strong>
-            </button>
-          </div>
-
           <div class="quiz-layout">
             <section class="panel quiz-controls">
               <div class="panel-header">
                 <div>
                   <p class="eyebrow">Revision active</p>
-                  <h3>Generateur de quiz</h3>
+                  <h3>Generateur de quiz ecrit</h3>
                 </div>
               </div>
 
@@ -604,7 +628,6 @@
                   <option value="current">Page active</option>
                   <option value="folder">Un dossier</option>
                   <option value="tag">Par tag</option>
-                  <option value="due">Pages a revoir</option>
                 </select>
               </label>
 
@@ -649,7 +672,7 @@
               </label>
 
               <button id="generate-quiz-button" class="button button-primary">
-                Generer un quiz
+                Creer le quiz
               </button>
             </section>
 
@@ -657,25 +680,13 @@
               <div class="panel-header">
                 <div>
                   <p class="eyebrow">Session</p>
-                  <h3 id="quiz-title">Aucun quiz lance</h3>
+                  <h3 id="quiz-title">Aucun quiz cree</h3>
                 </div>
                 <span id="quiz-progress" class="pill pill-soft">0 / 0</span>
               </div>
 
               <article id="quiz-card" class="quiz-card empty-state">
-                Le quiz apparaitra ici a partir de vos connaissances.
-              </article>
-
-              <div class="quiz-actions">
-                <button id="show-answer-button" class="button">
-                  Voir la reponse
-                </button>
-                <button id="mark-correct-button" class="button button-primary">
-                  Je connaissais
-                </button>
-                <button id="mark-wrong-button" class="button button-ghost">
-                  A revoir
-                </button>
+                Les questions ecrites apparaitront ici ligne par ligne.
               </div>
 
               <div id="quiz-summary" class="quiz-summary"></div>
@@ -769,88 +780,6 @@
 
                 <div id="snapshot-list" class="snapshot-list"></div>
               </div>
-            </section>
-          </div>
-        </section>
-
-        <section id="flashcards-tab" class="tab-panel">
-          <div class="quiz-layout">
-            <section class="panel quiz-controls">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Memorisation</p>
-                  <h3>Flashcards</h3>
-                </div>
-              </div>
-
-              <label>
-                <span class="field-label">Pages a inclure</span>
-                <select id="flashcard-scope" class="select-input">
-                  <option value="all">Toutes les pages</option>
-                  <option value="current">Page active</option>
-                  <option value="tag">Par tag</option>
-                  <option value="due">Pages a revoir</option>
-                </select>
-              </label>
-
-              <label id="flashcard-tag-wrapper" class="is-hidden">
-                <span class="field-label">Tag cible</span>
-                <input
-                  id="flashcard-tag"
-                  class="text-input"
-                  type="text"
-                  placeholder="ex: histoire"
-                />
-              </label>
-
-              <label>
-                <span class="field-label">Nombre maximal de cartes</span>
-                <input
-                  id="flashcard-amount"
-                  class="text-input"
-                  type="number"
-                  min="4"
-                  max="30"
-                  value="8"
-                />
-              </label>
-
-              <label class="toggle-row" for="flashcard-reversed">
-                <input id="flashcard-reversed" type="checkbox" />
-                <span>Generer aussi les cartes inversees</span>
-              </label>
-
-              <button id="generate-flashcards-button" class="button button-primary" type="button">
-                Generer le paquet
-              </button>
-            </section>
-
-            <section class="panel quiz-panel">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Carte</p>
-                  <h3 id="flashcard-title">Aucune pile lancee</h3>
-                </div>
-                <span id="flashcard-progress" class="pill pill-soft">0 / 0</span>
-              </div>
-
-              <article id="flashcard-card" class="quiz-card empty-state">
-                Les cartes apparaitront ici a partir des tableaux presents dans vos pages.
-              </article>
-
-              <div class="quiz-actions">
-                <button id="flashcard-flip-button" class="button" type="button">
-                  Retourner
-                </button>
-                <button id="flashcard-prev-button" class="button button-ghost" type="button">
-                  Precedente
-                </button>
-                <button id="flashcard-next-button" class="button button-primary" type="button">
-                  Suivante
-                </button>
-              </div>
-
-              <div id="flashcard-summary" class="quiz-summary"></div>
             </section>
           </div>
         </section>
@@ -1030,7 +959,10 @@
         <span>Lier a la page active</span>
       </label>
 
-      <div class="stack-actions compact-actions">
+      <div class="inline-actions quick-capture-actions">
+        <button id="quick-capture-cancel" class="button button-ghost" type="button">
+          Annuler
+        </button>
         <button id="quick-save-button" class="button button-primary" type="button">
           Enregistrer la capture
         </button>
