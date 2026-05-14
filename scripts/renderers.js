@@ -538,6 +538,7 @@
     context.elements.previewTags.innerHTML = "";
     context.elements.previewMeta.innerHTML = "";
     context.elements.previewContent.innerHTML = renderNoteHtml(getReadablePreviewContent(note));
+    context.elements.previewCard?.style.removeProperty("--read-swipe-x");
     context.elements.noteStatus.textContent = "";
     context.elements.noteStatus.classList.add("is-hidden");
     context.elements.noteStatus.hidden = true;
@@ -609,6 +610,12 @@
     if (context.elements.addQuizQuestionButton) {
       context.elements.addQuizQuestionButton.disabled = context.data.isReadOnlyMode();
     }
+    const bankHeader = context.elements.noteQuizQuestionsBody
+      ?.closest("table")
+      ?.querySelector("thead tr");
+    if (bankHeader) {
+      bankHeader.innerHTML = "<th></th><th>Question</th><th>Reponses</th>";
+    }
     renderQuizQuestionTable(
       context.elements.noteQuizQuestionsBody,
       context.state.editorQuizQuestions || [],
@@ -659,6 +666,20 @@
       const row = document.createElement("tr");
       row.dataset.quizQuestionIndex = String(index);
 
+      if (options.editable) {
+        const actionCell = document.createElement("td");
+        actionCell.className = "quiz-question-remove-cell";
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "button button-ghost quiz-question-remove";
+        removeButton.dataset.removeQuizQuestion = String(index);
+        removeButton.disabled = context.data.isReadOnlyMode();
+        removeButton.setAttribute("aria-label", "Supprimer la question");
+        removeButton.textContent = "×";
+        actionCell.appendChild(removeButton);
+        row.appendChild(actionCell);
+      }
+
       const questionCell = document.createElement("td");
       if (options.editable) {
         const input = document.createElement("textarea");
@@ -683,7 +704,7 @@
         input.type = "text";
         input.dataset.quizQuestionField = "answers";
         input.dataset.quizQuestionIndex = String(index);
-        input.placeholder = "Réponse 1, Réponse 2";
+        input.placeholder = "Reponse 1, Reponse 2";
         input.value = (question.answers || []).join(", ");
         input.disabled = context.data.isReadOnlyMode();
         answersCell.appendChild(input);
@@ -695,22 +716,6 @@
 
       row.appendChild(questionCell);
       row.appendChild(answersCell);
-
-      if (!options.readOnlyPreview) {
-        const actionCell = document.createElement("td");
-        if (options.editable) {
-          const removeButton = document.createElement("button");
-          removeButton.type = "button";
-          removeButton.className = "button button-ghost quiz-question-remove";
-          removeButton.dataset.removeQuizQuestion = String(index);
-          removeButton.disabled = context.data.isReadOnlyMode();
-          removeButton.textContent = "Supprimer";
-          actionCell.appendChild(removeButton);
-        } else {
-          actionCell.textContent = "En lecture";
-        }
-        row.appendChild(actionCell);
-      }
 
       container.appendChild(row);
     });

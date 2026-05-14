@@ -361,10 +361,10 @@
 
     context.elements.previewContent.addEventListener("click", handleRenderedLinkClick);
     context.elements.previewContent.addEventListener("change", handleChecklistToggle);
-    context.elements.previewContent.addEventListener("pointerdown", handleReadingPointerDown);
-    context.elements.previewContent.addEventListener("pointermove", handleReadingPointerMove);
-    context.elements.previewContent.addEventListener("pointerup", handleReadingPointerUp);
-    context.elements.previewContent.addEventListener("pointercancel", resetReadingPointer);
+    context.elements.previewCard?.addEventListener("pointerdown", handleReadingPointerDown);
+    context.elements.previewCard?.addEventListener("pointermove", handleReadingPointerMove);
+    context.elements.previewCard?.addEventListener("pointerup", handleReadingPointerUp);
+    context.elements.previewCard?.addEventListener("pointercancel", resetReadingPointer);
     context.elements.outgoingLinks.addEventListener("click", handleChipClick);
     context.elements.backlinks.addEventListener("click", handleChipClick);
     context.elements.suggestedLinks.addEventListener("click", handleSuggestedLinkClick);
@@ -610,6 +610,7 @@
         lastCorrectAt: null,
       },
     });
+    persistQuizQuestionDrafts();
     context.renderers.renderQuizQuestionBank();
     context.renderers.renderPreview(context.notes.getActiveNote(), true);
     window.requestAnimationFrame(() => {
@@ -646,6 +647,7 @@
         .filter(Boolean);
     }
 
+    persistQuizQuestionDrafts();
     context.renderers.renderPreview(context.notes.getActiveNote(), true);
   }
 
@@ -657,8 +659,23 @@
 
     const index = Number(button.dataset.removeQuizQuestion);
     context.state.editorQuizQuestions.splice(index, 1);
+    persistQuizQuestionDrafts();
     context.renderers.renderQuizQuestionBank();
     context.renderers.renderPreview(context.notes.getActiveNote(), true);
+  }
+
+  function persistQuizQuestionDrafts() {
+    const active = context.notes.getActiveNote();
+    if (!active) {
+      return;
+    }
+
+    active.quizQuestions = context.data.normalizeQuizQuestionCollection(
+      context.state.editorQuizQuestions,
+      active.id
+    );
+    active.updatedAt = new Date().toISOString();
+    context.data.saveNotes();
   }
 
   function handleQuizSessionAnswerInput(event) {
@@ -672,6 +689,12 @@
   }
 
   function handleQuizSessionClick(event) {
+    const restartButton = event.target.closest("[data-quiz-restart]");
+    if (restartButton) {
+      context.quiz.resetQuizSession();
+      return;
+    }
+
     const button = event.target.closest("[data-quiz-session-validate]");
     if (!button) {
       return;
@@ -1121,6 +1144,7 @@
       context.state.activeTab !== "knowledge" ||
       context.state.noteViewMode !== "read" ||
       context.state.quickCaptureOpen ||
+      event.target.closest(".preview-quiz-panel") ||
       event.target.closest("a, button, input, textarea, select")
     ) {
       return;
@@ -1132,7 +1156,7 @@
       y: event.clientY,
       moved: false,
     };
-    context.elements.previewContent.setPointerCapture?.(event.pointerId);
+    context.elements.previewCard?.setPointerCapture?.(event.pointerId);
   }
 
   function handleReadingPointerMove(event) {
@@ -1148,7 +1172,7 @@
 
     readingPointer.moved = true;
     const clamped = context.helpers.clamp(deltaX, -42, 42);
-    context.elements.previewContent.style.setProperty("--read-swipe-x", `${clamped}px`);
+    context.elements.previewCard?.style.setProperty("--read-swipe-x", `${clamped}px`);
   }
 
   function handleReadingPointerUp(event) {
@@ -1171,7 +1195,7 @@
 
   function resetReadingPointer() {
     readingPointer = null;
-    context.elements.previewContent.style.removeProperty("--read-swipe-x");
+    context.elements.previewCard?.style.removeProperty("--read-swipe-x");
   }
 
   function getSportSettings() {

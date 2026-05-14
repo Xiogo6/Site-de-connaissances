@@ -52,6 +52,19 @@
       renderQuizCard();
     }
 
+    function resetQuizSession() {
+      context.state.quiz = {
+        questions: [],
+        score: 0,
+        validatedCount: 0,
+        startedAt: null,
+        finishedAt: null,
+        requestedAmount: Number(context.elements.quizAmount.value) || 6,
+      };
+
+      renderQuizCard();
+    }
+
     function pickQuizQuestionsForSession(notes, requestedAmount) {
       if (!notes.length || requestedAmount <= 0) {
         return [];
@@ -387,25 +400,22 @@
 
     function renderQuizCard() {
       const total = context.state.quiz.questions.length;
+      const hasSession = total > 0;
 
-      if (!total) {
+      context.elements.quizPanel?.classList.toggle("is-running", hasSession);
+      context.elements.quizControls?.classList.toggle("is-hidden", hasSession);
+
+      if (!hasSession) {
         context.elements.quizTitle.textContent = "Aucun quiz cree";
         context.elements.quizProgress.textContent = "0 / 0";
         context.elements.quizCard.className = "quiz-card quiz-session-card quiz-session-empty";
         context.elements.quizCard.innerHTML = `
           <div class="quiz-session-hero">
             <span class="quiz-game-kicker">Questions ecrites</span>
-            <h4>Créez d’abord des questions sur une note.</h4>
-            <p>Ajoutez des questions dans le tableau de la note, puis lancez un quiz ecrit sur l’onglet Revision.</p>
-          </div>
-          <div class="quiz-game-rules">
-            <span>1. Redigez les questions sous une note</span>
-            <span>2. Choisissez un nombre de questions</span>
-            <span>3. Validez chaque reponse a l’ecrit</span>
+            <h4>Creer des questions sur une note.</h4>
           </div>
         `;
-        context.elements.quizSummary.textContent =
-          "Le quiz pioche au maximum une question par note et favorise les questions les moins vues.";
+        context.elements.quizSummary.textContent = "Le quiz pioche des questions deja enregistrees.";
         return;
       }
 
@@ -418,9 +428,7 @@
       const completed = validatedCount >= total;
       const duration = getSessionDuration(context.state.quiz.startedAt, context.state.quiz.finishedAt);
 
-      context.elements.quizTitle.textContent = completed
-        ? "Quiz termine"
-        : "Quiz en cours";
+      context.elements.quizTitle.textContent = "Quiz";
       context.elements.quizProgress.textContent = `${validatedCount} / ${total}`;
       context.elements.quizCard.className = `quiz-card quiz-session-card${
         completed ? " quiz-session-complete" : ""
@@ -429,14 +437,22 @@
         <div class="quiz-session-header">
           <div>
             <span class="quiz-game-kicker">Quiz ecrit</span>
-            <h4>${completed ? "Bravo, vous avez termine" : "Repondez ligne par ligne"}</h4>
-            <p>${completed ? "Les résultats sont affichés ci-dessous." : "Une ligne par question, une validation, puis la ligne passe en vert ou en rouge."}</p>
+            <h4>${completed ? "Termine" : "Repondez ligne par ligne"}</h4>
           </div>
           <div class="quiz-session-score">
             <strong>${correctCount}/${total}</strong>
             <span>${percent}% de reussite</span>
           </div>
         </div>
+        ${
+          completed
+            ? `<div class="quiz-session-actions">
+                <button type="button" class="button button-primary" data-quiz-restart>
+                  Nouveau quiz
+                </button>
+              </div>`
+            : ""
+        }
         <div class="quiz-session-hud">
           <span class="quiz-score-pill">Validees <strong>${validatedCount}</strong></span>
           <span class="quiz-score-pill">Justes <strong>${correctCount}</strong></span>
@@ -445,12 +461,14 @@
         </div>
         <div class="table-shell quiz-session-shell">
           <table class="data-table quiz-session-table">
+            <colgroup>
+              <col style="width: 56%" />
+              <col style="width: 44%" />
+            </colgroup>
             <thead>
               <tr>
                 <th>Question</th>
-                <th>Réponse</th>
-                <th>Valider</th>
-                <th>Statut</th>
+                <th>Reponse</th>
               </tr>
             </thead>
             <tbody>
@@ -473,80 +491,50 @@
               ? "is-correct"
               : "is-wrong"
             : "";
-          const statusLabel = question.validated
-            ? question.isCorrect
-              ? "Correct"
-              : "Incorrect"
-            : "En attente";
-          const acceptedAnswers = question.acceptedAnswers.join(", ");
 
           return `
             <tr class="${rowClass}">
               <td>
                 <div class="quiz-question-cell">
                   <strong>${escapeHtml(question.question)}</strong>
-                  <span>${escapeHtml(question.noteTitle)} · ${escapeHtml(question.difficultyLabel)}</span>
+                  <span>${escapeHtml(question.noteTitle)}</span>
                 </div>
               </td>
               <td>
                 <div class="quiz-answer-cell">
-                  <input
-                    class="text-input quiz-session-answer"
-                    type="text"
-                    data-quiz-session-answer="${index}"
-                    value="${escapeHtml(question.userAnswer || "")}"
-                    placeholder="Tapez votre reponse"
-                    ${question.validated ? "disabled" : ""}
-                  />
-                  <small>${escapeHtml(acceptedAnswers)}</small>
+                  <div class="quiz-answer-row">
+                    <input
+                      class="text-input quiz-session-answer"
+                      type="text"
+                      data-quiz-session-answer="${index}"
+                      value="${escapeHtml(question.userAnswer || "")}" 
+                      placeholder="Tapez votre reponse"
+                      ${question.validated ? "disabled" : ""}
+                    />
+                    <button
+                      type="button"
+                      class="quiz-session-validate-inline"
+                      data-quiz-session-validate="${index}"
+                      aria-label="Valider la reponse"
+                      ${question.validated ? "disabled" : ""}
+                    >
+                      ✓
+                    </button>
+                  </div>
                 </div>
-              </td>
-              <td class="quiz-session-action-cell">
-                <button
-                  type="button"
-                  class="button button-primary quiz-session-validate"
-                  data-quiz-session-validate="${index}"
-                  ${question.validated ? "disabled" : ""}
-                >
-                  Valider
-                </button>
-              </td>
-              <td class="quiz-session-status-cell">
-                <span class="pill ${question.validated ? (question.isCorrect ? "pill-success" : "pill-danger") : "pill-soft"}">
-                  ${statusLabel}
-                </span>
-                ${
-                  question.validated && !question.isCorrect
-                    ? `<small>Attendu : ${escapeHtml(question.matchedAnswer || acceptedAnswers)}</small>`
-                    : ""
-                }
               </td>
             </tr>
           `;
         })
         .join("");
     }
-
     function renderQuizProgressSummary(questions) {
       const remaining = questions.filter((item) => !item.validated).length;
-      const nextQuestions = questions
-        .filter((item) => !item.validated)
-        .slice(0, 3)
-        .map((question) => question.question);
 
       return `
         <p class="quiz-summary-line">
-          ${remaining} question(s) restent a valider. Les questions les moins vues sont favorisees automatiquement.
+          ${remaining} question(s) restantes.
         </p>
-        ${
-          nextQuestions.length
-            ? `<div class="quiz-summary-list">
-                ${nextQuestions
-                  .map((item) => `<span class="pill pill-soft">${escapeHtml(item)}</span>`)
-                  .join("")}
-              </div>`
-            : ""
-        }
       `;
     }
 
@@ -558,7 +546,7 @@
 
       return `
         <p class="quiz-summary-line">
-          Score final : <strong>${correctCount}/${total}</strong>. Répartition du tirage : ${hard} difficiles, ${intermediate} intermédiaires, ${easy} faciles.
+          Score final : <strong>${correctCount}/${total}</strong>. Repartition : ${hard} difficiles, ${intermediate} intermédiaires, ${easy} faciles.
         </p>
         ${
           wrongRows.length
@@ -568,20 +556,21 @@
                     (item) => `
                       <article class="quiz-correction-card">
                         <strong>${escapeHtml(item.question)}</strong>
-                        <p>Votre réponse : ${escapeHtml(item.userAnswer || "Aucune")}</p>
-                        <p>Réponse attendue : ${escapeHtml(item.matchedAnswer || item.acceptedAnswers.join(", "))}</p>
+                        <p>Votre reponse : ${escapeHtml(item.userAnswer || "Aucune")}</p>
+                        <p>Reponse attendue : ${escapeHtml(item.matchedAnswer || item.acceptedAnswers.join(", "))}</p>
                       </article>
                     `
                   )
                   .join("")}
               </div>`
-            : `<p class="quiz-summary-line">Toutes les réponses ont été validées.</p>`
+            : `<p class="quiz-summary-line">Toutes les reponses ont été validées.</p>`
         }
       `;
     }
 
     return {
       buildQuizSession,
+      resetQuizSession,
       renderQuizCard,
       setQuizAnswer,
       validateQuizQuestion,
