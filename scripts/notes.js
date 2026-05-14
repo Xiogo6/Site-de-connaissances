@@ -2,7 +2,13 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createNotesModule = function createNotesModule(context) {
-    const { extractLinks, normalizeFlexibleDateInput, parseTags, unique } = AtlasApp.helpers;
+    const {
+      extractLinks,
+      normalizeFlexibleDateInput,
+      normalizeLinkTitle,
+      parseTags,
+      unique,
+    } = AtlasApp.helpers;
   function getFilteredNotes() {
     const ordered = [...context.state.notes].sort((left, right) => {
       return left.title.localeCompare(right.title, "fr", { sensitivity: "base" });
@@ -196,14 +202,19 @@
   }
 
   function getBacklinks(title, excludedId) {
+    const targetTitle = normalizeLinkTitle(title);
     return context.state.notes
-      .filter((note) => note.id !== excludedId && extractLinks(note.content).includes(title))
+      .filter(
+        (note) =>
+          note.id !== excludedId &&
+          extractLinks(note.content).some((linkTitle) => normalizeLinkTitle(linkTitle) === targetTitle)
+      )
       .map((note) => note.title);
   }
 
   function getSuggestedLinks(note) {
     const text = `${note.title} ${note.content}`.toLowerCase();
-    const outgoing = new Set(extractLinks(note.content));
+    const outgoing = new Set(extractLinks(note.content).map((linkTitle) => normalizeLinkTitle(linkTitle)));
 
     return context.state.notes
       .filter((candidate) => candidate.id !== note.id)
@@ -217,14 +228,22 @@
           score: tagHits + titleHit,
         };
       })
-      .filter((candidate) => candidate.score > 0 && !outgoing.has(candidate.title))
+      .filter(
+        (candidate) =>
+          candidate.score > 0 && !outgoing.has(normalizeLinkTitle(candidate.title))
+      )
       .sort((left, right) => right.score - left.score)
       .slice(0, 6);
   }
 
   function getBacklinkContexts(title, excludedId) {
+    const targetTitle = normalizeLinkTitle(title);
     return context.state.notes
-      .filter((note) => note.id !== excludedId && extractLinks(note.content).includes(title))
+      .filter(
+        (note) =>
+          note.id !== excludedId &&
+          extractLinks(note.content).some((linkTitle) => normalizeLinkTitle(linkTitle) === targetTitle)
+      )
       .map((note) => {
         const snippet = extractLinkContext(note.content, title);
         return {
@@ -235,13 +254,22 @@
   }
 
   function extractLinkContext(content, title) {
+    const targetTitle = normalizeLinkTitle(title);
     const lines = content
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
-    const target = `[[${title}]]`;
-    const match = lines.find((line) => line.includes(target));
-    return match ? match.replace(target, title) : "";
+    const match = lines.find((line) =>
+      extractLinks(line).some((linkTitle) => normalizeLinkTitle(linkTitle) === targetTitle)
+    );
+    if (!match) {
+      return "";
+    }
+
+    const matchingLink = extractLinks(match).find(
+      (linkTitle) => normalizeLinkTitle(linkTitle) === targetTitle
+    );
+    return matchingLink ? match.replace(`[[${matchingLink}]]`, title) : match;
   }
 
   function extractOutline(content) {
@@ -319,19 +347,28 @@
   }
 
   function ensureWikiLinkLine(content, title, label) {
-    const marker = `[[${title}]]`;
-    if (content.includes(marker)) {
+    const targetTitle = normalizeLinkTitle(title);
+    const lines = content.split("\n");
+    if (
+      lines.some((line) =>
+        extractLinks(line).some((linkTitle) => normalizeLinkTitle(linkTitle) === targetTitle)
+      )
+    ) {
       return content;
     }
 
     const suffix = content.trim().endsWith("\n") ? "" : "\n";
-    return `${content}${suffix}\n${label} : ${marker}`;
+    return `${content}${suffix}\n${label} : [[${title}]]`;
   }
 
   function removeWikiLinkLine(content, title) {
+    const targetTitle = normalizeLinkTitle(title);
     return content
       .split("\n")
-      .filter((line) => !line.includes(`[[${title}]]`))
+      .filter(
+        (line) =>
+          !extractLinks(line).some((linkTitle) => normalizeLinkTitle(linkTitle) === targetTitle)
+      )
       .join("\n")
       .replace(/\n{3,}/g, "\n\n");
   }
@@ -405,12 +442,15 @@
   }
 
   function renameLinksAcrossNotes(previousTitle, nextTitle, activeId) {
+    const targetTitle = normalizeLinkTitle(previousTitle);
     context.state.notes.forEach((note) => {
       if (note.id === activeId) {
         return;
       }
 
-      note.content = note.content.replaceAll(`[[${previousTitle}]]`, `[[${nextTitle}]]`);
+      note.content = note.content.replace(/\[\[([^[\]]+)\]\]/g, (match, linkedTitle) => {
+        return normalizeLinkTitle(linkedTitle) === targetTitle ? `[[${nextTitle}]]` : match;
+      });
     });
   }
 
@@ -983,8 +1023,10 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
   }
 
   function openOrCreateNote(title) {
-    const normalized = title.trim().toLowerCase();
-    const existing = context.state.notes.find((note) => note.title.toLowerCase() === normalized);
+    const normalized = normalizeLinkTitle(title);
+    const existing = context.state.notes.find(
+      (note) => normalizeLinkTitle(note.title) === normalized
+    );
 
     if (existing) {
       context.state.activeNoteId = existing.id;
@@ -1031,6 +1073,11 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
 
     const note = getActiveNote();
     if (!note) {
+      return;
+    }
+
+    const normalizedTitle = normalizeLinkTitle(title);
+    if (extractLinks(note.content).some((linkTitle) => normalizeLinkTitle(linkTitle) === normalizedTitle)) {
       return;
     }
 
