@@ -14,6 +14,16 @@
       .replaceAll("'", "&#39;");
   }
 
+  function normalizeLinkTitle(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\u2018\u2019\u201B\u02BC\u00B4\u0060]/g, "'")
+      .replace(/\s+/g, " ");
+  }
+
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
   }
@@ -347,6 +357,7 @@
     normalizeFlexibleDateInput,
     parseTags,
     parseFlexibleDateParts,
+    normalizeLinkTitle,
     renderInline,
     renderNoteHtml,
     shuffle,
