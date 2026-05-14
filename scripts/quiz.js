@@ -3,6 +3,7 @@
 
   AtlasApp.createQuizModule = function createQuizModule(context) {
     const { escapeHtml, shuffle } = AtlasApp.helpers;
+    let quizTimerHandle = null;
 
     function getScopedNotes(scope, tagValue, folderId = "") {
       const active = context.notes.getActiveNote();
@@ -30,6 +31,7 @@
     }
 
     function buildQuizSession() {
+      stopQuizTimer();
       const availableNotes = getScopedNotes(
         context.elements.quizScope.value,
         context.elements.quizTag.value,
@@ -50,9 +52,11 @@
 
       context.renderers.renderTabs();
       renderQuizCard();
+      startQuizTimer();
     }
 
     function resetQuizSession() {
+      stopQuizTimer();
       context.state.quiz = {
         questions: [],
         score: 0,
@@ -63,6 +67,31 @@
       };
 
       renderQuizCard();
+    }
+
+    function startQuizTimer() {
+      stopQuizTimer();
+      if (!context.state.quiz.startedAt || context.state.quiz.finishedAt || !context.state.quiz.questions.length) {
+        return;
+      }
+
+      quizTimerHandle = window.setInterval(syncQuizTimerDisplay, 1000);
+      syncQuizTimerDisplay();
+    }
+
+    function stopQuizTimer() {
+      if (quizTimerHandle) {
+        window.clearInterval(quizTimerHandle);
+        quizTimerHandle = null;
+      }
+    }
+
+    function syncQuizTimerDisplay() {
+      const duration = getSessionDuration(context.state.quiz.startedAt, context.state.quiz.finishedAt);
+      const durationElement = context.elements.quizCard?.querySelector("[data-quiz-duration]");
+      if (durationElement) {
+        durationElement.textContent = duration;
+      }
     }
 
     function pickQuizQuestionsForSession(notes, requestedAmount) {
@@ -308,58 +337,56 @@
       question.userAnswer = value;
     }
 
-    function validateQuizQuestion(index) {
-      const question = context.state.quiz.questions[index];
-      if (!question || question.validated) {
+    function validateQuizSession() {
+      if (!context.state.quiz.questions.length || context.state.quiz.finishedAt) {
         return;
       }
 
-      const userAnswer = String(question.userAnswer || "").trim();
-      const matchedAnswer = findMatchingAcceptedAnswer(userAnswer, question.acceptedAnswers);
-      const isCorrect = Boolean(matchedAnswer);
       const now = new Date().toISOString();
+      const activeEditorNoteId = context.state.editorQuizQuestionsNoteId;
 
-      question.validated = true;
-      question.isCorrect = isCorrect;
-      question.matchedAnswer = matchedAnswer || question.acceptedAnswers[0] || "";
-      question.validatedAt = now;
+      context.state.quiz.questions.forEach((question) => {
+        const userAnswer = String(question.userAnswer || "").trim();
+        const matchedAnswer = findMatchingAcceptedAnswer(userAnswer, question.acceptedAnswers);
+        const isCorrect = Boolean(matchedAnswer);
 
-      const note = context.state.notes.find((candidate) => candidate.id === question.noteId);
-      const storedQuestion = note?.quizQuestions?.find((item) => item.id === question.questionId);
-      if (storedQuestion) {
-        storedQuestion.stats = normalizeQuestionStats(storedQuestion.stats);
-        storedQuestion.stats.asked += 1;
-        if (isCorrect) {
-          storedQuestion.stats.correct += 1;
-          storedQuestion.stats.lastCorrectAt = now;
+        question.validated = true;
+        question.isCorrect = isCorrect;
+        question.matchedAnswer = matchedAnswer || question.acceptedAnswers[0] || "";
+        question.validatedAt = now;
+
+        const note = context.state.notes.find((candidate) => candidate.id === question.noteId);
+        const storedQuestion = note?.quizQuestions?.find((item) => item.id === question.questionId);
+        if (storedQuestion) {
+          storedQuestion.stats = normalizeQuestionStats(storedQuestion.stats);
+          storedQuestion.stats.asked += 1;
+          if (isCorrect) {
+            storedQuestion.stats.correct += 1;
+            storedQuestion.stats.lastCorrectAt = now;
+          }
+          storedQuestion.stats.lastAskedAt = now;
+          question.statsAfter = { ...storedQuestion.stats };
+
+          if (activeEditorNoteId === note.id) {
+            context.state.editorQuizQuestions = (context.state.editorQuizQuestions || []).map(
+              (draftQuestion) =>
+                draftQuestion.id === question.questionId
+                  ? {
+                      ...draftQuestion,
+                      stats: { ...storedQuestion.stats },
+                    }
+                  : draftQuestion
+            );
+          }
+        } else {
+          question.statsAfter = null;
         }
-        storedQuestion.stats.lastAskedAt = now;
-        context.state.editorQuizQuestionsNoteId = note.id;
-      }
+      });
 
-      question.statsAfter = storedQuestion ? { ...storedQuestion.stats } : null;
-      context.state.quiz.validatedCount = context.state.quiz.questions.filter(
-        (item) => item.validated
-      ).length;
-      context.state.quiz.score = context.state.quiz.questions.filter(
-        (item) => item.validated && item.isCorrect
-      ).length;
-      if (context.state.quiz.validatedCount >= context.state.quiz.questions.length) {
-        context.state.quiz.finishedAt = Date.now();
-      }
-
-      if (context.state.editorQuizQuestionsNoteId === note?.id) {
-        context.state.editorQuizQuestions = (context.state.editorQuizQuestions || []).map(
-          (draftQuestion) =>
-            draftQuestion.id === question.questionId
-              ? {
-                  ...draftQuestion,
-                  stats: storedQuestion ? { ...storedQuestion.stats } : draftQuestion.stats,
-                }
-              : draftQuestion
-        );
-      }
-
+      context.state.quiz.validatedCount = context.state.quiz.questions.length;
+      context.state.quiz.score = context.state.quiz.questions.filter((item) => item.isCorrect).length;
+      context.state.quiz.finishedAt = Date.now();
+      stopQuizTimer();
       context.data.saveNotes();
       renderQuizCard();
     }
@@ -437,7 +464,7 @@
         <div class="quiz-session-header">
           <div>
             <span class="quiz-game-kicker">Quiz ecrit</span>
-            <h4>${completed ? "Termine" : "Repondez ligne par ligne"}</h4>
+            <h4>${completed ? "Termine" : "Repondez puis validez"}</h4>
           </div>
           <div class="quiz-session-score">
             <strong>${correctCount}/${total}</strong>
@@ -451,13 +478,20 @@
                   Nouveau quiz
                 </button>
               </div>`
-            : ""
+            : `<div class="quiz-session-actions">
+                <button type="button" class="button button-primary" data-quiz-validate-all>
+                  Valider le quiz
+                </button>
+                <button type="button" class="button button-ghost" data-quiz-cancel>
+                  Annuler le quizz
+                </button>
+              </div>`
         }
         <div class="quiz-session-hud">
           <span class="quiz-score-pill">Validees <strong>${validatedCount}</strong></span>
           <span class="quiz-score-pill">Justes <strong>${correctCount}</strong></span>
           <span class="quiz-score-pill">Fausses <strong>${wrongCount}</strong></span>
-          <span class="quiz-score-pill">Temps <strong>${duration}</strong></span>
+          <span class="quiz-score-pill">Temps <strong data-quiz-duration>${duration}</strong></span>
         </div>
         <div class="table-shell quiz-session-shell">
           <table class="data-table quiz-session-table">
@@ -484,6 +518,8 @@
     }
 
     function renderQuizSessionRows(questions) {
+      const completed = Boolean(context.state.quiz.finishedAt);
+
       return questions
         .map((question, index) => {
           const rowClass = question.validated
@@ -493,34 +529,23 @@
             : "";
 
           return `
-            <tr class="${rowClass}">
+            <tr class="${rowClass}${completed ? " quiz-reveal-row" : ""}" style="--quiz-reveal-delay: ${220 + index * 180}ms;">
               <td>
                 <div class="quiz-question-cell">
                   <strong>${escapeHtml(question.question)}</strong>
-                  <span>${escapeHtml(question.noteTitle)}</span>
+                  ${completed ? `<span>${escapeHtml(question.noteTitle)}</span>` : ""}
                 </div>
               </td>
               <td>
                 <div class="quiz-answer-cell">
-                  <div class="quiz-answer-row">
-                    <input
-                      class="text-input quiz-session-answer"
-                      type="text"
-                      data-quiz-session-answer="${index}"
-                      value="${escapeHtml(question.userAnswer || "")}" 
-                      placeholder="Tapez votre reponse"
-                      ${question.validated ? "disabled" : ""}
-                    />
-                    <button
-                      type="button"
-                      class="quiz-session-validate-inline"
-                      data-quiz-session-validate="${index}"
-                      aria-label="Valider la reponse"
-                      ${question.validated ? "disabled" : ""}
-                    >
-                      ✓
-                    </button>
-                  </div>
+                  <input
+                    class="text-input quiz-session-answer"
+                    type="text"
+                    data-quiz-session-answer="${index}"
+                    value="${escapeHtml(question.userAnswer || "")}" 
+                    placeholder="Tapez votre reponse"
+                    ${completed ? "disabled" : ""}
+                  />
                 </div>
               </td>
             </tr>
@@ -528,12 +553,13 @@
         })
         .join("");
     }
+
     function renderQuizProgressSummary(questions) {
       const remaining = questions.filter((item) => !item.validated).length;
 
       return `
         <p class="quiz-summary-line">
-          ${remaining} question(s) restantes.
+          ${remaining} question(s) a renseigner. Cliquez sur <strong>Valider le quiz</strong> quand vous avez termine.
         </p>
       `;
     }
@@ -573,7 +599,10 @@
       resetQuizSession,
       renderQuizCard,
       setQuizAnswer,
-      validateQuizQuestion,
+      validateQuizSession,
+      startQuizTimer,
+      stopQuizTimer,
     };
   };
 })(window);
+

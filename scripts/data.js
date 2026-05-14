@@ -2,7 +2,7 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createDataModule = function createDataModule(context) {
-    const { normalizeFlexibleDateInput, normalizeTagList } = AtlasApp.helpers;
+    const { decodeHtmlEntities, normalizeFlexibleDateInput, normalizeTagList } = AtlasApp.helpers;
     const {
       appStorageKey,
       dataVersion,
@@ -282,7 +282,11 @@
 
     function normalizeImportedNote(note, existingNotes = context.state.notes) {
       const title =
-        typeof note.title === "string" && note.title.trim() ? note.title.trim() : "Sans titre";
+        typeof note.title === "string" && note.title.trim()
+          ? decodeHtmlEntities(note.title.trim())
+          : "Sans titre";
+      const content =
+        typeof note.content === "string" ? decodeHtmlEntities(note.content) : "";
 
       return {
         id:
@@ -294,7 +298,7 @@
         parentId: typeof note.parentId === "string" && note.parentId.trim() ? note.parentId : null,
         favorite: Boolean(note.favorite),
         tags: Array.isArray(note.tags) ? normalizeTagList(note.tags.map(String)) : [],
-        content: typeof note.content === "string" ? note.content : "",
+        content,
         quizQuestions: normalizeQuizQuestionCollection(note.quizQuestions, note.id),
         createdAt: typeof note.createdAt === "string" ? note.createdAt : new Date().toISOString(),
         updatedAt: typeof note.updatedAt === "string" ? note.updatedAt : new Date().toISOString(),
