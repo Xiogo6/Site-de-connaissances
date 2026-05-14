@@ -394,18 +394,14 @@
                     Ajouter une ligne
                   </button>
                 </div>
-                <p class="helper-copy helper-copy-compact">
-                  Saisissez une question et les réponses acceptees separees par des virgules.
-                </p>
                 <div class="table-shell quiz-bank-shell">
                   <table class="data-table quiz-bank-table">
-                    <thead>
-                      <tr>
-                        <th>Question</th>
-                        <th>Réponses</th>
-                        <th>Supprimer</th>
-                      </tr>
-                    </thead>
+                    <colgroup>
+                      <col style="width: 28px" />
+                      <col style="width: 58%" />
+                      <col style="width: 42%" />
+                    </colgroup>
+                    <thead><tr><th></th><th>Question</th><th>Reponses</th></tr></thead>
                     <tbody id="note-quiz-questions-body"></tbody>
                   </table>
                 </div>
@@ -413,35 +409,38 @@
             </section>
 
             <section class="panel panel-preview">
-              <div class="panel-header">
-                <div>
-                  <h3 id="preview-title">Apercu</h3>
+              <div id="preview-card" class="preview-note-card">
+                <div class="preview-note-card-header">
+                  <h3 id="preview-title" class="preview-note-title">Apercu</h3>
+                  <div class="inline-actions">
+                    <button id="note-mode-toggle" class="button button-mobile-icon" type="button">
+                      <span class="button-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" role="presentation">
+                          <path d="M4 17.5V20h2.5L17 9.5 14.5 7z" />
+                          <path d="M13.5 8L16 5.5 18.5 8 16 10.5" />
+                        </svg>
+                      </span>
+                      <span class="button-label">Editer</span>
+                    </button>
+                    <span id="note-status" class="pill pill-soft is-hidden" hidden></span>
+                  </div>
                 </div>
-                <div class="inline-actions">
-                  <button id="note-mode-toggle" class="button button-mobile-icon" type="button">
-                    <span class="button-icon" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" role="presentation">
-                        <path d="M4 17.5V20h2.5L17 9.5 14.5 7z" />
-                        <path d="M13.5 8L16 5.5 18.5 8 16 10.5" />
-                      </svg>
-                    </span>
-                    <span class="button-label">Editer</span>
-                  </button>
-                  <span id="note-status" class="pill pill-soft is-hidden" hidden></span>
-                </div>
+                <article id="preview-content" class="rendered-note"></article>
+                <div id="preview-tags" class="tag-list"></div>
+                <div id="preview-meta" class="meta-row"></div>
               </div>
-
-              <article id="preview-content" class="rendered-note"></article>
-              <div id="preview-tags" class="tag-list"></div>
-              <div id="preview-meta" class="meta-row"></div>
-              <div class="link-section">
+              <div class="link-section preview-quiz-panel">
                 <h4>Questions de la note</h4>
                 <div class="table-shell quiz-preview-shell">
                   <table class="data-table quiz-preview-table">
+                    <colgroup>
+                      <col style="width: 58%" />
+                      <col style="width: 42%" />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th>Question</th>
-                        <th>Réponses</th>
+                        <th>Reponses</th>
                       </tr>
                     </thead>
                     <tbody id="preview-quiz-questions-body"></tbody>
@@ -613,7 +612,7 @@
 
         <section id="quiz-tab" class="tab-panel">
           <div class="quiz-layout">
-            <section class="panel quiz-controls">
+            <section id="quiz-controls" class="panel quiz-controls">
               <div class="panel-header">
                 <div>
                   <p class="eyebrow">Revision active</p>
@@ -679,7 +678,7 @@
             <section class="panel quiz-panel">
               <div class="panel-header">
                 <div>
-                  <p class="eyebrow">Session</p>
+                  <p class="eyebrow">Quiz</p>
                   <h3 id="quiz-title">Aucun quiz cree</h3>
                 </div>
                 <span id="quiz-progress" class="pill pill-soft">0 / 0</span>
@@ -687,7 +686,7 @@
 
               <article id="quiz-card" class="quiz-card empty-state">
                 Les questions ecrites apparaitront ici ligne par ligne.
-              </div>
+              </article>
 
               <div id="quiz-summary" class="quiz-summary"></div>
             </section>

@@ -81,6 +81,7 @@
 
 .workspace {
   grid-template-columns: minmax(0, 1fr) 340px;
+  min-width: 0;
 }
 
 .workspace .panel-editor {
@@ -89,6 +90,7 @@
 
 .workspace.is-editing {
   grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.9fr) 320px;
+  min-width: 0;
 }
 
 .workspace.is-editing .panel-editor {
@@ -536,6 +538,16 @@ body[data-theme="dark"] .tab.is-active {
     gap: 12px;
   }
 
+  .quiz-layout {
+    justify-items: center;
+  }
+
+  .quiz-layout > .panel {
+    justify-self: center;
+    margin-inline: auto;
+    width: min(100%, 520px);
+  }
+
   .form-grid,
   .helper-grid {
     grid-template-columns: 1fr;
@@ -562,13 +574,15 @@ body[data-theme="dark"] .tab.is-active {
   }
 
   .panel-preview,
+  .panel-editor,
   .panel-links {
     min-width: 0;
+    max-width: 100%;
   }
 
   #quiz-tab.is-active,
   #visualization-tab.is-active {
-    padding-top: 78px;
+    padding-top: 0;
   }
 
   .panel-links,
