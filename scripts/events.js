@@ -695,13 +695,17 @@
       return;
     }
 
-    const button = event.target.closest("[data-quiz-session-validate]");
-    if (!button) {
+    const validateButton = event.target.closest("[data-quiz-validate-all]");
+    if (validateButton) {
+      context.quiz.validateQuizSession();
       return;
     }
 
-    const index = Number(button.dataset.quizSessionValidate);
-    context.quiz.validateQuizQuestion(index);
+    const cancelButton = event.target.closest("[data-quiz-cancel]");
+    if (cancelButton) {
+      context.quiz.resetQuizSession();
+      return;
+    }
   }
 
   function handleQuizSessionKeydown(event) {
@@ -711,8 +715,7 @@
     }
 
     event.preventDefault();
-    const index = Number(input.dataset.quizSessionAnswer);
-    context.quiz.validateQuizQuestion(index);
+    context.quiz.validateQuizSession();
   }
 
   function scrollToTop(smooth = true) {

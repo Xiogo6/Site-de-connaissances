@@ -1044,8 +1044,29 @@ body[data-theme="dark"] .preview-note-card {
 
 .quiz-session-actions {
   display: flex;
+  gap: 10px;
   justify-content: flex-end;
+  flex-wrap: wrap;
   margin-top: 8px;
+}
+
+:root[data-theme="dark"] .quiz-session-actions .button-primary,
+body[data-theme="dark"] .quiz-session-actions .button-primary {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 42%),
+    linear-gradient(135deg, rgba(93, 116, 97, 0.88) 0%, rgba(70, 99, 75, 0.98) 100%);
+  box-shadow: 0 14px 26px rgba(70, 99, 75, 0.24);
+  color: #eef5ea;
+}
+
+:root[data-theme="dark"] .quiz-session-actions .button-ghost,
+body[data-theme="dark"] .quiz-session-actions .button-ghost {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 42%),
+    linear-gradient(135deg, rgba(191, 91, 44, 0.76) 0%, rgba(161, 74, 34, 0.96) 100%);
+  border-color: rgba(191, 91, 44, 0.32);
+  box-shadow: 0 14px 26px rgba(191, 91, 44, 0.18);
+  color: #fff3ea;
 }
 
 .quiz-session-hud {
@@ -1363,6 +1384,52 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
 
 .quiz-session-table tr.is-wrong td {
   background: rgba(183, 61, 61, 0.1);
+}
+
+.quiz-session-table tr.quiz-reveal-row {
+  animation: quizRevealRow 380ms ease both;
+  animation-delay: var(--quiz-reveal-delay, 0ms);
+}
+
+.quiz-session-table tr.quiz-reveal-row td {
+  animation: quizRevealCell 380ms ease both;
+  animation-delay: var(--quiz-reveal-delay, 0ms);
+}
+
+.quiz-session-table tr.quiz-reveal-row td:first-child span {
+  animation: quizRevealMeta 300ms ease both;
+  animation-delay: calc(var(--quiz-reveal-delay, 0ms) + 120ms);
+}
+
+@keyframes quizRevealRow {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes quizRevealCell {
+  from {
+    filter: blur(1px);
+  }
+  to {
+    filter: blur(0);
+  }
+}
+
+@keyframes quizRevealMeta {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .quiz-question-empty-row td {

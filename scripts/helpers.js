@@ -14,8 +14,23 @@
       .replaceAll("'", "&#39;");
   }
 
+  function decodeHtmlEntities(value) {
+    if (typeof document === "undefined") {
+      return String(value || "")
+        .replaceAll("&amp;", "&")
+        .replaceAll("&lt;", "<")
+        .replaceAll("&gt;", ">")
+        .replaceAll("&quot;", '"')
+        .replaceAll("&#39;", "'");
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = String(value || "");
+    return textarea.value;
+  }
+
   function normalizeLinkTitle(value) {
-    return String(value || "")
+    return decodeHtmlEntities(value)
       .trim()
       .toLowerCase()
       .normalize("NFD")
@@ -260,7 +275,7 @@
   }
 
   function renderInline(text) {
-    const escaped = escapeHtml(text);
+    const escaped = escapeHtml(decodeHtmlEntities(text));
     return escaped
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
       .replace(/(^|[\s(])\*([^*]+)\*(?=[\s).,!?:;]|$)/g, "$1<em>$2</em>")
@@ -346,6 +361,7 @@
 
   AtlasApp.helpers = {
     clamp,
+    decodeHtmlEntities,
     escapeHtml,
     extractLinks,
     extractSummary,
