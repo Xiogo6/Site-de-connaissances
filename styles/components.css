@@ -1983,6 +1983,10 @@ body[data-theme="dark"] .toggle-row-editor {
     width: 46%;
   }
 
+  .quiz-session-answer {
+    font-size: 16px;
+  }
+
   .quiz-score-pill {
     padding: 7px 10px;
   }
