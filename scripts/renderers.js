@@ -607,6 +607,12 @@
 
   function renderQuizQuestionBank() {
     const editable = context.state.noteViewMode === "edit" && !context.data.isReadOnlyMode();
+    const activeNote = context.notes.getActiveNote();
+    const questions =
+      editable && context.state.editorQuizQuestionsNoteId === activeNote?.id
+        ? context.state.editorQuizQuestions || []
+        : activeNote?.quizQuestions || [];
+
     if (context.elements.addQuizQuestionButton) {
       context.elements.addQuizQuestionButton.disabled = context.data.isReadOnlyMode();
     }
@@ -618,7 +624,7 @@
     }
     renderQuizQuestionTable(
       context.elements.noteQuizQuestionsBody,
-      context.state.editorQuizQuestions || [],
+      questions,
       {
         editable,
         emptyMessage: "Aucune question pour l instant. Ajoutez-en une pour alimenter le quiz.",
