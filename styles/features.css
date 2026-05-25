@@ -1026,19 +1026,7 @@ body[data-theme="dark"] .graph-label.is-tag-label {
   }
 
   .graph-controls {
-    display: grid;
     gap: 8px;
-    grid-template-columns: 1fr;
-    width: 100%;
-  }
-
-  .graph-controls .toggle-row {
-    justify-content: flex-start;
-  }
-
-  .graph-controls .select-input,
-  .graph-controls .button {
-    width: 100%;
   }
 
   .timeline-summary-grid,
@@ -1051,8 +1039,18 @@ body[data-theme="dark"] .graph-label.is-tag-label {
   }
 
   .graph-zoom-stack {
-    top: 14px;
+    top: 128px;
     right: 14px;
+  }
+
+  .graph-panel {
+    min-height: calc(100vh - 62px);
+  }
+
+  .graph-canvas {
+    margin: 0 12px;
+    min-height: calc(100vh - 146px);
+    width: calc(100% - 24px);
   }
 
   .select-inline {
