@@ -45,6 +45,10 @@
 
   function renderTabs() {
     document.body.classList.toggle("utility-drawer-open", context.state.utilityDrawerOpen);
+    const graphViewActive =
+      context.state.activeTab === "graph" ||
+      (context.state.activeTab === "visualization" && context.state.visualizationMode === "graph");
+    document.body.classList.toggle("graph-view-active", graphViewActive);
     context.elements.tabs.forEach((tab) => {
       tab.classList.toggle("is-active", tab.dataset.tab === context.state.activeTab);
     });
@@ -536,7 +540,8 @@
       note.title || "Sans titre"
     )}</span>`;
     context.elements.previewTags.innerHTML = "";
-    context.elements.previewMeta.innerHTML = "";
+    context.elements.previewMetaTop.innerHTML = "";
+    context.elements.previewMetaBottom.innerHTML = "";
     context.elements.previewContent.innerHTML = renderNoteHtml(getReadablePreviewContent(note));
     context.elements.previewCard?.style.removeProperty("--read-swipe-x");
     context.elements.noteStatus.textContent = "";
@@ -564,7 +569,7 @@
 
     const updatedMeta = document.createElement("span");
     updatedMeta.textContent = `Maj: ${context.helpers.formatDate(note.updatedAt)}`;
-    context.elements.previewMeta.appendChild(updatedMeta);
+    context.elements.previewMetaBottom.appendChild(updatedMeta);
 
     if (metadata.hasDate) {
       const labels = {
@@ -599,7 +604,7 @@
                 metadata.endDate
               )}`
           : `${labels[metadata.dateMode] || "Date"}: ${formatStructuredDate(metadata.singleDate)}`;
-      context.elements.previewMeta.appendChild(dateMeta);
+      context.elements.previewMetaTop.appendChild(dateMeta);
     }
 
     renderQuizQuestionPreview(note, isDraft);

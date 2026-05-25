@@ -343,11 +343,15 @@ body[data-theme="dark"] .tab.is-active {
     position: relative;
   }
 
+  body.graph-view-active .top-navigation {
+    display: none;
+  }
+
   .main-layout {
     grid-template-rows: auto minmax(0, 1fr) auto;
     margin: 0 auto;
     padding-bottom: 12px;
-    width: min(100%, 430px);
+    width: 100%;
   }
 
   .top-navigation {
@@ -583,6 +587,158 @@ body[data-theme="dark"] .tab.is-active {
   #quiz-tab.is-active,
   #visualization-tab.is-active {
     padding-top: 0;
+  }
+
+  #graph-tab.is-active {
+    margin-inline: calc(-1 * clamp(14px, 4vw, 18px));
+    margin-top: -6px;
+  }
+
+  .graph-layout {
+    gap: 0;
+    min-height: calc(100vh - 62px);
+  }
+
+  .graph-panel {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    border-radius: 30px;
+    min-height: calc(100vh - 62px);
+    overflow: hidden;
+    padding: 0;
+    position: relative;
+  }
+
+  .graph-panel .panel-header {
+    align-items: center;
+    background: linear-gradient(180deg, rgba(24, 28, 33, 0.78), rgba(24, 28, 33, 0));
+    display: flex;
+    left: 0;
+    padding: 14px 0 18px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 26;
+  }
+
+  .graph-panel .panel-header > div:first-child {
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .graph-panel .panel-header .eyebrow {
+    display: none;
+  }
+
+  .graph-panel .panel-header h3 {
+    font-size: clamp(1.2rem, 3.8vw, 1.6rem);
+    letter-spacing: -0.02em;
+  }
+
+  .graph-panel .graph-controls {
+    display: flex;
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 0;
+    position: fixed;
+    right: 12px;
+    top: 82px;
+    width: auto;
+    z-index: 27;
+  }
+
+  .graph-panel .graph-controls .toggle-row,
+  .graph-panel .graph-controls .select-input,
+  .graph-panel .graph-controls .button {
+    backdrop-filter: blur(18px);
+    box-shadow: 0 14px 30px rgba(15, 18, 22, 0.24);
+  }
+
+  .graph-panel .graph-controls .toggle-row {
+    align-items: center;
+    background: rgba(24, 28, 33, 0.82);
+    border: 1px solid rgba(215, 201, 185, 0.12);
+    border-radius: 999px;
+    color: #e7e2da;
+    display: inline-flex;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 14px;
+    width: 42px;
+  }
+
+  .graph-panel .graph-controls .toggle-row input {
+    margin-right: 0;
+  }
+
+  .graph-panel .graph-controls .toggle-row span {
+    display: none;
+  }
+
+  .graph-panel .graph-controls .select-input {
+    background: rgba(24, 28, 33, 0.82);
+    border: 1px solid rgba(215, 201, 185, 0.12);
+    border-radius: 999px;
+    color: #e7e2da;
+    min-height: 42px;
+    padding-inline: 14px 36px;
+    width: min(44vw, 180px);
+  }
+
+  .graph-panel .graph-controls .button {
+    align-items: center;
+    background: rgba(24, 28, 33, 0.82);
+    border: 1px solid rgba(215, 201, 185, 0.12);
+    border-radius: 999px;
+    color: #e7e2da;
+    display: inline-flex;
+    justify-content: center;
+    min-height: 42px;
+    min-width: 42px;
+    padding: 0 14px;
+  }
+
+  #reset-graph-button {
+    width: min(44vw, 180px);
+  }
+
+  .graph-stage {
+    min-height: calc(100vh - 62px);
+    padding: 72px 0 12px;
+  }
+
+  .graph-canvas {
+    background:
+      radial-gradient(circle at 30% 26%, rgba(124, 146, 172, 0.18), transparent 34%),
+      radial-gradient(circle at 78% 34%, rgba(98, 114, 140, 0.14), transparent 30%),
+      linear-gradient(180deg, rgba(36, 42, 51, 0.98), rgba(31, 37, 46, 0.98));
+    border: 0;
+    border-radius: 30px;
+    box-shadow:
+      0 24px 54px rgba(9, 12, 18, 0.34),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    display: block;
+    margin: 0 12px;
+    min-height: calc(100vh - 146px);
+    width: calc(100% - 24px);
+  }
+
+  .graph-zoom-stack {
+    top: 128px;
+    right: 12px;
+  }
+
+  .graph-zoom-stack .button {
+    background: rgba(24, 28, 33, 0.82);
+    border: 1px solid rgba(215, 201, 185, 0.12);
+    border-radius: 999px;
+    color: #e7e2da;
+    box-shadow: 0 14px 30px rgba(15, 18, 22, 0.24);
+  }
+
+  .graph-sidebar {
+    display: none;
   }
 
   .panel-links,
