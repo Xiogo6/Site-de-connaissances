@@ -741,6 +741,12 @@ body[data-theme="dark"] .tab.is-active {
     display: none;
   }
 
+  .workspace > .panel {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
   .panel-links,
   .organization-layout > .panel:last-child,
   .graph-sidebar {

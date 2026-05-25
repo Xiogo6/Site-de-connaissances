@@ -305,7 +305,11 @@
         return;
       }
 
-      blocks.push(`<p>${paragraphBuffer.map(renderInline).join("<br>")}</p>`);
+      blocks.push(
+        `<p>${paragraphBuffer
+          .map((line) => `<span class="note-line">${renderInline(line)}</span>`)
+          .join("")}</p>`
+      );
       paragraphBuffer = [];
     };
 
