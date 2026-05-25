@@ -923,6 +923,16 @@ body[data-theme="dark"] .preview-note-card {
   margin: 0.45rem 0;
 }
 
+.rendered-note p {
+  line-height: 1.78;
+  margin: 0.72rem 0 1rem;
+}
+
+.rendered-note .note-line {
+  display: block;
+  margin: 0.22rem 0;
+}
+
 .rendered-note ul {
   padding-left: 1.5rem;
 }
@@ -1814,7 +1824,7 @@ body[data-theme="dark"] .toggle-row-editor {
     box-shadow: none;
     gap: 10px;
     margin-top: 0;
-    padding: 0;
+    padding: 12px 0 0;
   }
 
   .preview-note-card-header {
