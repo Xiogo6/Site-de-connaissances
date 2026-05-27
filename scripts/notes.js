@@ -9,6 +9,12 @@
       parseTags,
       unique,
     } = AtlasApp.helpers;
+    const systemFolders = {
+      triage: "à trier",
+      dailyRoot: "Kevin Bardet",
+      daily: "daily",
+    };
+
   function getFilteredNotes() {
     const ordered = [...context.state.notes].sort((left, right) => {
       return left.title.localeCompare(right.title, "fr", { sensitivity: "base" });
@@ -82,6 +88,90 @@
     });
   }
 
+  function findNoteByTitle(title, options = {}) {
+    const normalizedTitle = normalizeLinkTitle(title);
+    const type = typeof options.type === "string" ? options.type : null;
+    const parentId = options.parentId === undefined ? undefined : options.parentId;
+
+    return (
+      context.state.notes.find((note) => {
+        if (normalizeLinkTitle(note.title) !== normalizedTitle) {
+          return false;
+        }
+
+        if (type && note.type !== type) {
+          return false;
+        }
+
+        if (parentId !== undefined && note.parentId !== parentId) {
+          return false;
+        }
+
+        return true;
+      }) ?? null
+    );
+  }
+
+  function createFolderNote(title, parentId = null) {
+    const now = new Date().toISOString();
+    return {
+      id: context.data.generateId(title),
+      title,
+      type: "folder",
+      parentId,
+      favorite: false,
+      tags: [],
+      content: `# ${title}`,
+      quizQuestions: [],
+      metadata: createNoteMetadata(),
+      createdAt: now,
+      updatedAt: now,
+      review: context.data.createReviewState(),
+    };
+  }
+
+  function ensureFolder(title, parentId = null) {
+    const existing = findNoteByTitle(title, { parentId, type: "folder" });
+    if (existing) {
+      return existing;
+    }
+
+    const folder = createFolderNote(title, parentId);
+    context.state.notes.unshift(folder);
+
+    if (parentId) {
+      const parent = context.state.notes.find((note) => note.id === parentId);
+      if (parent) {
+        ensureBidirectionalHierarchyLinks(parent, folder);
+      }
+    }
+
+    return folder;
+  }
+
+  function ensureDefaultFolders() {
+    const rootFolder = ensureFolder(systemFolders.dailyRoot);
+    const dailyFolder = ensureFolder(systemFolders.daily, rootFolder.id);
+    const triageFolder = ensureFolder(systemFolders.triage);
+    return {
+      rootFolder,
+      dailyFolder,
+      triageFolder,
+    };
+  }
+
+  function getDefaultParentIdForType(type) {
+    if (type === "daily") {
+      return ensureDefaultFolders().dailyFolder.id;
+    }
+
+    if (type === "folder") {
+      return null;
+    }
+
+    return ensureDefaultFolders().triageFolder.id;
+  }
+
   function hasAnyDateInput() {
     return Boolean(
       context.elements.noteDateSingle.value.trim() ||
@@ -131,7 +221,7 @@
       id: context.data.generateId("page"),
       title,
       type,
-      parentId: null,
+      parentId: getDefaultParentIdForType(type),
       favorite: false,
       tags: [],
       content: "",
@@ -682,6 +772,10 @@
   }
 
   function handleEditorTypeChange() {
+    const active = getActiveNote();
+    if (active && context.state.pendingNewNoteId === active.id) {
+      context.elements.parentInput.value = getDefaultParentIdForType(context.elements.typeInput.value) || "";
+    }
     applyDailyDateToEditorIfEmpty();
     context.renderers.renderStructuredFields();
     clearEditorTemplateSeed();
@@ -884,7 +978,7 @@
       tags: [],
       content: `# ${title}`,
       quizQuestions: [],
-      metadata: type === "daily" ? createDailyMetadata() : createNoteMetadata(),
+      metadata: createNoteMetadata(),
       createdAt: now,
       updatedAt: now,
       review: context.data.createReviewState(),
@@ -965,12 +1059,18 @@
     const tags = parseTags(context.elements.quickTags.value);
     const body = context.elements.quickContent.value.trim();
     const type = context.elements.quickType?.value || "concept";
+    const parentId =
+      type === "daily"
+        ? getDefaultParentIdForType(type)
+        : shouldLink
+          ? active.id
+          : getDefaultParentIdForType(type);
     const now = new Date().toISOString();
     const note = {
       id: context.data.generateId(title),
       title,
       type,
-      parentId: shouldLink ? active.id : null,
+      parentId,
       favorite: false,
       tags,
       content: `# ${title}
@@ -1046,7 +1146,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
       id: context.data.generateId(trimmedTitle),
       title: trimmedTitle,
       type: "concept",
-      parentId: null,
+      parentId: getDefaultParentIdForType("concept"),
       favorite: false,
       tags: [],
       content: `# ${trimmedTitle}`,
@@ -1162,6 +1262,8 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     getFolderDescendantNotes,
     getHierarchyLinks,
     getMostConnectedNotes,
+    ensureDefaultFolders,
+    getDefaultParentIdForType,
     getParentNote,
     getParentTitle,
     getSuggestedLinks,
