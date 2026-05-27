@@ -110,7 +110,17 @@
       context.data.saveNotes();
     }
 
-    context.state.activeNoteId = getStartupNoteId() ?? context.state.notes[0]?.id ?? null;
+    const notesBeforeSystemFolders = context.state.notes.length;
+    context.notes.ensureDefaultFolders();
+    if (context.state.notes.length !== notesBeforeSystemFolders) {
+      context.data.saveNotes({ skipRemote: true });
+    }
+
+    context.state.activeNoteId =
+      getStartupNoteId() ??
+      context.state.notes.find((note) => note.type !== "folder")?.id ??
+      context.state.notes[0]?.id ??
+      null;
     context.renderers.syncDynamicControls();
     context.events.bindEvents();
     context.renderers.renderEverything();
@@ -118,41 +128,17 @@
   }
 
   function getStartupNoteId() {
-    const remembered = context.state.notes.find(
-      (note) => note.id === context.state.settings.lastEditedNoteId && isMeaningfulNote(note)
-    );
-    return remembered?.id ?? getLatestEditedNoteId(true) ?? getLatestEditedNoteId(false);
+    return getLatestEditedNoteId();
   }
 
-  function getLatestEditedNoteId(onlyMeaningful) {
+  function getLatestEditedNoteId() {
     return context.state.notes
-      .filter((note) => !onlyMeaningful || isMeaningfulNote(note))
+      .filter((note) => note.type !== "folder")
       .map((note) => ({
         id: note.id,
         timestamp: Date.parse(note.updatedAt || note.createdAt || ""),
       }))
       .filter((item) => !Number.isNaN(item.timestamp))
       .sort((left, right) => right.timestamp - left.timestamp)[0]?.id;
-  }
-
-  function isMeaningfulNote(note) {
-    const title = String(note?.title || "").trim();
-    const content = String(note?.content || "").trim();
-    const body = content
-      .replace(new RegExp(`^#\\s+${escapeRegExp(title)}\\s*`, "i"), "")
-      .replace(/^#\s+.+$/gm, "")
-      .replace(/[\s#*-]/g, "");
-    return Boolean(
-      body ||
-        note?.tags?.length ||
-        note?.favorite ||
-        note?.parentId ||
-        note?.metadata?.hasDate ||
-        !/^nouvelle page\s+\d+$/i.test(title)
-    );
-  }
-
-  function escapeRegExp(value) {
-    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 })(window);

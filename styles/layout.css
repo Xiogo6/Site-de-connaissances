@@ -347,6 +347,10 @@ body[data-theme="dark"] .tab.is-active {
     display: none;
   }
 
+  body.graph-view-active .mode-switcher {
+    top: 88px;
+  }
+
   .main-layout {
     grid-template-rows: auto minmax(0, 1fr) auto;
     margin: 0 auto;
@@ -711,7 +715,6 @@ body[data-theme="dark"] .tab.is-active {
   .graph-canvas {
     background:
       radial-gradient(circle at 30% 26%, rgba(124, 146, 172, 0.18), transparent 34%),
-      radial-gradient(circle at 78% 34%, rgba(98, 114, 140, 0.14), transparent 30%),
       linear-gradient(180deg, rgba(36, 42, 51, 0.98), rgba(31, 37, 46, 0.98));
     border: 0;
     border-radius: 30px;
