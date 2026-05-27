@@ -420,6 +420,9 @@
         templates: {},
         collapsedFolders: [],
         lastEditedNoteId: null,
+        quizPlayerStats: {
+          sessions: [],
+        },
         sport: {
           massEntries: [],
           performanceEntries: [],
@@ -454,6 +457,36 @@
               ])
             )
           : [],
+      };
+    }
+
+    function normalizeQuizPlayerStats(rawStats = {}) {
+      const sessions = Array.isArray(rawStats?.sessions)
+        ? rawStats.sessions
+            .map((session) => ({
+              id:
+                typeof session?.id === "string" && session.id.trim()
+                  ? session.id.trim()
+                  : `quiz-${Date.now()}`,
+              startedAt: typeof session?.startedAt === "string" ? session.startedAt : null,
+              finishedAt: typeof session?.finishedAt === "string" ? session.finishedAt : null,
+              durationSeconds: Math.max(0, Math.round(Number(session?.durationSeconds) || 0)),
+              total: Math.max(0, Math.round(Number(session?.total) || 0)),
+              correct: Math.max(0, Math.round(Number(session?.correct) || 0)),
+              scope: typeof session?.scope === "string" ? session.scope : "all",
+              focus: typeof session?.focus === "string" ? session.focus : "mixed",
+            }))
+            .filter((session) => session.total > 0)
+        : [];
+
+      return {
+        sessions: sessions
+          .sort(
+            (left, right) =>
+              (Date.parse(right.finishedAt || "") || 0) -
+              (Date.parse(left.finishedAt || "") || 0)
+          )
+          .slice(0, 120),
       };
     }
 
@@ -525,6 +558,7 @@
           : [],
         lastEditedNoteId:
           typeof rawSettings?.lastEditedNoteId === "string" ? rawSettings.lastEditedNoteId : null,
+        quizPlayerStats: normalizeQuizPlayerStats(rawSettings?.quizPlayerStats),
         sport: normalizeSportSettings(rawSettings?.sport),
       };
     }
@@ -570,6 +604,7 @@
           templates: context.state.settings.templates || {},
           collapsedFolders: context.state.settings.collapsedFolders || [],
           lastEditedNoteId: context.state.settings.lastEditedNoteId || null,
+          quizPlayerStats: normalizeQuizPlayerStats(context.state.settings.quizPlayerStats),
           sport: context.state.settings.sport || { massEntries: [], performanceEntries: [] },
         },
         notes: context.state.notes.map((note) => ({

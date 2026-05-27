@@ -1404,19 +1404,23 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   background: rgba(183, 61, 61, 0.1);
 }
 
+.quiz-session-table tr.is-contested td {
+  background: rgba(56, 103, 168, 0.1);
+}
+
 .quiz-session-table tr.quiz-reveal-row {
-  animation: quizRevealRow 380ms ease both;
+  animation: quizRevealRow 720ms ease both;
   animation-delay: var(--quiz-reveal-delay, 0ms);
 }
 
 .quiz-session-table tr.quiz-reveal-row td {
-  animation: quizRevealCell 380ms ease both;
+  animation: quizRevealCell 720ms ease both;
   animation-delay: var(--quiz-reveal-delay, 0ms);
 }
 
 .quiz-session-table tr.quiz-reveal-row td:first-child span {
-  animation: quizRevealMeta 300ms ease both;
-  animation-delay: calc(var(--quiz-reveal-delay, 0ms) + 120ms);
+  animation: quizRevealMeta 520ms ease both;
+  animation-delay: calc(var(--quiz-reveal-delay, 0ms) + 220ms);
 }
 
 @keyframes quizRevealRow {

@@ -49,8 +49,11 @@
         finishedAt: null,
         requestedAmount,
       };
+      context.state.quizView = "play";
 
       context.renderers.renderTabs();
+      renderQuizViewMode();
+      renderQuizDashboard();
       renderQuizCard();
       startQuizTimer();
     }
@@ -67,6 +70,26 @@
       };
 
       renderQuizCard();
+      renderQuizDashboard();
+    }
+
+    function setQuizView(view) {
+      context.state.quizView = view === "play" ? "play" : "stats";
+      if (context.state.quizView === "stats") {
+        context.state.quizStatsDrilldown = null;
+      }
+      renderQuizViewMode();
+      renderQuizDashboard();
+      renderQuizCard();
+    }
+
+    function renderQuizViewMode() {
+      const view = context.state.quizView === "play" ? "play" : "stats";
+      context.elements.quizUniverse?.classList.toggle("quiz-view-stats", view === "stats");
+      context.elements.quizUniverse?.classList.toggle("quiz-view-play", view === "play");
+      context.elements.quizViewButtons?.forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.quizView === view);
+      });
     }
 
     function startQuizTimer() {
@@ -114,6 +137,13 @@
         return [];
       }
 
+      const focus = normalizeQuizFocus(context.elements.quizMode?.value);
+      const focusedCandidates = noteCandidates.filter((candidate) => matchesQuizFocus(candidate, focus));
+
+      if (!focusedCandidates.length) {
+        return [];
+      }
+
       const quotas = computeDifficultyQuotas(requestedAmount);
       const pools = {
         difficult: [],
@@ -121,7 +151,7 @@
         easy: [],
       };
 
-      noteCandidates.forEach((candidate) => {
+      focusedCandidates.forEach((candidate) => {
         pools[candidate.difficulty].push(candidate);
       });
 
@@ -137,7 +167,7 @@
       });
 
       if (selected.length < requestedAmount) {
-        const remainder = noteCandidates.filter((item) => !usedKeys.has(item.sessionKey));
+        const remainder = focusedCandidates.filter((item) => !usedKeys.has(item.sessionKey));
         pickFromPool(remainder, requestedAmount - selected.length, usedKeys).forEach((item) =>
           selected.push(item)
         );
@@ -267,6 +297,48 @@
       }[difficulty] || "Difficile";
     }
 
+    function normalizeQuizFocus(value) {
+      return ["priority", "new", "difficult", "intermediate", "easy"].includes(value)
+        ? value
+        : "mixed";
+    }
+
+    function getQuizFocusLabel(focus) {
+      return {
+        mixed: "Toutes",
+        priority: "Priorite",
+        new: "Jamais vues",
+        difficult: "Difficiles",
+        intermediate: "Intermediaires",
+        easy: "Maitrisees",
+      }[normalizeQuizFocus(focus)] || "Toutes";
+    }
+
+    function isPriorityQuestion(stats = {}) {
+      const asked = Number(stats?.asked) || 0;
+      const correct = Number(stats?.correct) || 0;
+      const ratio = asked > 0 ? correct / asked : 0;
+      return asked === 0 || getQuestionDifficulty(stats) === "difficult" || ratio < 0.5;
+    }
+
+    function matchesQuizFocus(candidate, focus) {
+      const normalizedFocus = normalizeQuizFocus(focus);
+      const stats = candidate.statsBefore || {};
+      if (normalizedFocus === "mixed") {
+        return true;
+      }
+
+      if (normalizedFocus === "priority") {
+        return isPriorityQuestion(stats);
+      }
+
+      if (normalizedFocus === "new") {
+        return (Number(stats.asked) || 0) === 0;
+      }
+
+      return candidate.difficulty === normalizedFocus;
+    }
+
     function computeDifficultyQuotas(amount) {
       const easy = Math.round(amount * 0.2);
       const intermediate = Math.round(amount * 0.4);
@@ -384,10 +456,115 @@
       });
 
       context.state.quiz.validatedCount = context.state.quiz.questions.length;
-      context.state.quiz.score = context.state.quiz.questions.filter((item) => item.isCorrect).length;
+      syncQuizScore();
       context.state.quiz.finishedAt = Date.now();
       stopQuizTimer();
+      recordQuizSession();
       context.data.saveNotes();
+      renderQuizDashboard();
+      renderQuizCard();
+    }
+
+    function getCountedQuizQuestions() {
+      return context.state.quiz.questions.filter((question) => !question.contested);
+    }
+
+    function getQuizScoreSnapshot() {
+      const counted = getCountedQuizQuestions();
+      return {
+        total: counted.length,
+        correct: counted.filter((item) => item.validated && item.isCorrect).length,
+        wrong: counted.filter((item) => item.validated && !item.isCorrect).length,
+        contested: context.state.quiz.questions.filter((item) => item.contested).length,
+      };
+    }
+
+    function syncQuizScore() {
+      const score = getQuizScoreSnapshot();
+      context.state.quiz.score = score.correct;
+      context.state.quiz.scoredTotal = score.total;
+      context.state.quiz.contestedCount = score.contested;
+      return score;
+    }
+
+    function contestQuizQuestion(index) {
+      const question = context.state.quiz.questions[index];
+      if (!question || !context.state.quiz.finishedAt || question.contested) {
+        return;
+      }
+
+      const note = context.state.notes.find((candidate) => candidate.id === question.noteId);
+      const storedQuestion = note?.quizQuestions?.find((item) => item.id === question.questionId);
+      if (storedQuestion && question.statsBefore) {
+        storedQuestion.stats = normalizeQuestionStats(question.statsBefore);
+        question.statsAfter = { ...storedQuestion.stats };
+
+        if (context.state.editorQuizQuestionsNoteId === note.id) {
+          context.state.editorQuizQuestions = (context.state.editorQuizQuestions || []).map(
+            (draftQuestion) =>
+              draftQuestion.id === question.questionId
+                ? {
+                    ...draftQuestion,
+                    stats: { ...storedQuestion.stats },
+                  }
+                : draftQuestion
+          );
+        }
+      }
+
+      question.contested = true;
+      question.contestedAt = new Date().toISOString();
+      syncQuizScore();
+      updateRecordedQuizSession();
+      context.data.saveNotes();
+      renderQuizDashboard();
+      renderQuizCard();
+    }
+
+    function acceptContestedAnswer(index) {
+      const question = context.state.quiz.questions[index];
+      const answer = String(question?.userAnswer || "").trim();
+      if (!question || !question.contested || !answer || question.contestedAnswerAccepted) {
+        return;
+      }
+
+      const note = context.state.notes.find((candidate) => candidate.id === question.noteId);
+      const storedQuestion = note?.quizQuestions?.find((item) => item.id === question.questionId);
+      if (!storedQuestion) {
+        return;
+      }
+
+      const existingAnswers = normalizeQuizAnswers(storedQuestion.answers);
+      const normalizedAnswer = normalizeAnswerText(answer);
+      const alreadyAccepted = existingAnswers.some(
+        (candidate) => normalizeAnswerText(candidate) === normalizedAnswer
+      );
+
+      if (!alreadyAccepted) {
+        storedQuestion.answers = [...existingAnswers, answer];
+        question.acceptedAnswers = [...existingAnswers, answer];
+      } else {
+        question.acceptedAnswers = existingAnswers;
+      }
+
+      question.contestedAnswerAccepted = true;
+      question.contestedAcceptedAnswer = answer;
+
+      if (context.state.editorQuizQuestionsNoteId === note.id) {
+        context.state.editorQuizQuestions = (context.state.editorQuizQuestions || []).map(
+          (draftQuestion) =>
+            draftQuestion.id === question.questionId
+              ? {
+                  ...draftQuestion,
+                  answers: [...storedQuestion.answers],
+                }
+              : draftQuestion
+        );
+      }
+
+      note.updatedAt = new Date().toISOString();
+      context.data.saveNotes();
+      renderQuizDashboard();
       renderQuizCard();
     }
 
@@ -425,7 +602,390 @@
       return minutes ? `${minutes}m ${seconds}s` : `${seconds}s`;
     }
 
+    function getSessionDurationSeconds(startedAt, finishedAt) {
+      if (!startedAt || !finishedAt) {
+        return 0;
+      }
+
+      return Math.max(0, Math.round((finishedAt - startedAt) / 1000));
+    }
+
+    function getQuizSessions() {
+      context.state.settings.quizPlayerStats = context.state.settings.quizPlayerStats || {
+        sessions: [],
+      };
+      context.state.settings.quizPlayerStats.sessions =
+        context.state.settings.quizPlayerStats.sessions || [];
+      return context.state.settings.quizPlayerStats.sessions;
+    }
+
+    function recordQuizSession() {
+      const score = syncQuizScore();
+      if (!score.total || !context.state.quiz.finishedAt) {
+        return;
+      }
+
+      const sessions = getQuizSessions();
+      const id = `quiz-${context.state.quiz.finishedAt}`;
+      context.state.quiz.sessionRecordId = id;
+      sessions.unshift({
+        id,
+        startedAt: new Date(context.state.quiz.startedAt).toISOString(),
+        finishedAt: new Date(context.state.quiz.finishedAt).toISOString(),
+        durationSeconds: getSessionDurationSeconds(
+          context.state.quiz.startedAt,
+          context.state.quiz.finishedAt
+        ),
+        total: score.total,
+        correct: score.correct,
+        scope: context.elements.quizScope?.value || "all",
+        focus: normalizeQuizFocus(context.elements.quizMode?.value),
+      });
+      context.state.settings.quizPlayerStats.sessions = sessions.slice(0, 120);
+    }
+
+    function updateRecordedQuizSession() {
+      const sessions = getQuizSessions();
+      const sessionId = context.state.quiz.sessionRecordId;
+      if (!sessionId) {
+        return;
+      }
+
+      const score = syncQuizScore();
+      const index = sessions.findIndex((session) => session.id === sessionId);
+      if (index < 0) {
+        return;
+      }
+
+      if (!score.total) {
+        sessions.splice(index, 1);
+        return;
+      }
+
+      sessions[index] = {
+        ...sessions[index],
+        total: score.total,
+        correct: score.correct,
+      };
+    }
+
+    function getDashboardNotes() {
+      return getScopedNotes(
+        context.elements.quizScope?.value || "all",
+        context.elements.quizTag?.value || "",
+        context.elements.quizFolder?.value || ""
+      ).filter((note) => Array.isArray(note.quizQuestions) && note.quizQuestions.length);
+    }
+
+    function collectQuestionInventory(notes) {
+      return notes.flatMap((note) =>
+        (note.quizQuestions || [])
+          .map((question, index) => {
+            const normalized = normalizeQuizQuestion(question, index);
+            if (!normalized) {
+              return null;
+            }
+
+            const asked = Number(normalized.stats.asked) || 0;
+            const correct = Number(normalized.stats.correct) || 0;
+            const difficulty = getQuestionDifficulty(normalized.stats);
+            const successRate = asked > 0 ? Math.round((correct / asked) * 100) : 0;
+
+            return {
+              key: `${note.id}:${normalized.id}`,
+              noteId: note.id,
+              noteTitle: note.title,
+              questionId: normalized.id,
+              question: normalized.question,
+              answerCount: normalized.answers.length,
+              stats: normalized.stats,
+              asked,
+              correct,
+              wrong: Math.max(asked - correct, 0),
+              difficulty,
+              difficultyLabel: getDifficultyLabel(difficulty),
+              successRate,
+              priority: isPriorityQuestion(normalized.stats),
+              lastAskedAt: normalized.stats.lastAskedAt,
+            };
+          })
+          .filter(Boolean)
+      );
+    }
+
+    function getQuizScopeLabel(scope) {
+      return {
+        all: "Toutes les pages",
+        current: "Page active",
+        folder: "Dossier",
+        tag: "Tag",
+        due: "Pages a revoir",
+      }[scope] || "Toutes les pages";
+    }
+
+    function getQuestionSortScore(item) {
+      const freshnessPenalty = item.lastAskedAt ? 0 : 40;
+      const difficultyBoost =
+        item.difficulty === "difficult" ? 28 : item.difficulty === "intermediate" ? 12 : 0;
+      return freshnessPenalty + difficultyBoost + item.wrong * 8 - item.correct * 2;
+    }
+
+    function formatPercent(value) {
+      return `${Math.round(Number(value) || 0)}%`;
+    }
+
+    function formatSessionDuration(seconds) {
+      const safeSeconds = Math.max(0, Math.round(Number(seconds) || 0));
+      const minutes = Math.floor(safeSeconds / 60);
+      const rest = safeSeconds % 60;
+      return minutes ? `${minutes}m ${rest}s` : `${rest}s`;
+    }
+
+    function renderQuizDashboard() {
+      if (!context.elements.quizDashboard) {
+        return;
+      }
+      renderQuizViewMode();
+
+      const allQuestions = collectQuestionInventory(context.state.notes);
+      const scope = context.elements.quizScope?.value || "all";
+      const focus = normalizeQuizFocus(context.elements.quizMode?.value);
+      const scopedQuestions = collectQuestionInventory(getDashboardNotes()).filter((item) => {
+        if (focus === "mixed") {
+          return true;
+        }
+        if (focus === "priority") {
+          return item.priority;
+        }
+        if (focus === "new") {
+          return item.asked === 0;
+        }
+        return item.difficulty === focus;
+      });
+
+      const totalAsked = allQuestions.reduce((sum, item) => sum + item.asked, 0);
+      const totalCorrect = allQuestions.reduce((sum, item) => sum + item.correct, 0);
+      const globalSuccess = totalAsked ? Math.round((totalCorrect / totalAsked) * 100) : 0;
+      const sessions = getQuizSessions();
+      const sessionCount = sessions.length;
+      const sessionAverage = sessionCount
+        ? Math.round(
+            sessions.reduce((sum, session) => sum + (session.correct / session.total) * 100, 0) /
+              sessionCount
+          )
+        : globalSuccess;
+      const bestSession = sessions.reduce(
+        (best, session) => Math.max(best, Math.round((session.correct / session.total) * 100)),
+        0
+      );
+
+      const distribution = {
+        new: allQuestions.filter((item) => item.asked === 0).length,
+        difficult: allQuestions.filter((item) => item.asked > 0 && item.difficulty === "difficult").length,
+        intermediate: allQuestions.filter((item) => item.difficulty === "intermediate").length,
+        easy: allQuestions.filter((item) => item.difficulty === "easy").length,
+      };
+      const priorityCount = allQuestions.filter((item) => item.priority).length;
+      const notesWithQuestions = context.state.notes.filter(
+        (note) => Array.isArray(note.quizQuestions) && note.quizQuestions.length
+      ).length;
+      const recentSession = sessions[0] || null;
+      const weakQuestions = [...scopedQuestions]
+        .sort((left, right) => getQuestionSortScore(right) - getQuestionSortScore(left))
+        .slice(0, 5);
+      const masteredQuestions = [...allQuestions]
+        .filter((item) => item.asked >= 5 && item.successRate >= 70)
+        .sort((left, right) => right.successRate - left.successRate || right.asked - left.asked)
+        .slice(0, 4);
+      const drilldown = getStatsDrilldown(allQuestions, context.state.quizStatsDrilldown);
+
+      if (drilldown) {
+        context.elements.quizDashboard.innerHTML = `
+          <div class="quiz-drilldown-head">
+            <div>
+              <span class="quiz-game-kicker">Categorie</span>
+              <h2>${escapeHtml(drilldown.title)}</h2>
+              <p>${drilldown.items.length} question(s) dans cette categorie.</p>
+            </div>
+          </div>
+          <div class="quiz-drilldown-list">
+            ${renderQuestionRankList(drilldown.items, "Aucune question dans cette categorie.")}
+          </div>
+        `;
+        return;
+      }
+
+      context.elements.quizDashboard.innerHTML = `
+        <div class="quiz-command-hero">
+          <div>
+            <p class="quiz-game-kicker">Revision active</p>
+            <h2>Tableau de bord quiz</h2>
+            <p>${escapeHtml(scopedQuestions.length)} question(s) dans la selection ${escapeHtml(
+              getQuizScopeLabel(scope).toLowerCase()
+            )} - ${escapeHtml(getQuizFocusLabel(focus).toLowerCase())}.</p>
+          </div>
+          <div class="quiz-hero-meter" style="--score:${sessionAverage}%;" aria-hidden="true">
+            <span>${formatPercent(sessionAverage)}</span>
+          </div>
+        </div>
+
+        <div class="quiz-stat-grid">
+          ${renderQuizStatCard("Quiz joues", sessionCount, "Historique joueur")}
+          ${renderQuizStatCard("Reussite", formatPercent(globalSuccess), `${totalCorrect}/${totalAsked || 0} reponses`)}
+          ${renderQuizStatCard("Questions", allQuestions.length, `${notesWithQuestions} page(s) source`)}
+          ${renderQuizStatCard("Obligatoires", priorityCount, "A revoir en priorite")}
+        </div>
+
+        <div class="quiz-mastery-board">
+          <article class="quiz-mastery-panel">
+            <div class="quiz-panel-title">
+              <span class="quiz-game-kicker">Classement</span>
+              <h3>Maitrise des questions</h3>
+            </div>
+            <div class="quiz-rank-bars">
+              ${renderDifficultyBar("Jamais vues", distribution.new, allQuestions.length, "new")}
+              ${renderDifficultyBar("Difficiles", distribution.difficult, allQuestions.length, "difficult")}
+              ${renderDifficultyBar("Intermediaires", distribution.intermediate, allQuestions.length, "intermediate")}
+              ${renderDifficultyBar("Maitrisees", distribution.easy, allQuestions.length, "easy")}
+            </div>
+          </article>
+
+          <article class="quiz-player-panel">
+            <div class="quiz-panel-title">
+              <span class="quiz-game-kicker">Joueur</span>
+              <h3>Performance</h3>
+            </div>
+            <div class="quiz-player-score" style="--score:${sessionAverage}%;">
+              <strong>${formatPercent(sessionAverage)}</strong>
+              <span>Moyenne session</span>
+            </div>
+            <div class="quiz-mini-stats">
+              <span>Record <strong>${formatPercent(bestSession)}</strong></span>
+              <span>Dernier <strong>${
+                recentSession ? `${recentSession.correct}/${recentSession.total}` : "-"
+              }</strong></span>
+              <span>Temps <strong>${
+                recentSession ? formatSessionDuration(recentSession.durationSeconds) : "-"
+              }</strong></span>
+            </div>
+          </article>
+        </div>
+
+        <div class="quiz-question-lanes">
+          <article class="quiz-lane">
+            <div class="quiz-panel-title">
+              <span class="quiz-game-kicker">File active</span>
+              <h3>Questions a attaquer</h3>
+            </div>
+            <div class="quiz-question-rank">
+              ${renderQuestionRankList(weakQuestions, "Aucune question prioritaire dans cette selection.")}
+            </div>
+          </article>
+          <article class="quiz-lane">
+            <div class="quiz-panel-title">
+              <span class="quiz-game-kicker">Victoires</span>
+              <h3>Questions solides</h3>
+            </div>
+            <div class="quiz-question-rank">
+              ${renderQuestionRankList(masteredQuestions, "Pas encore de question vraiment maitrisee.")}
+            </div>
+          </article>
+        </div>
+      `;
+    }
+
+    function getStatsDrilldown(questions, category) {
+      const config = {
+        new: {
+          title: "Questions jamais vues",
+          filter: (item) => item.asked === 0,
+          tone: "new",
+          label: "Jamais vue",
+        },
+        difficult: {
+          title: "Questions difficiles",
+          filter: (item) => item.asked > 0 && item.difficulty === "difficult",
+          tone: "difficult",
+          label: "Difficile",
+        },
+        intermediate: {
+          title: "Questions intermediaires",
+          filter: (item) => item.difficulty === "intermediate",
+          tone: "intermediate",
+          label: "Intermediaire",
+        },
+        easy: {
+          title: "Questions maitrisees",
+          filter: (item) => item.difficulty === "easy",
+          tone: "easy",
+          label: "Maitrisee",
+        },
+      }[category];
+
+      if (!config) {
+        return null;
+      }
+
+      return {
+        title: config.title,
+        items: questions
+          .filter(config.filter)
+          .sort((left, right) => getQuestionSortScore(right) - getQuestionSortScore(left))
+          .map((item) => ({
+            ...item,
+            displayDifficulty: config.label,
+            displayTone: config.tone,
+          })),
+      };
+    }
+
+    function renderQuizStatCard(label, value, hint) {
+      return `
+        <article class="quiz-stat-card">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(String(value))}</strong>
+          <small>${escapeHtml(hint)}</small>
+        </article>
+      `;
+    }
+
+    function renderDifficultyBar(label, value, total, tone) {
+      const percent = total ? Math.round((value / total) * 100) : 0;
+      return `
+        <button type="button" class="quiz-rank-bar quiz-rank-${tone}" data-quiz-stat-category="${tone}">
+          <div>
+            <span>${escapeHtml(label)}</span>
+            <strong>${value}</strong>
+          </div>
+          <div class="quiz-rank-track"><span style="width:${percent}%"></span></div>
+        </button>
+      `;
+    }
+
+    function renderQuestionRankList(items, emptyMessage) {
+      if (!items.length) {
+        return `<p class="quiz-empty-copy">${escapeHtml(emptyMessage)}</p>`;
+      }
+
+      return items
+        .map(
+          (item) => `
+            <button type="button" class="quiz-rank-item" data-open-quiz-note="${escapeHtml(item.noteId)}">
+              <span class="quiz-rank-badge quiz-rank-badge-${escapeHtml(item.displayTone || item.difficulty)}">
+                ${escapeHtml(item.displayDifficulty || item.difficultyLabel)}
+              </span>
+              <strong>${escapeHtml(item.question)}</strong>
+              <small>${escapeHtml(item.noteTitle)} - ${item.correct}/${item.asked || 0} juste(s) - ${formatPercent(
+                item.successRate
+              )}</small>
+            </button>
+          `
+        )
+        .join("");
+    }
+
     function renderQuizCard() {
+      renderQuizViewMode();
       const total = context.state.quiz.questions.length;
       const hasSession = total > 0;
 
@@ -447,11 +1007,12 @@
       }
 
       const validatedCount = context.state.quiz.questions.filter((item) => item.validated).length;
-      const correctCount = context.state.quiz.questions.filter(
-        (item) => item.validated && item.isCorrect
-      ).length;
-      const wrongCount = validatedCount - correctCount;
-      const percent = Math.round((correctCount / total) * 100);
+      const score = syncQuizScore();
+      const correctCount = score.correct;
+      const wrongCount = score.wrong;
+      const contestedCount = score.contested;
+      const scoredTotal = score.total;
+      const percent = scoredTotal ? Math.round((correctCount / scoredTotal) * 100) : 0;
       const completed = validatedCount >= total;
       const duration = getSessionDuration(context.state.quiz.startedAt, context.state.quiz.finishedAt);
 
@@ -467,7 +1028,7 @@
             <h4>${completed ? "Termine" : "Repondez puis validez"}</h4>
           </div>
           <div class="quiz-session-score">
-            <strong>${correctCount}/${total}</strong>
+            <strong>${correctCount}/${scoredTotal}</strong>
             <span>${percent}% de reussite</span>
           </div>
         </div>
@@ -475,7 +1036,7 @@
           completed
             ? `<div class="quiz-session-actions">
                 <button type="button" class="button button-primary" data-quiz-restart>
-                  Nouveau quiz
+                  Terminer
                 </button>
               </div>`
             : `<div class="quiz-session-actions">
@@ -491,6 +1052,7 @@
           <span class="quiz-score-pill">Validees <strong>${validatedCount}</strong></span>
           <span class="quiz-score-pill">Justes <strong>${correctCount}</strong></span>
           <span class="quiz-score-pill">Fausses <strong>${wrongCount}</strong></span>
+          <span class="quiz-score-pill">Contestees <strong>${contestedCount}</strong></span>
           <span class="quiz-score-pill">Temps <strong data-quiz-duration>${duration}</strong></span>
         </div>
         <div class="table-shell quiz-session-shell">
@@ -513,7 +1075,7 @@
       `;
 
       context.elements.quizSummary.innerHTML = completed
-        ? renderQuizCompletionSummary(correctCount, total, context.state.quiz.questions)
+        ? renderQuizCompletionSummary(correctCount, scoredTotal, context.state.quiz.questions)
         : renderQuizProgressSummary(context.state.quiz.questions);
     }
 
@@ -522,18 +1084,26 @@
 
       return questions
         .map((question, index) => {
-          const rowClass = question.validated
+          const rowClass = question.contested
+            ? "is-contested"
+            : question.validated
             ? question.isCorrect
               ? "is-correct"
               : "is-wrong"
             : "";
 
           return `
-            <tr class="${rowClass}${completed ? " quiz-reveal-row" : ""}" style="--quiz-reveal-delay: ${220 + index * 180}ms;">
+            <tr class="${rowClass}${completed ? " quiz-reveal-row" : ""}" style="--quiz-reveal-delay: ${360 + index * 440}ms;">
               <td>
                 <div class="quiz-question-cell">
                   <strong>${escapeHtml(question.question)}</strong>
-                  ${completed ? `<span>${escapeHtml(question.noteTitle)}</span>` : ""}
+                  ${
+                    completed
+                      ? `<button type="button" class="quiz-note-link" data-open-quiz-note="${escapeHtml(
+                          question.noteId
+                        )}">${escapeHtml(question.noteTitle)}</button>`
+                      : ""
+                  }
                 </div>
               </td>
               <td>
@@ -546,6 +1116,40 @@
                     placeholder="Tapez votre reponse"
                     ${completed ? "disabled" : ""}
                   />
+                  ${
+                    completed
+                      ? `<div class="quiz-answer-feedback ${
+                          question.contested ? "is-contested" : question.isCorrect ? "is-correct" : "is-wrong"
+                        }">
+                            <span>${
+                              question.contested
+                                ? "Question contestee"
+                                : question.isCorrect
+                                  ? "Bonne reponse"
+                                  : "Reponse attendue"
+                            }</span>
+                            <strong>${escapeHtml(
+                              question.matchedAnswer || question.acceptedAnswers.join(", ")
+                            )}</strong>
+                            ${
+                              question.contested
+                                ? `<small>Cette question ne compte plus dans le score ni dans les stats.</small>
+                                  ${
+                                    question.contestedAnswerAccepted
+                                      ? `<small>Reponse ajoutee aux reponses acceptees.</small>`
+                                      : String(question.userAnswer || "").trim()
+                                        ? `<button type="button" class="quiz-contest-button" data-quiz-accept-contested="${index}">
+                                            Accepter ma reponse
+                                          </button>`
+                                        : ""
+                                  }`
+                                : `<button type="button" class="quiz-contest-button" data-quiz-contest="${index}">
+                                    Contester
+                                  </button>`
+                            }
+                         </div>`
+                      : ""
+                  }
                 </div>
               </td>
             </tr>
@@ -565,14 +1169,16 @@
     }
 
     function renderQuizCompletionSummary(correctCount, total, questions) {
-      const hard = questions.filter((item) => item.difficulty === "difficult").length;
-      const intermediate = questions.filter((item) => item.difficulty === "intermediate").length;
-      const easy = questions.filter((item) => item.difficulty === "easy").length;
-      const wrongRows = questions.filter((item) => item.validated && !item.isCorrect);
+      const countedQuestions = questions.filter((item) => !item.contested);
+      const hard = countedQuestions.filter((item) => item.difficulty === "difficult").length;
+      const intermediate = countedQuestions.filter((item) => item.difficulty === "intermediate").length;
+      const easy = countedQuestions.filter((item) => item.difficulty === "easy").length;
+      const contested = questions.filter((item) => item.contested).length;
+      const wrongRows = questions.filter((item) => item.validated && !item.isCorrect && !item.contested);
 
       return `
         <p class="quiz-summary-line">
-          Score final : <strong>${correctCount}/${total}</strong>. Repartition : ${hard} difficiles, ${intermediate} intermédiaires, ${easy} faciles.
+          Score final : <strong>${correctCount}/${total}</strong>. Repartition : ${hard} difficiles, ${intermediate} intermediaires, ${easy} faciles${contested ? `, ${contested} contestee(s)` : ""}.
         </p>
         ${
           wrongRows.length
@@ -595,9 +1201,14 @@
     }
 
     return {
+      acceptContestedAnswer,
       buildQuizSession,
+      contestQuizQuestion,
       resetQuizSession,
+      renderQuizDashboard,
       renderQuizCard,
+      renderQuizViewMode,
+      setQuizView,
       setQuizAnswer,
       validateQuizSession,
       startQuizTimer,
