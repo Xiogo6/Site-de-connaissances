@@ -612,85 +612,113 @@
         </section>
 
         <section id="quiz-tab" class="tab-panel">
-          <div class="quiz-layout">
-            <section id="quiz-controls" class="panel quiz-controls">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Revision active</p>
-                  <h3>Generateur de quiz ecrit</h3>
-                </div>
-              </div>
-
-              <label>
-                <span class="field-label">Pages a inclure</span>
-                <select id="quiz-scope" class="select-input">
-                  <option value="all">Toutes les pages</option>
-                  <option value="current">Page active</option>
-                  <option value="folder">Un dossier</option>
-                  <option value="tag">Par tag</option>
-                </select>
-              </label>
-
-              <label id="quiz-folder-wrapper" class="is-hidden">
-                <span class="field-label">Dossier cible</span>
-                <select id="quiz-folder" class="select-input">
-                  <option value="">Choisir un dossier</option>
-                </select>
-              </label>
-
-              <label id="quiz-tag-wrapper" class="is-hidden">
-                <span class="field-label">Tag cible</span>
-                <input
-                  id="quiz-tag"
-                  class="text-input"
-                  type="text"
-                  placeholder="ex: memoire"
-                />
-              </label>
-
-              <label>
-                <span class="field-label">Mode</span>
-                <select id="quiz-mode" class="select-input">
-                  <option value="mixed">Mixte</option>
-                  <option value="definition">Definitions</option>
-                  <option value="date">Dates</option>
-                  <option value="link">Liens</option>
-                  <option value="bullet">Phrases a completer</option>
-                </select>
-              </label>
-
-              <label>
-                <span class="field-label">Nombre de questions</span>
-                <input
-                  id="quiz-amount"
-                  class="text-input"
-                  type="number"
-                  min="3"
-                  max="20"
-                  value="6"
-                />
-              </label>
-
-              <button id="generate-quiz-button" class="button button-primary">
-                Creer le quiz
+          <div class="quiz-universe">
+            <div class="quiz-view-switcher" aria-label="Navigation quiz">
+              <button class="quiz-view-button" data-quiz-view="play" type="button">
+                Quiz
               </button>
-            </section>
+              <button class="quiz-view-button is-active" data-quiz-view="stats" type="button">
+                Stat
+              </button>
+            </div>
 
-            <section class="panel quiz-panel">
-              <div class="panel-header">
+            <section id="quiz-dashboard" class="quiz-dashboard" aria-label="Statistiques des quiz">
+              <div class="quiz-command-hero">
                 <div>
-                  <p class="eyebrow">Quiz</p>
-                  <h3 id="quiz-title">Aucun quiz cree</h3>
+                  <p class="quiz-game-kicker">Revision active</p>
+                  <h2>Tableau de bord quiz</h2>
+                  <p>
+                    Suivez les questions jamais vues, les points faibles et les victoires du joueur.
+                  </p>
                 </div>
-                <span id="quiz-progress" class="pill pill-soft">0 / 0</span>
+                <div class="quiz-hero-meter" aria-hidden="true">
+                  <span>?</span>
+                </div>
               </div>
-
-              <article id="quiz-card" class="quiz-card empty-state">
-                Les questions ecrites apparaitront ici ligne par ligne.
-              </article>
-
-              <div id="quiz-summary" class="quiz-summary"></div>
             </section>
+
+            <div class="quiz-layout">
+              <section id="quiz-controls" class="panel quiz-controls">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow">Lancer</p>
+                    <h3>Generateur de quiz ecrit</h3>
+                  </div>
+                </div>
+
+                <label>
+                  <span class="field-label">Pages a inclure</span>
+                  <select id="quiz-scope" class="select-input">
+                    <option value="all">Toutes les pages</option>
+                    <option value="current">Page active</option>
+                    <option value="folder">Un dossier</option>
+                    <option value="tag">Par tag</option>
+                    <option value="due">Pages a revoir</option>
+                  </select>
+                </label>
+
+                <label id="quiz-folder-wrapper" class="is-hidden">
+                  <span class="field-label">Dossier cible</span>
+                  <select id="quiz-folder" class="select-input">
+                    <option value="">Choisir un dossier</option>
+                  </select>
+                </label>
+
+                <label id="quiz-tag-wrapper" class="is-hidden">
+                  <span class="field-label">Tag cible</span>
+                  <input
+                    id="quiz-tag"
+                    class="text-input"
+                    type="text"
+                    placeholder="ex: memoire"
+                  />
+                </label>
+
+                <label>
+                  <span class="field-label">Ciblage</span>
+                  <select id="quiz-mode" class="select-input">
+                    <option value="mixed">Toutes les questions</option>
+                    <option value="priority">Priorite apprentissage</option>
+                    <option value="new">Jamais vues</option>
+                    <option value="difficult">Difficiles</option>
+                    <option value="intermediate">Intermediaires</option>
+                    <option value="easy">Maitrisees</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span class="field-label">Nombre de questions</span>
+                  <input
+                    id="quiz-amount"
+                    class="text-input"
+                    type="number"
+                    min="3"
+                    max="20"
+                    value="6"
+                  />
+                </label>
+
+                <button id="generate-quiz-button" class="button button-primary">
+                  Creer le quiz
+                </button>
+              </section>
+
+              <section class="panel quiz-panel">
+                <div class="panel-header">
+                  <div>
+                    <p class="eyebrow">Session</p>
+                    <h3 id="quiz-title">Aucun quiz cree</h3>
+                  </div>
+                  <span id="quiz-progress" class="pill pill-soft">0 / 0</span>
+                </div>
+
+                <article id="quiz-card" class="quiz-card empty-state">
+                  Les questions ecrites apparaitront ici ligne par ligne.
+                </article>
+
+                <div id="quiz-summary" class="quiz-summary"></div>
+              </section>
+            </div>
           </div>
         </section>
 

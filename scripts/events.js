@@ -315,12 +315,30 @@
         context.elements.quizScope.value !== "tag"
       );
       context.renderers.renderStats();
+      context.quiz.renderQuizDashboard();
     });
 
-    context.elements.quizFolder.addEventListener("change", context.renderers.renderStats);
-    context.elements.quizTag.addEventListener("input", context.renderers.renderStats);
-    context.elements.quizMode.addEventListener("change", context.renderers.renderStats);
+    context.elements.quizFolder.addEventListener("change", () => {
+      context.renderers.renderStats();
+      context.quiz.renderQuizDashboard();
+    });
+    context.elements.quizTag.addEventListener("input", () => {
+      context.renderers.renderStats();
+      context.quiz.renderQuizDashboard();
+    });
+    context.elements.quizMode.addEventListener("change", () => {
+      context.renderers.renderStats();
+      context.quiz.renderQuizDashboard();
+    });
+    context.elements.quizViewButtons?.forEach((button) => {
+      button.addEventListener("click", () => {
+        context.quiz.setQuizView(button.dataset.quizView);
+        context.renderers.renderKnowledgeMode();
+        scrollToTop();
+      });
+    });
     context.elements.generateQuizButton.addEventListener("click", context.quiz.buildQuizSession);
+    context.elements.quizDashboard?.addEventListener("click", handleQuizDashboardClick);
     context.elements.addQuizQuestionButton?.addEventListener("click", addQuizQuestionRow);
     context.elements.noteQuizQuestionsBody?.addEventListener("input", handleQuizQuestionDraftInput);
     context.elements.noteQuizQuestionsBody?.addEventListener("click", handleQuizQuestionDraftClick);
@@ -370,6 +388,10 @@
     context.elements.suggestedLinks.addEventListener("click", handleSuggestedLinkClick);
     context.elements.graphFocus.addEventListener("click", context.graph.handleGraphFocusClick);
     context.elements.quickCaptureToggle.addEventListener("click", () => {
+      if (handleQuickQuizReturnAction()) {
+        return;
+      }
+
       if (context.state.activeTab === "knowledge" && context.state.noteViewMode === "edit") {
         context.notes.saveCurrentNote();
         return;
@@ -552,6 +574,8 @@
   }
 
   function renderActiveTabContent() {
+    context.renderers.renderKnowledgeMode();
+
     if (context.state.activeTab === "organisation") {
       context.renderers.renderOrganization();
       return;
@@ -566,6 +590,10 @@
     }
 
     if (context.state.activeTab === "quiz") {
+      context.state.quizReturnActive = false;
+      context.renderers.renderWorkspaceBanner();
+      context.quiz.renderQuizViewMode();
+      context.quiz.renderQuizDashboard();
       context.quiz.renderQuizCard();
       return;
     }
@@ -613,6 +641,7 @@
     persistQuizQuestionDrafts();
     context.renderers.renderQuizQuestionBank();
     context.renderers.renderPreview(context.notes.getActiveNote(), true);
+    context.quiz.renderQuizDashboard();
     window.requestAnimationFrame(() => {
       const lastInput = context.elements.noteQuizQuestionsBody?.querySelector(
         "tr:last-child [data-quiz-question-field=\"question\"]"
@@ -649,6 +678,7 @@
 
     persistQuizQuestionDrafts();
     context.renderers.renderPreview(context.notes.getActiveNote(), true);
+    context.quiz.renderQuizDashboard();
   }
 
   function handleQuizQuestionDraftClick(event) {
@@ -662,6 +692,7 @@
     persistQuizQuestionDrafts();
     context.renderers.renderQuizQuestionBank();
     context.renderers.renderPreview(context.notes.getActiveNote(), true);
+    context.quiz.renderQuizDashboard();
   }
 
   function persistQuizQuestionDrafts() {
@@ -689,6 +720,12 @@
   }
 
   function handleQuizSessionClick(event) {
+    const noteButton = event.target.closest("[data-open-quiz-note]");
+    if (noteButton) {
+      openQuizLinkedNote(noteButton.dataset.openQuizNote);
+      return;
+    }
+
     const restartButton = event.target.closest("[data-quiz-restart]");
     if (restartButton) {
       context.quiz.resetQuizSession();
@@ -698,6 +735,18 @@
     const validateButton = event.target.closest("[data-quiz-validate-all]");
     if (validateButton) {
       context.quiz.validateQuizSession();
+      return;
+    }
+
+    const contestButton = event.target.closest("[data-quiz-contest]");
+    if (contestButton) {
+      context.quiz.contestQuizQuestion(Number(contestButton.dataset.quizContest));
+      return;
+    }
+
+    const acceptContestedButton = event.target.closest("[data-quiz-accept-contested]");
+    if (acceptContestedButton) {
+      context.quiz.acceptContestedAnswer(Number(acceptContestedButton.dataset.quizAcceptContested));
       return;
     }
 
@@ -716,6 +765,58 @@
 
     event.preventDefault();
     context.quiz.validateQuizSession();
+  }
+
+  function handleQuizDashboardClick(event) {
+    const categoryButton = event.target.closest("[data-quiz-stat-category]");
+    if (categoryButton) {
+      context.state.quizStatsDrilldown = categoryButton.dataset.quizStatCategory;
+      context.quiz.renderQuizDashboard();
+      context.renderers.renderKnowledgeMode();
+      scrollToTop();
+      return;
+    }
+
+    const noteButton = event.target.closest("[data-open-quiz-note]");
+    if (!noteButton) {
+      return;
+    }
+
+    openQuizLinkedNote(noteButton.dataset.openQuizNote);
+  }
+
+  function openQuizLinkedNote(noteId) {
+    context.state.activeNoteId = noteId;
+    context.state.activeTab = "knowledge";
+    context.state.noteViewMode = "read";
+    context.state.quizReturnActive = true;
+    context.renderers.renderEverything();
+    scrollToTop();
+  }
+
+  function handleQuickQuizReturnAction() {
+    if (
+      context.state.activeTab === "quiz" &&
+      context.state.quizView === "stats" &&
+      context.state.quizStatsDrilldown
+    ) {
+      context.state.quizStatsDrilldown = null;
+      context.quiz.renderQuizDashboard();
+      context.renderers.renderKnowledgeMode();
+      scrollToTop();
+      return true;
+    }
+
+    if (!context.state.quizReturnActive || context.state.activeTab !== "knowledge") {
+      return false;
+    }
+
+    context.state.activeTab = "quiz";
+    context.state.quizView = context.state.quiz.questions.length ? "play" : "stats";
+    context.state.quizReturnActive = false;
+    context.renderers.renderEverything();
+    scrollToTop();
+    return true;
   }
 
   function scrollToTop(smooth = true) {

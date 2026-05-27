@@ -33,6 +33,8 @@
     renderStats();
     renderDueReviewList();
     context.graph.drawGraph();
+    context.quiz.renderQuizViewMode();
+    context.quiz.renderQuizDashboard();
     context.quiz.renderQuizCard();
     renderTimelineView();
     renderSportTracker();
@@ -243,10 +245,35 @@
       return;
     }
 
+    const shouldReturnToQuiz =
+      context.state.quizReturnActive && context.state.activeTab === "knowledge";
+    const shouldReturnToStats =
+      context.state.activeTab === "quiz" &&
+      context.state.quizView === "stats" &&
+      Boolean(context.state.quizStatsDrilldown);
+
+    if (shouldReturnToQuiz || shouldReturnToStats) {
+      context.elements.quickCaptureToggle.textContent = shouldReturnToQuiz
+        ? "Retour au quiz"
+        : "Retour aux stats";
+      context.elements.quickCaptureToggle.classList.remove("is-hidden");
+      context.elements.quickCaptureToggle.classList.remove("is-save-mode");
+      context.elements.quickCaptureToggle.classList.add("is-quiz-return-mode");
+      return;
+    }
+
+    const shouldHideQuickAction = context.state.activeTab === "quiz";
+    context.elements.quickCaptureToggle.classList.toggle("is-hidden", shouldHideQuickAction);
+    if (shouldHideQuickAction) {
+      context.elements.quickCaptureToggle.classList.remove("is-save-mode", "is-quiz-return-mode");
+      return;
+    }
+
     const shouldSave =
       isEditing && context.state.activeTab === "knowledge" && !context.data.isReadOnlyMode();
     context.elements.quickCaptureToggle.textContent = shouldSave ? "Enregistrer" : "Note rapide";
     context.elements.quickCaptureToggle.classList.toggle("is-save-mode", shouldSave);
+    context.elements.quickCaptureToggle.classList.remove("is-quiz-return-mode");
   }
 
   function syncEditorAvailability() {
@@ -859,7 +886,10 @@
     setOptionalText(context.elements.pageTotalCount, String(sourceNotes.length));
     setOptionalText(context.elements.linkCount, String(totalLinks));
     setOptionalText(context.elements.orphanCount, String(orphanNotes));
-    setOptionalText(context.elements.quizCount, "0");
+    const quizQuestions = sourceNotes.reduce((count, note) => {
+      return count + (Array.isArray(note.quizQuestions) ? note.quizQuestions.length : 0);
+    }, 0);
+    setOptionalText(context.elements.quizCount, String(quizQuestions));
   }
 
   function setOptionalText(element, value) {
