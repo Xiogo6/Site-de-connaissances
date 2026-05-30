@@ -21,6 +21,7 @@
     renderFiltersPanel();
     renderTabs();
     renderVisualizationMode();
+    renderGraphFilters();
     renderWorkspaceBanner();
     renderKnowledgeMode();
     renderKnowledgeList();
@@ -47,10 +48,17 @@
 
   function renderTabs() {
     document.body.classList.toggle("utility-drawer-open", context.state.utilityDrawerOpen);
+    const quizViewActive = context.state.activeTab === "quiz";
+    document.documentElement.classList.toggle("quiz-view-active", quizViewActive);
+    document.body.classList.toggle("quiz-view-active", quizViewActive);
     const graphViewActive =
       context.state.activeTab === "graph" ||
       (context.state.activeTab === "visualization" && context.state.visualizationMode === "graph");
+    document.documentElement.classList.toggle("graph-view-active", graphViewActive);
     document.body.classList.toggle("graph-view-active", graphViewActive);
+    if (!graphViewActive) {
+      context.state.graphFiltersOpen = false;
+    }
     context.elements.tabs.forEach((tab) => {
       tab.classList.toggle("is-active", tab.dataset.tab === context.state.activeTab);
     });
@@ -88,6 +96,8 @@
           key !== context.state.visualizationMode
       );
     });
+
+    renderGraphFilters();
   }
 
   function renderVisualizationMode() {
@@ -97,6 +107,19 @@
         button.dataset.visualizationMode === context.state.visualizationMode
       );
     });
+  }
+
+  function renderGraphFilters() {
+    const hasActiveFilters =
+      context.state.graphShowTags ||
+      context.state.graphTagFilter !== "all" ||
+      context.state.graphFocusMode !== "all";
+    const isOpen = Boolean(context.state.graphFiltersOpen);
+    const controls = context.elements.graphShowTags?.closest(".graph-controls");
+
+    context.elements.graphFilterToggle?.classList.toggle("is-active", hasActiveFilters || isOpen);
+    context.elements.graphFilterToggle?.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    controls?.classList.toggle("is-open", isOpen);
   }
 
   function renderSidebarTabs() {
@@ -1868,6 +1891,7 @@
     renderDueReviewList,
     renderEverything,
     renderFiltersPanel,
+    renderGraphFilters,
     renderHierarchyTree,
     renderInsightList,
     renderKnowledgeList,

@@ -83,80 +83,80 @@
   function getTypePalette(type) {
     if (type === "person") {
       return {
-        fill: "#edd8b9",
-        stroke: "#8f5d2f",
-        label: "#6e4824",
+        fill: "#c98b46",
+        stroke: "#f1d7b8",
+        label: "#ffffff",
       };
     }
 
     if (type === "event") {
       return {
-        fill: "#d9e7f7",
-        stroke: "#496a8f",
-        label: "#34506e",
+        fill: "#5f8fb8",
+        stroke: "#d8e7f4",
+        label: "#ffffff",
       };
     }
 
     if (type === "definition") {
       return {
-        fill: "#e5efe1",
-        stroke: "#5e7855",
-        label: "#44573d",
+        fill: "#5f9a6d",
+        stroke: "#d7eadc",
+        label: "#ffffff",
       };
     }
 
     if (type === "experience") {
       return {
-        fill: "#dfeeea",
-        stroke: "#4f7d73",
-        label: "#3a5d56",
+        fill: "#549c91",
+        stroke: "#d3ece8",
+        label: "#ffffff",
       };
     }
 
     if (type === "daily") {
       return {
-        fill: "#e7ddf2",
-        stroke: "#7b5aa0",
-        label: "#5d4479",
+        fill: "#8b6bb4",
+        stroke: "#e6dcf4",
+        label: "#ffffff",
       };
     }
 
     if (type === "folder") {
       return {
-        fill: "#ece3d2",
-        stroke: "#8f7752",
-        label: "#66553b",
+        fill: "#b89a4f",
+        stroke: "#efe5c4",
+        label: "#ffffff",
       };
     }
 
     if (type === "hub") {
       return {
-        fill: "#efe6c8",
-        stroke: "#9b7b2f",
-        label: "#725a22",
+        fill: "#c47b45",
+        stroke: "#efd4be",
+        label: "#ffffff",
       };
     }
 
     if (type === "procedure") {
       return {
-        fill: "#dcead9",
-        stroke: "#5d7d57",
-        label: "#42583d",
+        fill: "#7fa45a",
+        stroke: "#dfeccc",
+        label: "#ffffff",
       };
     }
 
     if (type === "question") {
       return {
-        fill: "#f3ddd3",
-        stroke: "#9e6751",
-        label: "#744a39",
+        fill: "#ba6862",
+        stroke: "#efd2cf",
+        label: "#ffffff",
       };
     }
 
     return {
-      fill: "#e3ecdb",
-      stroke: "#617356",
-      label: "#49563f",
+      fill: "#747aa8",
+      stroke: "#dfe1f2",
+      label: "#ffffff",
     };
   }
 
@@ -497,8 +497,10 @@
       const degree = getNodeDegree(node.id, graph.edges);
       const palette =
         node.kind === "tag"
-          ? { fill: "#dfeee1", stroke: "#5f7c63", label: "#47604a" }
+          ? { fill: "#69a77a", stroke: "#dcf0e1", label: "#ffffff" }
           : getTypePalette(node.type);
+      const nodeFill = palette.fill;
+      const nodeStroke = isCurrent || isSelected ? "#ffffff" : palette.stroke;
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
       group.dataset.graphNodeId = node.id;
       group.dataset.graphNodeKind = node.kind;
@@ -515,15 +517,15 @@
             : 10 + Math.min(degree * 2.4, 18);
       circle.setAttribute("r", String(nodeRadius));
       circle.setAttribute("class", `graph-node${isCurrent || isSelected ? " is-current" : ""}`);
-      circle.style.fill = palette.fill;
-      circle.style.stroke = palette.stroke;
+      circle.style.fill = nodeFill;
+      circle.style.stroke = nodeStroke;
       circle.style.strokeWidth = isCurrent || isSelected ? "3" : "2";
 
       const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
       label.setAttribute("x", position.x + nodeRadius + 8);
       label.setAttribute("y", position.y + 4);
       label.setAttribute("class", `graph-label${node.kind === "tag" ? " is-tag-label" : ""}`);
-      label.style.fill = palette.label;
+      label.style.fill = "#ffffff";
       label.textContent = node.label;
 
       group.appendChild(circle);
@@ -607,9 +609,11 @@
   }
 
   function handleGraphPointerDown(event) {
+    if (!context.state.graphDrag.mode) {
+      context.state.graphDrag.activePointers = {};
+    }
     updateActivePointer(event);
-    if (event.pointerType === "touch" && getActivePointerCount() === 2) {
-      startPinchGesture();
+    if (event.pointerType === "touch" && getActivePointerCount() > 1) {
       event.preventDefault();
       return;
     }
