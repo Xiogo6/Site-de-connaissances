@@ -263,6 +263,10 @@
     context.elements.tabs.forEach((tab) => {
       tab.addEventListener("click", () => {
         context.state.activeTab = tab.dataset.tab;
+        if (context.state.activeTab === "quiz") {
+          context.state.quizView = "play";
+          context.state.quizStatsDrilldown = null;
+        }
         context.state.sidebarDrawerOpen = false;
         context.state.utilityDrawerOpen = false;
         context.renderers.renderSidebarDrawer();
@@ -284,6 +288,10 @@
     context.elements.resetGraphButton.addEventListener("click", () => {
       context.graph.recenterGraphLayout();
     });
+    context.elements.graphFilterToggle?.addEventListener("click", () => {
+      context.state.graphFiltersOpen = !context.state.graphFiltersOpen;
+      context.renderers.renderGraphFilters();
+    });
     context.elements.graphZoomInButton.addEventListener("click", context.graph.zoomIn);
     context.elements.graphZoomOutButton.addEventListener("click", context.graph.zoomOut);
 
@@ -294,14 +302,17 @@
     window.addEventListener("pointercancel", context.graph.handleGraphPointerUp);
     context.elements.graphShowTags.addEventListener("change", (event) => {
       context.state.graphShowTags = event.target.checked;
+      context.renderers.renderGraphFilters();
       context.graph.drawGraph();
     });
     context.elements.graphTagFilter.addEventListener("change", (event) => {
       context.state.graphTagFilter = event.target.value;
+      context.renderers.renderGraphFilters();
       context.graph.drawGraph();
     });
     context.elements.graphFocusMode.addEventListener("change", (event) => {
       context.state.graphFocusMode = event.target.value;
+      context.renderers.renderGraphFilters();
       context.graph.drawGraph();
     });
 

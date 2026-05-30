@@ -101,6 +101,7 @@
       visualizationModeButtons: [...document.querySelectorAll("[data-visualization-mode]")],
       graphCanvas: document.querySelector("#graph-canvas"),
       graphFocus: document.querySelector("#graph-focus"),
+      graphFilterToggle: document.querySelector("#graph-filter-toggle"),
       graphShowTags: document.querySelector("#graph-show-tags"),
       graphTagFilter: document.querySelector("#graph-tag-filter"),
       graphFocusMode: document.querySelector("#graph-focus-mode"),

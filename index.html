@@ -557,7 +557,7 @@
                   <p class="eyebrow">Carte vivante</p>
                   <h3>Reseau des connaissances</h3>
                 </div>
-                <div class="inline-actions graph-controls">
+                <div id="graph-controls" class="inline-actions graph-controls">
                   <label class="toggle-row" for="graph-show-tags">
                     <input id="graph-show-tags" type="checkbox" />
                     <span>Tags</span>
@@ -575,6 +575,23 @@
                 </div>
               </div>
               <div class="graph-stage">
+                <button
+                  id="graph-filter-toggle"
+                  class="button graph-filter-toggle"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="graph-controls"
+                  aria-label="Ouvrir les filtres du graphe"
+                >
+                  <svg viewBox="0 0 24 24" role="presentation" aria-hidden="true">
+                    <path d="M4 7h10" />
+                    <path d="M18 7h2" />
+                    <circle cx="16" cy="7" r="2" />
+                    <path d="M4 17h2" />
+                    <path d="M10 17h10" />
+                    <circle cx="8" cy="17" r="2" />
+                  </svg>
+                </button>
                 <svg
                   id="graph-canvas"
                   class="graph-canvas"
@@ -641,8 +658,7 @@
               <section id="quiz-controls" class="panel quiz-controls">
                 <div class="panel-header">
                   <div>
-                    <p class="eyebrow">Lancer</p>
-                    <h3>Generateur de quiz ecrit</h3>
+                    <h3 class="quiz-launch-title">Générateur de quiz</h3>
                   </div>
                 </div>
 
@@ -699,7 +715,7 @@
                 </label>
 
                 <button id="generate-quiz-button" class="button button-primary">
-                  Creer le quiz
+                  Créer le quiz
                 </button>
               </section>
 

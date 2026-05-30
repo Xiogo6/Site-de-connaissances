@@ -1034,13 +1034,11 @@
         </div>
         ${
           completed
-            ? `<div class="quiz-session-actions">
-                <button type="button" class="button button-primary" data-quiz-restart>
-                  Terminer
-                </button>
-              </div>`
+            ? `<button type="button" class="button button-primary quiz-floating-action" data-quiz-restart>
+                Terminer
+              </button>`
             : `<div class="quiz-session-actions">
-                <button type="button" class="button button-primary" data-quiz-validate-all>
+                <button type="button" class="button button-primary quiz-floating-action" data-quiz-validate-all>
                   Valider le quiz
                 </button>
                 <button type="button" class="button button-ghost" data-quiz-cancel>

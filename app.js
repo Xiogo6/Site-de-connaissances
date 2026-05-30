@@ -30,6 +30,7 @@
       graphTagFilter: "all",
       graphFocusMode: "all",
       graphShowTags: false,
+      graphFiltersOpen: false,
       graphSelection: null,
       graphZoom: 1,
       graphViewport: {
@@ -71,7 +72,7 @@
         startedAt: null,
         finishedAt: null,
       },
-      quizView: "stats",
+      quizView: "play",
       quizStatsDrilldown: null,
       quizReturnActive: false,
       sportMode: "mass",
