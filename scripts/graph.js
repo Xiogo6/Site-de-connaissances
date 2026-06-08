@@ -495,6 +495,9 @@
         context.state.graphSelection.kind === node.kind &&
         context.state.graphSelection.id === node.id;
       const degree = getNodeDegree(node.id, graph.edges);
+      const compactLabels = window.matchMedia("(max-width: 780px)").matches;
+      const shouldShowLabel =
+        !compactLabels || isCurrent || isSelected || node.kind === "tag" || degree >= 5;
       const palette =
         node.kind === "tag"
           ? { fill: "#69a77a", stroke: "#dcf0e1", label: "#ffffff" }
@@ -521,15 +524,26 @@
       circle.style.stroke = nodeStroke;
       circle.style.strokeWidth = isCurrent || isSelected ? "3" : "2";
 
-      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      label.setAttribute("x", position.x + nodeRadius + 8);
-      label.setAttribute("y", position.y + 4);
-      label.setAttribute("class", `graph-label${node.kind === "tag" ? " is-tag-label" : ""}`);
-      label.style.fill = "#ffffff";
-      label.textContent = node.label;
-
       group.appendChild(circle);
-      group.appendChild(label);
+      if (shouldShowLabel) {
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", position.x + nodeRadius + 6);
+        label.setAttribute("y", position.y + 3);
+        label.setAttribute(
+          "class",
+          [
+            "graph-label",
+            node.kind === "tag" ? "is-tag-label" : "",
+            compactLabels && !isCurrent && !isSelected ? "is-compact" : "",
+            isCurrent || isSelected ? "is-key" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")
+        );
+        label.style.fill = "#ffffff";
+        label.textContent = node.label;
+        group.appendChild(label);
+      }
       context.elements.graphCanvas.appendChild(group);
     });
 

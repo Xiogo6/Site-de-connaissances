@@ -115,8 +115,11 @@
     }
 
     const notesBeforeSystemFolders = context.state.notes.length;
-    context.notes.ensureDefaultFolders();
-    if (context.state.notes.length !== notesBeforeSystemFolders) {
+    const ensuredFolders = context.notes.ensureDefaultFolders();
+    if (
+      context.state.notes.length !== notesBeforeSystemFolders ||
+      ensuredFolders?.didChange
+    ) {
       context.data.saveNotes({ skipRemote: true });
     }
 

@@ -1541,6 +1541,10 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   border-right: 0;
 }
 
+.sport-action-header {
+  width: 116px;
+}
+
 .sport-table th {
   background: rgba(47, 36, 24, 0.06);
   color: var(--text-soft);
@@ -1591,6 +1595,18 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   accent-color: var(--accent);
   height: 20px;
   width: 20px;
+}
+
+.sport-action-cell {
+  padding: 6px 8px;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.sport-delete-button {
+  min-height: 34px;
+  padding: 0 10px;
 }
 
 #template-editor {
@@ -2054,11 +2070,22 @@ body[data-theme="dark"] .toggle-row-editor {
     padding: 7px 10px;
   }
 
-  .knowledge-item-menu {
-    left: 0;
-    min-width: 0;
-    right: auto;
-    width: min(220px, calc(100vw - 88px));
-  }
+.knowledge-item-menu {
+  left: 0;
+  min-width: 0;
+  right: auto;
+  width: min(220px, calc(100vw - 88px));
+}
 
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .text-input,
+  .select-input,
+  .editor,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
