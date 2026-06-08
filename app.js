@@ -135,17 +135,21 @@
   }
 
   function getStartupNoteId() {
-    return getLatestEditedNoteId();
-  }
-
-  function getLatestEditedNoteId() {
-    return context.state.notes
+    const noteIds = context.state.notes
       .filter((note) => note.type !== "folder")
-      .map((note) => ({
-        id: note.id,
-        timestamp: Date.parse(note.updatedAt || note.createdAt || ""),
-      }))
-      .filter((item) => !Number.isNaN(item.timestamp))
-      .sort((left, right) => right.timestamp - left.timestamp)[0]?.id;
+      .map((note) => note.id);
+
+    if (!noteIds.length) {
+      return null;
+    }
+
+    const lastEditedId = context.state.settings?.lastEditedNoteId;
+    const pool =
+      noteIds.length > 1 && lastEditedId
+        ? noteIds.filter((noteId) => noteId !== lastEditedId)
+        : noteIds;
+
+    const fallbackPool = pool.length ? pool : noteIds;
+    return fallbackPool[Math.floor(Math.random() * fallbackPool.length)] ?? null;
   }
 })(window);

@@ -38,7 +38,7 @@
         context.elements.quizFolder.value
       ).filter((note) => Array.isArray(note.quizQuestions) && note.quizQuestions.length);
 
-      const requestedAmount = context.helpers.clamp(Number(context.elements.quizAmount.value) || 6, 1, 50);
+      const requestedAmount = context.helpers.clamp(Number(context.elements.quizAmount.value) || 10, 1, 50);
       const picked = pickQuizQuestionsForSession(availableNotes, requestedAmount);
 
       context.state.quiz = {
@@ -66,7 +66,7 @@
         validatedCount: 0,
         startedAt: null,
         finishedAt: null,
-        requestedAmount: Number(context.elements.quizAmount.value) || 6,
+        requestedAmount: Number(context.elements.quizAmount.value) || 10,
       };
 
       renderQuizCard();
@@ -90,6 +90,53 @@
       context.elements.quizViewButtons?.forEach((button) => {
         button.classList.toggle("is-active", button.dataset.quizView === view);
       });
+    }
+
+    function renderAsterMascot(variant = "hero") {
+      const speechByVariant = {
+        drilldown: "On suit le fil.",
+        hero: "Je suis la.",
+        panel: "Encore un peu.",
+        session: "On revise ensemble.",
+        result: "Tu progresses.",
+      };
+      const speech = speechByVariant[variant] || "On y va.";
+
+      return `
+        <div class="quiz-aster quiz-aster-${escapeHtml(variant)}" aria-hidden="true">
+          <span class="quiz-aster-speech">${escapeHtml(speech)}</span>
+          <div class="quiz-aster-drift">
+            <span class="quiz-aster-glow"></span>
+            <div class="quiz-aster-orbit">
+              <span class="quiz-aster-ring"></span>
+              <span class="quiz-aster-orbit-dot quiz-aster-orbit-dot-a"></span>
+              <span class="quiz-aster-orbit-dot quiz-aster-orbit-dot-b"></span>
+              <span class="quiz-aster-orbit-dot quiz-aster-orbit-dot-c"></span>
+            </div>
+            <div class="quiz-aster-core">
+              <svg class="quiz-aster-star" viewBox="0 0 120 120" role="presentation">
+                <path
+                  class="quiz-aster-star-shape"
+                  d="M60 12 C66 24 70 33 82 31 C96 28 101 34 94 45 C88 55 91 62 103 74 C90 77 83 79 80 90 C76 103 67 107 59 96 C52 86 44 89 30 95 C34 81 31 73 20 65 C33 58 38 52 34 40 C47 42 54 35 60 12 Z"
+                ></path>
+                <ellipse class="quiz-aster-star-core" cx="60" cy="61" rx="20" ry="18"></ellipse>
+              </svg>
+              <span class="quiz-aster-scarf"></span>
+              <span class="quiz-aster-scarf-tail"></span>
+              <span class="quiz-aster-forehead-dot"></span>
+              <span class="quiz-aster-face">
+                <span class="quiz-aster-eyes">
+                  <span class="quiz-aster-eye"></span>
+                  <span class="quiz-aster-eye"></span>
+                </span>
+                <span class="quiz-aster-mouth"></span>
+                <span class="quiz-aster-cheek quiz-aster-cheek-left"></span>
+                <span class="quiz-aster-cheek quiz-aster-cheek-right"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     function startQuizTimer() {
@@ -807,6 +854,7 @@
               <h2>${escapeHtml(drilldown.title)}</h2>
               <p>${drilldown.items.length} question(s) dans cette categorie.</p>
             </div>
+            ${renderAsterMascot("drilldown")}
           </div>
           <div class="quiz-drilldown-list">
             ${renderQuestionRankList(drilldown.items, "Aucune question dans cette categorie.")}
@@ -824,8 +872,11 @@
               getQuizScopeLabel(scope).toLowerCase()
             )} - ${escapeHtml(getQuizFocusLabel(focus).toLowerCase())}.</p>
           </div>
-          <div class="quiz-hero-meter" style="--score:${sessionAverage}%;" aria-hidden="true">
-            <span>${formatPercent(sessionAverage)}</span>
+          <div class="quiz-hero-side">
+            ${renderAsterMascot("hero")}
+            <div class="quiz-hero-meter" style="--score:${sessionAverage}%;" aria-hidden="true">
+              <span>${formatPercent(sessionAverage)}</span>
+            </div>
           </div>
         </div>
 
@@ -851,9 +902,12 @@
           </article>
 
           <article class="quiz-player-panel">
-            <div class="quiz-panel-title">
-              <span class="quiz-game-kicker">Joueur</span>
-              <h3>Performance</h3>
+            <div class="quiz-panel-title-row">
+              <div class="quiz-panel-title">
+                <span class="quiz-game-kicker">Joueur</span>
+                <h3>Performance</h3>
+              </div>
+              ${renderAsterMascot("panel")}
             </div>
             <div class="quiz-player-score" style="--score:${sessionAverage}%;">
               <strong>${formatPercent(sessionAverage)}</strong>
@@ -997,9 +1051,12 @@
         context.elements.quizProgress.textContent = "0 / 0";
         context.elements.quizCard.className = "quiz-card quiz-session-card quiz-session-empty";
         context.elements.quizCard.innerHTML = `
-          <div class="quiz-session-hero">
-            <span class="quiz-game-kicker">Questions ecrites</span>
-            <h4>Creer des questions sur une note.</h4>
+          <div class="quiz-session-hero quiz-session-hero-empty">
+            <div>
+              <span class="quiz-game-kicker">Questions ecrites</span>
+              <h4>Creer des questions sur une note.</h4>
+            </div>
+            ${renderAsterMascot("session")}
           </div>
         `;
         context.elements.quizSummary.textContent = "Le quiz pioche des questions deja enregistrees.";
@@ -1023,9 +1080,12 @@
       }`;
       context.elements.quizCard.innerHTML = `
         <div class="quiz-session-header">
-          <div>
-            <span class="quiz-game-kicker">Quiz ecrit</span>
-            <h4>${completed ? "Termine" : "Repondez puis validez"}</h4>
+          <div class="quiz-session-headline">
+            ${renderAsterMascot(completed ? "result" : "session")}
+            <div>
+              <span class="quiz-game-kicker">Quiz ecrit</span>
+              <h4>${completed ? "Termine" : "Repondez puis validez"}</h4>
+            </div>
           </div>
           <div class="quiz-session-score">
             <strong>${correctCount}/${scoredTotal}</strong>
@@ -1053,22 +1113,10 @@
           <span class="quiz-score-pill">Contestees <strong>${contestedCount}</strong></span>
           <span class="quiz-score-pill">Temps <strong data-quiz-duration>${duration}</strong></span>
         </div>
-        <div class="table-shell quiz-session-shell">
-          <table class="data-table quiz-session-table">
-            <colgroup>
-              <col style="width: 56%" />
-              <col style="width: 44%" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Question</th>
-                <th>Reponse</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${renderQuizSessionRows(context.state.quiz.questions)}
-            </tbody>
-          </table>
+        <div class="quiz-session-shell">
+          <div class="quiz-session-list">
+            ${renderQuizSessionRows(context.state.quiz.questions)}
+          </div>
         </div>
       `;
 
@@ -1091,66 +1139,63 @@
             : "";
 
           return `
-            <tr class="${rowClass}${completed ? " quiz-reveal-row" : ""}" style="--quiz-reveal-delay: ${360 + index * 440}ms;">
-              <td>
-                <div class="quiz-question-cell">
-                  <strong>${escapeHtml(question.question)}</strong>
-                  ${
-                    completed
-                      ? `<button type="button" class="quiz-note-link" data-open-quiz-note="${escapeHtml(
-                          question.noteId
-                        )}">${escapeHtml(question.noteTitle)}</button>`
-                      : ""
-                  }
-                </div>
-              </td>
-              <td>
-                <div class="quiz-answer-cell">
-                  <input
-                    class="text-input quiz-session-answer"
-                    type="text"
-                    data-quiz-session-answer="${index}"
-                    value="${escapeHtml(question.userAnswer || "")}" 
-                    placeholder="Tapez votre reponse"
-                    ${completed ? "disabled" : ""}
-                  />
-                  ${
-                    completed
-                      ? `<div class="quiz-answer-feedback ${
-                          question.contested ? "is-contested" : question.isCorrect ? "is-correct" : "is-wrong"
-                        }">
-                            <span>${
-                              question.contested
-                                ? "Question contestee"
-                                : question.isCorrect
-                                  ? "Bonne reponse"
-                                  : "Reponse attendue"
-                            }</span>
-                            <strong>${escapeHtml(
-                              question.matchedAnswer || question.acceptedAnswers.join(", ")
-                            )}</strong>
-                            ${
-                              question.contested
-                                ? `<small>Cette question ne compte plus dans le score ni dans les stats.</small>
-                                  ${
-                                    question.contestedAnswerAccepted
-                                      ? `<small>Reponse ajoutee aux reponses acceptees.</small>`
-                                      : String(question.userAnswer || "").trim()
-                                        ? `<button type="button" class="quiz-contest-button" data-quiz-accept-contested="${index}">
-                                            Accepter ma reponse
-                                          </button>`
-                                        : ""
-                                  }`
-                                : `<button type="button" class="quiz-contest-button" data-quiz-contest="${index}">
-                                    Contester
-                                  </button>`
-                            }
-                         </div>`
-                      : ""
-                  }
-                </div>
-              </td>
-            </tr>
+            <article class="quiz-session-item ${rowClass}${completed ? " quiz-reveal-row" : ""}" style="--quiz-reveal-delay: ${360 + index * 440}ms;">
+              <div class="quiz-question-cell">
+                <span class="quiz-question-index">Question ${index + 1}</span>
+                <strong>${escapeHtml(question.question)}</strong>
+                ${
+                  completed
+                    ? `<button type="button" class="quiz-note-link" data-open-quiz-note="${escapeHtml(
+                        question.noteId
+                      )}">${escapeHtml(question.noteTitle)}</button>`
+                    : ""
+                }
+              </div>
+              <div class="quiz-answer-cell">
+                <input
+                  class="text-input quiz-session-answer"
+                  type="text"
+                  data-quiz-session-answer="${index}"
+                  value="${escapeHtml(question.userAnswer || "")}"
+                  placeholder="Tapez votre reponse"
+                  ${completed ? "disabled" : ""}
+                />
+                ${
+                  completed
+                    ? `<div class="quiz-answer-feedback ${
+                        question.contested ? "is-contested" : question.isCorrect ? "is-correct" : "is-wrong"
+                      }">
+                          <span>${
+                            question.contested
+                              ? "Question contestee"
+                              : question.isCorrect
+                                ? "Bonne reponse"
+                                : "Reponse attendue"
+                          }</span>
+                          <strong>${escapeHtml(
+                            question.matchedAnswer || question.acceptedAnswers.join(", ")
+                          )}</strong>
+                          ${
+                            question.contested
+                              ? `<small>Cette question ne compte plus dans le score ni dans les stats.</small>
+                                ${
+                                  question.contestedAnswerAccepted
+                                    ? `<small>Reponse ajoutee aux reponses acceptees.</small>`
+                                    : String(question.userAnswer || "").trim()
+                                      ? `<button type="button" class="quiz-contest-button" data-quiz-accept-contested="${index}">
+                                          Accepter ma reponse
+                                        </button>`
+                                      : ""
+                                }`
+                              : `<button type="button" class="quiz-contest-button" data-quiz-contest="${index}">
+                                  Contester
+                                </button>`
+                          }
+                       </div>`
+                    : ""
+                }
+              </div>
+            </article>
           `;
         })
         .join("");
