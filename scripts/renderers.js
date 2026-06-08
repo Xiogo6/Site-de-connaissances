@@ -1660,10 +1660,12 @@
     );
 
     context.elements.sportMassBody.innerHTML = massEntries
-      .map((entry, index) => buildSportMassRow(entry, index))
+      .map((entry, index) => buildSportMassRow(entry, index, index < sport.massEntries.length))
       .join("");
     context.elements.sportPerformanceBody.innerHTML = performanceEntries
-      .map((entry, index) => buildSportPerformanceRow(entry, index, performanceEntries))
+      .map((entry, index) =>
+        buildSportPerformanceRow(entry, index, performanceEntries, index < sport.performanceEntries.length)
+      )
       .join("");
   }
 
@@ -1675,7 +1677,7 @@
     return { date: "", exercise: "", sets: "", reps: "", weight: "", rest: "" };
   }
 
-  function buildSportMassRow(entry, index) {
+  function buildSportMassRow(entry, index, canDelete) {
     return `
       <tr>
         <td>
@@ -1687,11 +1689,23 @@
         <td class="sport-check-cell">
           <input type="checkbox" ${entry.fasted ? "checked" : ""} data-sport-table="mass" data-sport-index="${index}" data-sport-field="fasted" />
         </td>
+        <td class="sport-action-cell">
+          <button
+            class="button button-ghost sport-delete-button"
+            type="button"
+            data-delete-sport-row="mass"
+            data-sport-index="${index}"
+            aria-label="Supprimer la ligne de masse"
+            ${canDelete ? "" : "disabled"}
+          >
+            Supprimer
+          </button>
+        </td>
       </tr>
     `;
   }
 
-  function buildSportPerformanceRow(entry, index, entries) {
+  function buildSportPerformanceRow(entry, index, entries, canDelete) {
     const datalistId = `sport-exercises-${index}`;
     const suggestions = unique(
       entries
@@ -1722,6 +1736,18 @@
         </td>
         <td>
           <input class="sport-input" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(entry.rest || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="rest" />
+        </td>
+        <td class="sport-action-cell">
+          <button
+            class="button button-ghost sport-delete-button"
+            type="button"
+            data-delete-sport-row="performance"
+            data-sport-index="${index}"
+            aria-label="Supprimer la ligne de performance"
+            ${canDelete ? "" : "disabled"}
+          >
+            Supprimer
+          </button>
         </td>
       </tr>
     `;

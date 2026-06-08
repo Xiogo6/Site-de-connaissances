@@ -383,6 +383,8 @@
     context.elements.addSportPerformanceRowButton?.addEventListener("click", () =>
       addSportRow("performance")
     );
+    context.elements.sportMassBody?.addEventListener("click", handleSportDelete);
+    context.elements.sportPerformanceBody?.addEventListener("click", handleSportDelete);
     context.elements.sportMassBody?.addEventListener("input", handleSportInput);
     context.elements.sportMassBody?.addEventListener("change", handleSportInput);
     context.elements.sportPerformanceBody?.addEventListener("input", handleSportInput);
@@ -1371,6 +1373,25 @@
     }
 
     context.data.saveNotes();
+  }
+
+  function handleSportDelete(event) {
+    const button = event.target.closest("[data-delete-sport-row][data-sport-index]");
+    if (!button || button.disabled) {
+      return;
+    }
+
+    const sport = getSportSettings();
+    const table = button.dataset.deleteSportRow;
+    const index = Number(button.dataset.sportIndex);
+    const entries = table === "performance" ? sport.performanceEntries : sport.massEntries;
+    if (!Number.isInteger(index) || index < 0 || index >= entries.length) {
+      return;
+    }
+
+    entries.splice(index, 1);
+    context.data.saveNotes();
+    context.renderers.renderSportTracker();
   }
 
   function ensureSportEntry(entries, table, index) {

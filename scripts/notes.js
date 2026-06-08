@@ -11,8 +11,8 @@
     } = AtlasApp.helpers;
     const systemFolders = {
       triage: "à trier",
-      dailyRoot: "Kevin Bardet",
-      daily: "daily",
+      dailyRoot: "Kevin Barbet",
+      daily: "Daily",
     };
 
   function getFilteredNotes() {
@@ -153,11 +153,53 @@
     const rootFolder = ensureFolder(systemFolders.dailyRoot);
     const dailyFolder = ensureFolder(systemFolders.daily, rootFolder.id);
     const triageFolder = ensureFolder(systemFolders.triage);
+    const didChange = migrateDailyNotesToDefaultFolder(dailyFolder.id);
     return {
       rootFolder,
       dailyFolder,
       triageFolder,
+      didChange,
     };
+  }
+
+  function migrateDailyNotesToDefaultFolder(targetDailyFolderId) {
+    let didChange = false;
+
+    context.state.notes.forEach((note) => {
+      if (note.type !== "daily") {
+        return;
+      }
+
+      const previousParentId = note.parentId;
+      if (previousParentId === targetDailyFolderId) {
+        return;
+      }
+
+      if (previousParentId) {
+        const previousParent = context.state.notes.find(
+          (candidate) => candidate.id === previousParentId
+        );
+        if (previousParent) {
+          previousParent.content = removeWikiLinkLine(previousParent.content, note.title);
+          note.content = removeWikiLinkLine(note.content, previousParent.title);
+          previousParent.updatedAt = new Date().toISOString();
+        }
+      }
+
+      note.parentId = targetDailyFolderId;
+      note.updatedAt = new Date().toISOString();
+
+      const targetParent = context.state.notes.find(
+        (candidate) => candidate.id === targetDailyFolderId
+      );
+      if (targetParent) {
+        ensureBidirectionalHierarchyLinks(targetParent, note);
+      }
+
+      didChange = true;
+    });
+
+    return didChange;
   }
 
   function getDefaultParentIdForType(type) {
@@ -1059,12 +1101,7 @@
     const tags = parseTags(context.elements.quickTags.value);
     const body = context.elements.quickContent.value.trim();
     const type = context.elements.quickType?.value || "concept";
-    const parentId =
-      type === "daily"
-        ? getDefaultParentIdForType(type)
-        : shouldLink
-          ? active.id
-          : getDefaultParentIdForType(type);
+    const parentId = getDefaultParentIdForType(type);
     const now = new Date().toISOString();
     const note = {
       id: context.data.generateId(title),
@@ -1083,8 +1120,11 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
       review: context.data.createReviewState(),
     };
 
-    if (note.parentId && active) {
-      ensureBidirectionalHierarchyLinks(active, note);
+    if (note.parentId) {
+      const parent = context.state.notes.find((candidate) => candidate.id === note.parentId);
+      if (parent) {
+        ensureBidirectionalHierarchyLinks(parent, note);
+      }
     }
 
     context.state.notes.unshift(note);

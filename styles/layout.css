@@ -640,9 +640,9 @@ body[data-theme="dark"] .tab.is-active {
 
   body.graph-view-active .graph-panel {
     background:
-      radial-gradient(circle at 20% 22%, rgba(67, 94, 146, 0.2), transparent 27%),
-      radial-gradient(circle at 78% 18%, rgba(124, 90, 160, 0.12), transparent 23%),
-      radial-gradient(circle at 58% 74%, rgba(62, 82, 128, 0.14), transparent 34%),
+      radial-gradient(circle at 18% 18%, rgba(84, 108, 132, 0.16), transparent 24%),
+      radial-gradient(circle at 78% 20%, rgba(56, 74, 94, 0.12), transparent 22%),
+      radial-gradient(circle at 56% 74%, rgba(76, 96, 118, 0.12), transparent 32%),
       linear-gradient(180deg, rgba(2, 4, 10, 0.99), rgba(3, 5, 12, 0.99));
     border: 0;
     box-shadow: none;
@@ -661,7 +661,7 @@ body[data-theme="dark"] .tab.is-active {
     background: transparent;
     display: flex;
     left: 0;
-    padding: calc(env(safe-area-inset-top, 0px) + 58px) 84px 8px;
+    padding: calc(env(safe-area-inset-top, 0px) + 46px) 72px 4px;
     pointer-events: none;
     position: fixed;
     top: 0;
@@ -679,10 +679,10 @@ body[data-theme="dark"] .tab.is-active {
   }
 
   body.graph-view-active .graph-panel .panel-header h3 {
-    color: rgba(238, 242, 248, 0.86);
-    font-size: clamp(1rem, 3.4vw, 1.28rem);
+    color: rgba(223, 231, 239, 0.68);
+    font-size: clamp(0.84rem, 2.8vw, 0.98rem);
     letter-spacing: -0.02em;
-    text-shadow: 0 2px 18px rgba(0, 0, 0, 0.72);
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.48);
   }
 
   body.graph-view-active .mode-switcher {
@@ -714,13 +714,13 @@ body[data-theme="dark"] .tab.is-active {
     box-shadow: 0 14px 30px rgba(15, 18, 22, 0.24);
     color: rgba(238, 242, 248, 0.9);
     display: inline-flex;
-    height: 44px;
+    height: 38px;
     justify-content: center;
     padding: 0;
     position: fixed;
     right: 14px;
-    top: max(env(safe-area-inset-top, 0px), 6px);
-    width: 44px;
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    width: 38px;
     z-index: 91;
   }
 
@@ -741,7 +741,7 @@ body[data-theme="dark"] .tab.is-active {
     padding: 10px;
     position: fixed;
     right: 14px;
-    top: calc(max(env(safe-area-inset-top, 0px), 6px) + 52px);
+    top: calc(env(safe-area-inset-top, 0px) + 54px);
     width: min(276px, calc(100vw - 28px));
     z-index: 91;
   }
@@ -828,7 +828,7 @@ body[data-theme="dark"] .tab.is-active {
 
   body.graph-view-active .graph-zoom-stack {
     right: 14px;
-    top: calc(max(env(safe-area-inset-top, 0px), 6px) + 112px);
+    top: calc(env(safe-area-inset-top, 0px) + 96px);
     z-index: 88;
   }
 

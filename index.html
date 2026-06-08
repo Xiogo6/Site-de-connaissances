@@ -539,11 +539,11 @@
         </section>
 
         <section id="visualization-tab" class="tab-panel">
-          <div class="revision-choice mode-switcher">
-            <button class="revision-choice-card is-active" data-visualization-mode="graph" type="button">
+          <div class="mode-switcher quiz-view-switcher graph-mode-switcher" aria-label="Navigation visualisation">
+            <button class="quiz-view-button graph-mode-button is-active" data-visualization-mode="graph" type="button">
               <strong>Graphe</strong>
             </button>
-            <button class="revision-choice-card" data-visualization-mode="timeline" type="button">
+            <button class="quiz-view-button graph-mode-button" data-visualization-mode="timeline" type="button">
               <strong>Frise</strong>
             </button>
           </div>
@@ -909,6 +909,7 @@
                         <th>Jour</th>
                         <th>Masse</th>
                         <th>A jeun</th>
+                        <th class="sport-action-header">Action</th>
                       </tr>
                     </thead>
                     <tbody id="sport-mass-body"></tbody>
@@ -930,6 +931,7 @@
                         <th>Repetitions</th>
                         <th>Poids</th>
                         <th>Repos</th>
+                        <th class="sport-action-header">Action</th>
                       </tr>
                     </thead>
                     <tbody id="sport-performance-body"></tbody>
