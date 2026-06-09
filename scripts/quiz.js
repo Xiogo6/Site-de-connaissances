@@ -94,13 +94,16 @@
 
     function renderAsterMascot(variant = "hero") {
       const speechByVariant = {
-        drilldown: "On suit le fil.",
-        hero: "Je suis la.",
-        panel: "Encore un peu.",
-        session: "On revise ensemble.",
-        result: "Tu progresses.",
+        drilldown: "On suit le fil",
+        hero: "Je suis la !",
+        panel: "Encore un peu !",
+        session: "On revise ensemble",
+        result: "Tu progresses !",
       };
-      const speech = speechByVariant[variant] || "On y va.";
+      const speech = speechByVariant[variant] || "On y va !";
+      const asterId = `quiz-aster-${variant.replace(/[^a-z0-9_-]/gi, "")}`;
+      const starPath =
+        "M60 8 C67 25 72 34 84 33 C99 31 105 39 95 51 C87 61 91 70 104 80 C89 82 80 84 76 97 C72 111 62 113 54 99 C48 88 39 91 24 99 C29 83 27 73 15 65 C30 57 36 50 31 36 C47 39 54 30 60 8 Z";
 
       return `
         <div class="quiz-aster quiz-aster-${escapeHtml(variant)}" aria-hidden="true">
@@ -115,14 +118,35 @@
             </div>
             <div class="quiz-aster-core">
               <svg class="quiz-aster-star" viewBox="0 0 120 120" role="presentation">
+                <defs>
+                  <radialGradient id="${asterId}-surface" cx="36%" cy="26%" r="78%">
+                    <stop offset="0%" stop-color="#fff8d8"></stop>
+                    <stop offset="34%" stop-color="#f9dc82"></stop>
+                    <stop offset="72%" stop-color="#efb94f"></stop>
+                    <stop offset="100%" stop-color="#d99a38"></stop>
+                  </radialGradient>
+                  <linearGradient id="${asterId}-edge" x1="20%" y1="12%" x2="88%" y2="92%">
+                    <stop offset="0%" stop-color="#fff0b6"></stop>
+                    <stop offset="48%" stop-color="#d79637"></stop>
+                    <stop offset="100%" stop-color="#9f6427"></stop>
+                  </linearGradient>
+                  <radialGradient id="${asterId}-belly" cx="48%" cy="42%" r="58%">
+                    <stop offset="0%" stop-color="#fff4c6" stop-opacity="0.8"></stop>
+                    <stop offset="64%" stop-color="#ffdd7c" stop-opacity="0.28"></stop>
+                    <stop offset="100%" stop-color="#9c5c1d" stop-opacity="0.18"></stop>
+                  </radialGradient>
+                </defs>
                 <path
                   class="quiz-aster-star-shape"
-                  d="M60 12 C66 24 70 33 82 31 C96 28 101 34 94 45 C88 55 91 62 103 74 C90 77 83 79 80 90 C76 103 67 107 59 96 C52 86 44 89 30 95 C34 81 31 73 20 65 C33 58 38 52 34 40 C47 42 54 35 60 12 Z"
+                  d="${starPath}"
+                  fill="url(#${asterId}-surface)"
+                  stroke="url(#${asterId}-edge)"
                 ></path>
-                <ellipse class="quiz-aster-star-core" cx="60" cy="61" rx="20" ry="18"></ellipse>
+                <path class="quiz-aster-star-depth" d="${starPath}"></path>
+                <ellipse class="quiz-aster-star-core" cx="60" cy="62" rx="25" ry="21" fill="url(#${asterId}-belly)"></ellipse>
+                <path class="quiz-aster-star-shine" d="M42 36 C48 28 56 25 64 27"></path>
+                <path class="quiz-aster-star-shine quiz-aster-star-shine-soft" d="M31 58 C37 51 43 49 51 51"></path>
               </svg>
-              <span class="quiz-aster-scarf"></span>
-              <span class="quiz-aster-scarf-tail"></span>
               <span class="quiz-aster-forehead-dot"></span>
               <span class="quiz-aster-face">
                 <span class="quiz-aster-eyes">
