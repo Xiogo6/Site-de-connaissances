@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-connaissance-v8";
+const CACHE_NAME = "atlas-connaissance-v9";
 const ASSETS = [
   "./",
   "./index.html",
@@ -11,6 +11,7 @@ const ASSETS = [
   "./scripts/notes.js",
   "./scripts/graph.js",
   "./scripts/quiz.js",
+  "./scripts/mascot.js",
   "./scripts/renderers.js",
   "./scripts/events.js",
   "./styles/tokens.css",
@@ -18,6 +19,9 @@ const ASSETS = [
   "./styles/layout.css",
   "./styles/components.css",
   "./styles/features.css",
+  "./assets/mascot/aster-neutral.png",
+  "./assets/mascot/aster-happy.png",
+  "./assets/mascot/aster-thinking.png",
   "./manifest.webmanifest",
   "./icon.svg",
   "./knowledge-base.json",
