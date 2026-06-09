@@ -44,6 +44,7 @@
     renderQuickCapture();
     renderSidebarRecap();
     renderOrganization();
+    context.mascot?.sync(true);
   }
 
   function renderTabs() {
@@ -98,6 +99,7 @@
     });
 
     renderGraphFilters();
+    context.mascot?.sync();
   }
 
   function renderVisualizationMode() {

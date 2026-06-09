@@ -48,6 +48,7 @@
         startedAt: Date.now(),
         finishedAt: null,
         requestedAmount,
+        revealPending: false,
       };
       context.state.quizView = "play";
 
@@ -55,6 +56,7 @@
       renderQuizViewMode();
       renderQuizDashboard();
       renderQuizCard();
+      context.mascot?.sync();
       startQuizTimer();
     }
 
@@ -67,10 +69,12 @@
         startedAt: null,
         finishedAt: null,
         requestedAmount: Number(context.elements.quizAmount.value) || 10,
+        revealPending: false,
       };
 
       renderQuizCard();
       renderQuizDashboard();
+      context.mascot?.sync();
     }
 
     function setQuizView(view) {
@@ -81,6 +85,7 @@
       renderQuizViewMode();
       renderQuizDashboard();
       renderQuizCard();
+      context.mascot?.sync();
     }
 
     function renderQuizViewMode() {
@@ -90,73 +95,38 @@
       context.elements.quizViewButtons?.forEach((button) => {
         button.classList.toggle("is-active", button.dataset.quizView === view);
       });
+      context.mascot?.sync();
     }
 
     function renderAsterMascot(variant = "hero") {
       const speechByVariant = {
-        drilldown: "On suit le fil",
+        drilldown: "On suit le fil !",
         hero: "Je suis la !",
         panel: "Encore un peu !",
-        session: "On revise ensemble",
+        session: "On revise ensemble !",
         result: "Tu progresses !",
       };
       const speech = speechByVariant[variant] || "On y va !";
-      const asterId = `quiz-aster-${variant.replace(/[^a-z0-9_-]/gi, "")}`;
-      const starPath =
-        "M60 8 C67 25 72 34 84 33 C99 31 105 39 95 51 C87 61 91 70 104 80 C89 82 80 84 76 97 C72 111 62 113 54 99 C48 88 39 91 24 99 C29 83 27 73 15 65 C30 57 36 50 31 36 C47 39 54 30 60 8 Z";
+      const imageByVariant = {
+        result: "happy",
+        session: "thinking",
+      };
+      const expression = imageByVariant[variant] || "neutral";
 
       return `
-        <div class="quiz-aster quiz-aster-${escapeHtml(variant)}" aria-hidden="true">
+        <div class="quiz-aster quiz-aster-${escapeHtml(variant)} quiz-aster-anchor" data-aster-anchor="${escapeHtml(
+          variant
+        )}" aria-hidden="true">
           <span class="quiz-aster-speech">${escapeHtml(speech)}</span>
           <div class="quiz-aster-drift">
             <span class="quiz-aster-glow"></span>
-            <div class="quiz-aster-orbit">
-              <span class="quiz-aster-ring"></span>
-              <span class="quiz-aster-orbit-dot quiz-aster-orbit-dot-a"></span>
-              <span class="quiz-aster-orbit-dot quiz-aster-orbit-dot-b"></span>
-              <span class="quiz-aster-orbit-dot quiz-aster-orbit-dot-c"></span>
-            </div>
             <div class="quiz-aster-core">
-              <svg class="quiz-aster-star" viewBox="0 0 120 120" role="presentation">
-                <defs>
-                  <radialGradient id="${asterId}-surface" cx="36%" cy="26%" r="78%">
-                    <stop offset="0%" stop-color="#fff8d8"></stop>
-                    <stop offset="34%" stop-color="#f9dc82"></stop>
-                    <stop offset="72%" stop-color="#efb94f"></stop>
-                    <stop offset="100%" stop-color="#d99a38"></stop>
-                  </radialGradient>
-                  <linearGradient id="${asterId}-edge" x1="20%" y1="12%" x2="88%" y2="92%">
-                    <stop offset="0%" stop-color="#fff0b6"></stop>
-                    <stop offset="48%" stop-color="#d79637"></stop>
-                    <stop offset="100%" stop-color="#9f6427"></stop>
-                  </linearGradient>
-                  <radialGradient id="${asterId}-belly" cx="48%" cy="42%" r="58%">
-                    <stop offset="0%" stop-color="#fff4c6" stop-opacity="0.8"></stop>
-                    <stop offset="64%" stop-color="#ffdd7c" stop-opacity="0.28"></stop>
-                    <stop offset="100%" stop-color="#9c5c1d" stop-opacity="0.18"></stop>
-                  </radialGradient>
-                </defs>
-                <path
-                  class="quiz-aster-star-shape"
-                  d="${starPath}"
-                  fill="url(#${asterId}-surface)"
-                  stroke="url(#${asterId}-edge)"
-                ></path>
-                <path class="quiz-aster-star-depth" d="${starPath}"></path>
-                <ellipse class="quiz-aster-star-core" cx="60" cy="62" rx="25" ry="21" fill="url(#${asterId}-belly)"></ellipse>
-                <path class="quiz-aster-star-shine" d="M42 36 C48 28 56 25 64 27"></path>
-                <path class="quiz-aster-star-shine quiz-aster-star-shine-soft" d="M31 58 C37 51 43 49 51 51"></path>
-              </svg>
-              <span class="quiz-aster-forehead-dot"></span>
-              <span class="quiz-aster-face">
-                <span class="quiz-aster-eyes">
-                  <span class="quiz-aster-eye"></span>
-                  <span class="quiz-aster-eye"></span>
-                </span>
-                <span class="quiz-aster-mouth"></span>
-                <span class="quiz-aster-cheek quiz-aster-cheek-left"></span>
-                <span class="quiz-aster-cheek quiz-aster-cheek-right"></span>
-              </span>
+              <img
+                class="quiz-aster-image"
+                src="./assets/mascot/aster-${escapeHtml(expression)}.png"
+                alt=""
+                loading="lazy"
+              />
             </div>
           </div>
         </div>
@@ -186,6 +156,18 @@
       if (durationElement) {
         durationElement.textContent = duration;
       }
+    }
+
+    function finalizeRevealSequence() {
+      const firstQuestion = context.elements.quizCard?.querySelector(".quiz-session-item");
+      if (firstQuestion) {
+        firstQuestion.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+
+      context.state.quiz.revealPending = false;
     }
 
     function pickQuizQuestionsForSession(notes, requestedAmount) {
@@ -529,11 +511,16 @@
       context.state.quiz.validatedCount = context.state.quiz.questions.length;
       syncQuizScore();
       context.state.quiz.finishedAt = Date.now();
+      context.state.quiz.revealPending = true;
       stopQuizTimer();
       recordQuizSession();
       context.data.saveNotes();
       renderQuizDashboard();
       renderQuizCard();
+
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(finalizeRevealSequence);
+      });
     }
 
     function getCountedQuizQuestions() {
@@ -970,6 +957,8 @@
           </article>
         </div>
       `;
+
+      context.mascot?.sync();
     }
 
     function getStatsDrilldown(questions, category) {
@@ -1147,10 +1136,13 @@
       context.elements.quizSummary.innerHTML = completed
         ? renderQuizCompletionSummary(correctCount, scoredTotal, context.state.quiz.questions)
         : renderQuizProgressSummary(context.state.quiz.questions);
+
+      context.mascot?.sync();
     }
 
     function renderQuizSessionRows(questions) {
       const completed = Boolean(context.state.quiz.finishedAt);
+      const shouldAnimateReveal = completed && Boolean(context.state.quiz.revealPending);
 
       return questions
         .map((question, index) => {
@@ -1163,7 +1155,7 @@
             : "";
 
           return `
-            <article class="quiz-session-item ${rowClass}${completed ? " quiz-reveal-row" : ""}" style="--quiz-reveal-delay: ${360 + index * 440}ms;">
+            <article class="quiz-session-item ${rowClass}${shouldAnimateReveal ? " quiz-reveal-row" : ""}" style="--quiz-reveal-delay: ${360 + index * 440}ms;">
               <div class="quiz-question-cell">
                 <span class="quiz-question-index">Question ${index + 1}</span>
                 <strong>${escapeHtml(question.question)}</strong>
@@ -1188,6 +1180,8 @@
                   completed
                     ? `<div class="quiz-answer-feedback ${
                         question.contested ? "is-contested" : question.isCorrect ? "is-correct" : "is-wrong"
+                      }${shouldAnimateReveal ? " quiz-reveal-feedback" : ""}" style="${
+                        shouldAnimateReveal ? `--quiz-reveal-delay: ${560 + index * 440}ms;` : ""
                       }">
                           <span>${
                             question.contested
