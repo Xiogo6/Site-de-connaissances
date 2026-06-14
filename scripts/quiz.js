@@ -1155,13 +1155,17 @@
             : "";
 
           return `
-            <article class="quiz-session-item ${rowClass}${shouldAnimateReveal ? " quiz-reveal-row" : ""}" style="--quiz-reveal-delay: ${360 + index * 440}ms;">
+            <article class="quiz-session-item ${rowClass}${shouldAnimateReveal ? " quiz-reveal-state" : ""}" style="--quiz-reveal-delay: ${360 + index * 440}ms;">
               <div class="quiz-question-cell">
                 <span class="quiz-question-index">Question ${index + 1}</span>
                 <strong>${escapeHtml(question.question)}</strong>
                 ${
                   completed
-                    ? `<button type="button" class="quiz-note-link" data-open-quiz-note="${escapeHtml(
+                    ? `<button type="button" class="quiz-note-link${
+                        shouldAnimateReveal ? " quiz-reveal-note" : ""
+                      }" style="${
+                        shouldAnimateReveal ? `--quiz-reveal-delay: ${500 + index * 440}ms;` : ""
+                      }" data-open-quiz-note="${escapeHtml(
                         question.noteId
                       )}">${escapeHtml(question.noteTitle)}</button>`
                     : ""

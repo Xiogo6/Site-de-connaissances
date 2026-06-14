@@ -7,29 +7,6 @@
     }
 
     const sceneRoutes = {
-      knowledge: [
-        route(
-          { x: 108, y: 18, scale: 0.9, rotate: 8, image: "neutral", speech: "Je fais un tour rapide !", size: 120 },
-          { x: 82, y: 14, scale: 1.02, rotate: -6, image: "happy", speech: "Je passe au-dessus de la page !", size: 132 },
-          { x: 36, y: 78, scale: 0.92, rotate: 10, image: "thinking", speech: "Je regarde ce qu'il se passe ici !", size: 124 },
-          { x: -14, y: 52, scale: 0.88, rotate: -12, image: "neutral", speech: "Hop, je repars par la gauche !", size: 118 },
-          { x: 12, y: 22, scale: 0.9, rotate: 7, image: "happy", speech: "Et me revoila !", size: 120 }
-        ),
-        route(
-          { x: -12, y: 26, scale: 0.86, rotate: -10, image: "neutral", speech: "Je rentre par la gauche !", size: 116 },
-          { x: 18, y: 16, scale: 0.94, rotate: 6, image: "thinking", speech: "Je glisse au milieu de la page !", size: 122 },
-          { x: 84, y: 72, scale: 1, rotate: -8, image: "happy", speech: "Je fais un petit coucou !", size: 130 },
-          { x: 112, y: 42, scale: 0.9, rotate: 12, image: "neutral", speech: "Je sors a droite, juste pour voir !", size: 118 },
-          { x: 72, y: -12, scale: 0.84, rotate: -14, image: "thinking", speech: "Je reviens par le haut !", size: 114 }
-        ),
-        route(
-          { x: 102, y: 84, scale: 0.9, rotate: 10, image: "happy", speech: "Je descends pour saluer !", size: 118 },
-          { x: 76, y: 12, scale: 1, rotate: -4, image: "neutral", speech: "Je flotte tranquillement !", size: 128 },
-          { x: 28, y: 36, scale: 0.92, rotate: 8, image: "thinking", speech: "Je m'egare juste un peu !", size: 122 },
-          { x: -10, y: 76, scale: 0.86, rotate: -10, image: "happy", speech: "Je m'echappe par la gauche !", size: 116 },
-          { x: 14, y: 52, scale: 0.88, rotate: 8, image: "neutral", speech: "Je reviens comme si de rien n'etait !", size: 120 }
-        ),
-      ],
       quizStats: [
         route(
           { x: 110, y: 14, scale: 0.9, rotate: 8, image: "neutral", speech: "Je viens inspecter les stats !", size: 134 },
@@ -133,7 +110,7 @@
         route(
           { x: 100, y: 82, scale: 0.88, rotate: 10, image: "happy", speech: "J'attends ton feu vert !", size: 114 },
           { x: 68, y: 14, scale: 1, rotate: -6, image: "thinking", speech: "Je patiente mais je bouge quand meme !", size: 124 },
-          { x: 18, y: 46, scale: 0.9, rotate: 8, image: "neutral", speech: "Je fais un petit détour !", size: 114 },
+          { x: 18, y: 46, scale: 0.9, rotate: 8, image: "neutral", speech: "Je fais un petit detour !", size: 114 },
           { x: -14, y: 68, scale: 0.86, rotate: -10, image: "happy", speech: "Hop, sortie gauche !", size: 110 },
           { x: 14, y: 18, scale: 0.9, rotate: 8, image: "happy", speech: "Me revoila pour le top depart !", size: 116 }
         ),
@@ -162,7 +139,7 @@
 
     function getScene() {
       if (context.state.activeTab !== "quiz") {
-        return "knowledge";
+        return null;
       }
 
       if (!context.state.quiz.questions.length) {
@@ -206,7 +183,7 @@
     }
 
     function getRoutes(scene) {
-      return sceneRoutes[scene] || sceneRoutes.knowledge;
+      return scene ? sceneRoutes[scene] || [] : [];
     }
 
     function pickRoute(scene, avoidIndex = -1) {
@@ -220,7 +197,7 @@
       }
 
       const candidates = routes
-        .map((route, index) => ({ route, index }))
+        .map((selectedRoute, index) => ({ route: selectedRoute, index }))
         .filter(({ index }) => index !== avoidIndex);
 
       return candidates[Math.floor(Math.random() * candidates.length)] || { route: routes[0], index: 0 };
@@ -276,8 +253,12 @@
       }
 
       const nextScene = getScene();
-      const sceneChanged = nextScene !== currentScene;
+      root.classList.toggle("is-hidden", !nextScene);
+      if (!nextScene) {
+        return;
+      }
 
+      const sceneChanged = nextScene !== currentScene;
       if (sceneChanged || !currentRoute.length) {
         currentScene = nextScene;
         const selection = pickRoute(currentScene);
@@ -299,7 +280,13 @@
         return;
       }
 
-      if (!currentRoute.length) {
+      const nextScene = getScene();
+      if (!nextScene) {
+        root.classList.add("is-hidden");
+        return;
+      }
+
+      if (nextScene !== currentScene || !currentRoute.length) {
         syncScene(true);
         return;
       }
@@ -334,7 +321,7 @@
       }
 
       syncScene(true);
-      roamTimer = window.setInterval(advanceRoam, 4300);
+      roamTimer = window.setInterval(advanceRoam, 7600);
       window.addEventListener("resize", queueSync, { passive: true });
     }
 
@@ -343,6 +330,7 @@
         window.clearInterval(roamTimer);
         roamTimer = null;
       }
+
       if (syncHandle) {
         window.cancelAnimationFrame(syncHandle);
         syncHandle = 0;
