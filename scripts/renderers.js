@@ -503,6 +503,9 @@
       return;
     }
 
+    const preservedScrollX = window.scrollX;
+    const preservedScrollY = window.scrollY;
+
     const draftNote = {
       ...activeNote,
       title: context.elements.titleInput.value.trim() || "Sans titre",
@@ -521,6 +524,16 @@
     renderPreview(draftNote, true);
     renderConnections(draftNote);
     renderStats(draftNote);
+
+    window.requestAnimationFrame(() => {
+      if (window.scrollX !== preservedScrollX || window.scrollY !== preservedScrollY) {
+        window.scrollTo({
+          left: preservedScrollX,
+          top: preservedScrollY,
+          behavior: "auto",
+        });
+      }
+    });
   }
 
   function renderTemplateEditor() {
