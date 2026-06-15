@@ -254,11 +254,23 @@ body.quiz-view-active .sidebar-launcher {
 }
 
 .aster-roamer.is-offscreen {
-  --aster-opacity: 0.86;
+  --aster-opacity: 0.32;
 }
 
 .aster-roamer.is-immediate {
   transition-duration: 0ms;
+}
+
+.aster-roamer .quiz-aster-speech {
+  animation: none;
+  opacity: 0;
+  transform: translateY(8px) scale(0.96);
+  transition: opacity 240ms ease, transform 280ms ease;
+}
+
+.aster-roamer.has-speech .quiz-aster-speech {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 .quiz-aster-setup {

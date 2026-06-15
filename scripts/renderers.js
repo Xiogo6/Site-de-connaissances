@@ -307,6 +307,7 @@
       context.elements.titleInput,
       context.elements.typeInput,
       context.elements.tagsInput,
+      context.elements.directClassifyInput,
       context.elements.parentInput,
       context.elements.favoriteInput,
       context.elements.noteHasDate,
@@ -429,6 +430,7 @@
       context.state.editorTemplateSeed = null;
       context.state.editorQuizQuestions = [];
       context.state.editorQuizQuestionsNoteId = null;
+      context.notes.syncNewPageClassificationControls();
       return;
     }
 
@@ -463,6 +465,7 @@
             content: templateContent,
           }
         : null;
+    context.notes.syncNewPageClassificationControls();
   }
 
   function renderStructuredFields() {
@@ -511,10 +514,7 @@
       title: context.elements.titleInput.value.trim() || "Sans titre",
       type: context.elements.typeInput.value,
       tags: parseTags(context.elements.tagsInput.value),
-      parentId: context.notes.sanitizeParentId(
-        activeNote.id,
-        context.elements.parentInput.value || null
-      ),
+      parentId: context.notes.getEditorParentId(activeNote),
       favorite: context.elements.favoriteInput.checked,
       metadata: context.notes.collectMetadataFromInputs(),
       content: context.elements.contentInput.value,
@@ -1617,7 +1617,7 @@
       empty.textContent = "Aucun snapshot local enregistre";
       context.elements.snapshotList.appendChild(empty);
     } else {
-      context.state.snapshots.slice(0, 6).forEach((snapshot) => {
+      context.state.snapshots.slice(0, 5).forEach((snapshot) => {
         const item = document.createElement("article");
         item.className = "snapshot-item";
         item.innerHTML = `

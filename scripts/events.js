@@ -97,6 +97,9 @@
       if (context.state.pendingNewNoteId) {
         context.notes.discardPendingNewNote();
       }
+      if (context.elements.directClassifyInput) {
+        context.elements.directClassifyInput.checked = false;
+      }
       const note = context.notes.createEmptyNote();
       context.state.previousActiveNoteId = context.state.activeNoteId;
       context.state.pendingNewNoteId = note.id;
@@ -164,6 +167,10 @@
     context.elements.tagsInput.addEventListener("blur", () => {
       window.setTimeout(() => context.renderers.renderTagSuggestions("note"), 80);
     });
+    context.elements.directClassifyInput?.addEventListener(
+      "change",
+      context.notes.handleEditorClassificationModeChange
+    );
     context.elements.parentInput.addEventListener("change", context.renderers.renderLivePreview);
     context.elements.favoriteInput.addEventListener("change", context.renderers.renderLivePreview);
     context.elements.noteDateMode.addEventListener("change", () => {
@@ -218,6 +225,7 @@
       "click",
       context.data.downloadFullBackup
     );
+    context.elements.downloadCsvButton?.addEventListener("click", context.data.downloadDatabaseCsv);
     context.elements.copyPublishedLinkButton.addEventListener("click", context.data.copyPublishedLink);
     context.elements.saveSnapshotButton.addEventListener("click", context.data.saveManualSnapshot);
     context.elements.restoreLatestSnapshotButton.addEventListener(

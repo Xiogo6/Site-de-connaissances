@@ -442,6 +442,42 @@
     return parentId;
   }
 
+  function isPendingNewNote(note = getActiveNote()) {
+    return Boolean(note && context.state.pendingNewNoteId === note.id);
+  }
+
+  function getEditorParentId(note = getActiveNote()) {
+    if (!note) {
+      return null;
+    }
+
+    const directClassify = Boolean(context.elements.directClassifyInput?.checked);
+    if (isPendingNewNote(note) && !directClassify) {
+      return sanitizeParentId(note.id, getDefaultParentIdForType(context.elements.typeInput.value));
+    }
+
+    return sanitizeParentId(note.id, context.elements.parentInput.value || null);
+  }
+
+  function syncNewPageClassificationControls() {
+    const active = getActiveNote();
+    const pending = isPendingNewNote(active);
+    const directClassify = Boolean(context.elements.directClassifyInput?.checked);
+
+    context.elements.directClassifyToggle?.classList.toggle("is-hidden", !pending);
+    context.elements.parentField?.classList.toggle("is-hidden", !pending || !directClassify);
+
+    if (pending && !directClassify) {
+      context.elements.parentInput.value =
+        getDefaultParentIdForType(context.elements.typeInput.value) || "";
+    }
+  }
+
+  function handleEditorClassificationModeChange() {
+    syncNewPageClassificationControls();
+    context.renderers.renderLivePreview();
+  }
+
   function canMoveNote(noteId, targetId) {
     if (!targetId || noteId === targetId) {
       return false;
@@ -604,10 +640,7 @@
     current.title = nextTitle;
     current.type = context.elements.typeInput.value;
     current.tags = parseTags(context.elements.tagsInput.value);
-    current.parentId = sanitizeParentId(
-      current.id,
-      context.elements.parentInput.value || null
-    );
+    current.parentId = getEditorParentId(current);
     current.favorite = context.elements.favoriteInput.checked;
     current.content = context.elements.contentInput.value.trim();
     current.quizQuestions = context.data.normalizeQuizQuestionCollection(
@@ -814,10 +847,7 @@
   }
 
   function handleEditorTypeChange() {
-    const active = getActiveNote();
-    if (active && context.state.pendingNewNoteId === active.id) {
-      context.elements.parentInput.value = getDefaultParentIdForType(context.elements.typeInput.value) || "";
-    }
+    syncNewPageClassificationControls();
     applyDailyDateToEditorIfEmpty();
     context.renderers.renderStructuredFields();
     clearEditorTemplateSeed();
@@ -1304,10 +1334,12 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     getMostConnectedNotes,
     ensureDefaultFolders,
     getDefaultParentIdForType,
+    getEditorParentId,
     getParentNote,
     getParentTitle,
     getSuggestedLinks,
     highlightOrganizationTarget,
+    handleEditorClassificationModeChange,
     handleEditorContentChange,
     handleEditorTitleChange,
     handleEditorTypeChange,
@@ -1327,6 +1359,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     saveCurrentNote,
     saveQuickCapture,
     saveTemplate,
+    syncNewPageClassificationControls,
     toggleFolderCollapse,
     deleteCustomType,
     isTypeUsed,
