@@ -2,6 +2,12 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createMascotModule = function createMascotModule(context) {
+    const ROAM_DELAY_MIN = 8600;
+    const ROAM_DELAY_MAX = 11800;
+    const SPEECH_DURATION = 4200;
+    const SPEECH_COOLDOWN = 14000;
+    const SPEECH_CHANCE = 0.55;
+
     function route(...frames) {
       return frames;
     }
@@ -123,6 +129,8 @@
     let currentStep = 0;
     let roamTimer = null;
     let syncHandle = 0;
+    let speechTimer = null;
+    let lastSpeechAt = 0;
     let currentImage = "";
 
     function getRoot() {
@@ -203,6 +211,50 @@
       return candidates[Math.floor(Math.random() * candidates.length)] || { route: routes[0], index: 0 };
     }
 
+    function getRoamDelay() {
+      return Math.round(ROAM_DELAY_MIN + Math.random() * (ROAM_DELAY_MAX - ROAM_DELAY_MIN));
+    }
+
+    function hideSpeech(root) {
+      if (speechTimer) {
+        window.clearTimeout(speechTimer);
+        speechTimer = null;
+      }
+      root?.classList.remove("has-speech");
+    }
+
+    function maybeSpeak(root, frame) {
+      const speech = getSpeech();
+      if (!root || !speech || !frame?.speech) {
+        hideSpeech(root);
+        return;
+      }
+
+      const now = Date.now();
+      const canSpeak = now - lastSpeechAt > SPEECH_COOLDOWN;
+      const shouldSpeak = canSpeak && Math.random() < SPEECH_CHANCE;
+
+      if (!shouldSpeak) {
+        hideSpeech(root);
+        return;
+      }
+
+      speech.textContent = frame.speech;
+      root.classList.add("has-speech");
+      lastSpeechAt = now;
+      speechTimer = window.setTimeout(() => {
+        root.classList.remove("has-speech");
+        speechTimer = null;
+      }, SPEECH_DURATION);
+    }
+
+    function scheduleNextRoam(delay = getRoamDelay()) {
+      if (roamTimer) {
+        window.clearTimeout(roamTimer);
+      }
+      roamTimer = window.setTimeout(advanceRoam, delay);
+    }
+
     function applyFrame(frame, options = {}) {
       const root = getRoot();
       if (!root || !frame) {
@@ -233,9 +285,8 @@
         }
       }
 
-      const speech = getSpeech();
-      if (speech && resolved.speech) {
-        speech.textContent = resolved.speech;
+      if (options.allowSpeech !== false) {
+        maybeSpeak(root, resolved);
       }
 
       root.classList.toggle("is-offscreen", x < -2 || x > 102 || y < -2 || y > 102);
@@ -255,6 +306,7 @@
       const nextScene = getScene();
       root.classList.toggle("is-hidden", !nextScene);
       if (!nextScene) {
+        hideSpeech(root);
         return;
       }
 
@@ -271,7 +323,10 @@
         return;
       }
 
-      applyFrame(currentRoute[currentStep], { immediate });
+      applyFrame(currentRoute[currentStep], {
+        allowSpeech: sceneChanged,
+        immediate: immediate && sceneChanged,
+      });
     }
 
     function advanceRoam() {
@@ -283,17 +338,21 @@
       const nextScene = getScene();
       if (!nextScene) {
         root.classList.add("is-hidden");
+        hideSpeech(root);
+        scheduleNextRoam();
         return;
       }
 
       if (nextScene !== currentScene || !currentRoute.length) {
         syncScene(true);
+        scheduleNextRoam();
         return;
       }
 
       if (currentStep < currentRoute.length - 1) {
         currentStep += 1;
         applyFrame(currentRoute[currentStep]);
+        scheduleNextRoam();
         return;
       }
 
@@ -302,6 +361,7 @@
       currentRoute = selection.route;
       currentStep = 0;
       applyFrame(currentRoute[currentStep]);
+      scheduleNextRoam();
     }
 
     function queueSync() {
@@ -321,13 +381,13 @@
       }
 
       syncScene(true);
-      roamTimer = window.setInterval(advanceRoam, 7600);
+      scheduleNextRoam();
       window.addEventListener("resize", queueSync, { passive: true });
     }
 
     function stop() {
       if (roamTimer) {
-        window.clearInterval(roamTimer);
+        window.clearTimeout(roamTimer);
         roamTimer = null;
       }
 
@@ -335,6 +395,8 @@
         window.cancelAnimationFrame(syncHandle);
         syncHandle = 0;
       }
+
+      hideSpeech(getRoot());
     }
 
     return {

@@ -286,8 +286,16 @@
                   <div id="note-tag-suggestions" class="tag-suggestion-list is-hidden"></div>
                 </label>
 
-                <label class="editor-parent-field">
-                  <span class="field-label">Page parente</span>
+                <label class="editor-classify-toggle is-hidden">
+                  <input id="note-direct-classify" type="checkbox" />
+                  <span>
+                    <strong>Classer directement</strong>
+                    <small>Sinon elle ira dans « à trier » par défaut.</small>
+                  </span>
+                </label>
+
+                <label class="editor-parent-field is-hidden">
+                  <span class="field-label">Emplacement</span>
                   <select id="note-parent" class="select-input">
                     <option value="">Aucune</option>
                   </select>
@@ -820,6 +828,9 @@
                     </button>
                     <button id="download-backup-button" class="button">
                       Telecharger la sauvegarde complete
+                    </button>
+                    <button id="download-csv-button" class="button">
+                      Telecharger la base CSV
                     </button>
                     <button id="copy-published-link-button" class="button button-ghost">
                       Copier le lien publie

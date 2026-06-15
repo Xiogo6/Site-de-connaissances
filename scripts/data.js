@@ -24,7 +24,7 @@
     let remoteSyncQueue = Promise.resolve();
     let dailySnapshotTimer = null;
     const dailySnapshotHour = 3;
-    const dailySnapshotRetentionDays = 7;
+    const dailySnapshotRetentionCount = 5;
     const dayInMs = 24 * 60 * 60 * 1000;
 
     function getDefaultRemoteState() {
@@ -364,16 +364,11 @@
       return nextSnapshotAt;
     }
 
-    function pruneExpiredSnapshots(date = new Date()) {
-      const cutoff =
-        getDailySnapshotSlotStart(date).getTime() -
-        (dailySnapshotRetentionDays - 1) * dayInMs;
+    function pruneExpiredSnapshots() {
       const previousLength = context.state.snapshots.length;
-      context.state.snapshots = normalizeSnapshotCollection(context.state.snapshots).filter(
-        (snapshot) => {
-          const createdAt = Date.parse(snapshot.createdAt);
-          return Number.isNaN(createdAt) || createdAt >= cutoff;
-        }
+      context.state.snapshots = normalizeSnapshotCollection(context.state.snapshots).slice(
+        0,
+        dailySnapshotRetentionCount
       );
       return context.state.snapshots.length !== previousLength;
     }
@@ -757,6 +752,33 @@
       URL.revokeObjectURL(url);
     }
 
+    function formatCsvCell(value) {
+      if (value === null || typeof value === "undefined") {
+        return "";
+      }
+
+      const normalized =
+        typeof value === "string" ? value : JSON.stringify(value);
+      return `"${String(normalized).replace(/"/g, '""')}"`;
+    }
+
+    function downloadCsvFile(filename, headers, rows) {
+      const separator = ";";
+      const csv = [
+        headers.map(formatCsvCell).join(separator),
+        ...rows.map((row) => headers.map((header) => formatCsvCell(row[header])).join(separator)),
+      ].join("\r\n");
+      const blob = new Blob([`\ufeff${csv}`], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }
+
     async function loadPublishedNotesIfNeeded() {
       const params = new URLSearchParams(window.location.search);
       const forcePublished = params.get("source") === "published";
@@ -841,6 +863,14 @@
       }
 
       const payload = createRemotePayload({ includeSnapshots });
+      if (!Array.isArray(payload.notes) || payload.notes.length === 0) {
+        setRemoteState({
+          status: "error",
+          lastError: "Synchronisation bloquee: aucune page a envoyer",
+        });
+        return remoteSyncQueue;
+      }
+
       setRemoteState({ status: "syncing", lastError: "" });
 
       remoteSyncQueue = remoteSyncQueue
@@ -909,6 +939,62 @@
         snapshots: context.state.snapshots,
       };
       downloadJsonFile("atlas-connaissance-backup.json", payload);
+    }
+
+    function downloadDatabaseCsv() {
+      const notes = normalizeNoteCollection(context.state.notes);
+      const noteById = new Map(notes.map((note) => [note.id, note]));
+      const headers = [
+        "id",
+        "titre",
+        "type",
+        "parent_id",
+        "parent_titre",
+        "favori",
+        "tags",
+        "contenu",
+        "questions_count",
+        "questions_texte",
+        "questions_json",
+        "metadata_json",
+        "created_at",
+        "updated_at",
+        "review_streak",
+        "last_reviewed_at",
+        "next_review_at",
+      ];
+      const rows = notes.map((note) => {
+        const parent = note.parentId ? noteById.get(note.parentId) : null;
+        const quizQuestions = normalizeQuizQuestionCollection(note.quizQuestions, note.id);
+        return {
+          id: note.id,
+          titre: note.title,
+          type: note.type,
+          parent_id: note.parentId || "",
+          parent_titre: parent?.title || "",
+          favori: note.favorite ? "oui" : "non",
+          tags: note.tags.join(", "),
+          contenu: note.content,
+          questions_count: quizQuestions.length,
+          questions_texte: quizQuestions
+            .map((question) => {
+              const answers = Array.isArray(question.answers)
+                ? question.answers.join(" | ")
+                : "";
+              return `${question.question || ""} => ${answers}`;
+            })
+            .join("\n"),
+          questions_json: quizQuestions,
+          metadata_json: normalizeMetadata(note.metadata),
+          created_at: note.createdAt,
+          updated_at: note.updatedAt,
+          review_streak: Number(note.review?.streak) || 0,
+          last_reviewed_at: note.review?.lastReviewedAt || "",
+          next_review_at: note.review?.nextReviewAt || "",
+        };
+      });
+
+      downloadCsvFile("atlas-connaissance-base.csv", headers, rows);
     }
 
     async function copyPublishedLink() {
@@ -1059,6 +1145,7 @@
       createReviewState,
       dataVersion,
       downloadFullBackup,
+      downloadDatabaseCsv,
       downloadJsonFile,
       downloadPublishedSnapshot,
       generateId,
