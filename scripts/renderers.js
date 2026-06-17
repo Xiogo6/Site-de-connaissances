@@ -209,7 +209,9 @@
   function renderKnowledgeMode() {
     const isEditing = context.state.noteViewMode === "edit";
     const readOnly = context.data.isReadOnlyMode();
-    const aiWrapper = context.elements.aiAssistButton?.closest(".editor-secondary-actions");
+    const aiWrapper =
+      context.elements.aiEditorStatus?.closest(".editor-secondary-actions") ||
+      context.elements.aiAssistButton?.closest(".editor-secondary-actions");
     const aiConfig = context.ai?.getConfig?.() || context.state.aiConfig || {};
     const aiStatus = context.state.aiStatus || context.ai?.getDefaultStatus?.() || {};
     const hasRewriteBackup = context.ai?.hasRewriteBackup?.();
@@ -233,30 +235,22 @@
     );
     aiWrapper?.classList.toggle("is-hidden", !isEditing || readOnly);
     if (context.elements.aiAssistButton) {
-      const hasConfig = Boolean(aiConfig.apiKey);
       const isBusy = Boolean(aiStatus.busy);
-      const label = !hasConfig
-        ? "Configurer Gemini"
-        : isBusy
-          ? "Gemini en cours..."
-          : "Re-ecrire la note";
+      const label = isBusy ? "Gemini en cours..." : "Reformuler";
       setActionButtonLabel(context.elements.aiAssistButton, label);
       context.elements.aiAssistButton.disabled = readOnly || isBusy;
-      context.elements.aiAssistButton.classList.toggle("button-primary", hasConfig);
-      context.elements.aiAssistButton.classList.toggle("button-ghost", !hasConfig);
+      context.elements.aiAssistButton.classList.toggle("button-primary", false);
+      context.elements.aiAssistButton.classList.toggle("button-ghost", false);
+      context.elements.aiAssistButton.classList.toggle("button-flat", true);
     }
     if (context.elements.aiQuestionsButton) {
-      const hasConfig = Boolean(aiConfig.apiKey);
       const isBusy = Boolean(aiStatus.busy);
-      const label = !hasConfig
-        ? "Configurer Gemini"
-        : isBusy
-          ? "Gemini en cours..."
-          : "Generer les questions";
+      const label = isBusy ? "Gemini en cours..." : "Creer les questions";
       setActionButtonLabel(context.elements.aiQuestionsButton, label);
       context.elements.aiQuestionsButton.disabled = readOnly || isBusy;
       context.elements.aiQuestionsButton.classList.toggle("button-primary", false);
-      context.elements.aiQuestionsButton.classList.toggle("button-ghost", !hasConfig);
+      context.elements.aiQuestionsButton.classList.toggle("button-ghost", false);
+      context.elements.aiQuestionsButton.classList.toggle("button-flat", true);
     }
     if (context.elements.aiUndoButton) {
       context.elements.aiUndoButton.classList.toggle(
@@ -269,7 +263,7 @@
       const hasConfig = Boolean(aiConfig.apiKey);
       const defaultMessage = hasConfig
         ? hasRewriteBackup
-          ? "Reecriture disponible a annuler."
+          ? "Reformulation disponible a annuler."
           : "Gemini est pret."
         : "IA locale";
       context.elements.aiEditorStatus.textContent =
@@ -1976,13 +1970,37 @@
     );
     populateSelect(
       context.elements.parentInput,
-      [
-        { value: "", label: "Aucune" },
-        ...context.state.notes
+      (() => {
+        const childCounts = new Map();
+        context.state.notes.forEach((candidate) => {
+          if (!candidate.parentId) {
+            return;
+          }
+
+          childCounts.set(candidate.parentId, (childCounts.get(candidate.parentId) || 0) + 1);
+        });
+
+        const parentCandidates = context.state.notes
           .filter((note) => note.id !== context.state.activeNoteId)
-          .sort((left, right) => left.title.localeCompare(right.title, "fr", { sensitivity: "base" }))
-          .map((note) => ({ value: note.id, label: note.title })),
-      ],
+          .map((note) => ({
+            note,
+            childCount: childCounts.get(note.id) || 0,
+          }))
+          .filter(({ childCount }) => childCount > 0)
+          .sort((left, right) =>
+            left.note.title.localeCompare(right.note.title, "fr", { sensitivity: "base" })
+          );
+
+        return parentCandidates.length
+          ? [
+              { value: "", label: "Aucune" },
+              ...parentCandidates.map(({ note, childCount }) => ({
+                value: note.id,
+                label: `${note.title} (${childCount} sous-page${childCount > 1 ? "s" : ""})`,
+              })),
+            ]
+          : [{ value: "", label: "Aucune page avec sous-pages" }];
+      })(),
       context.notes.getActiveNote()?.parentId || ""
     );
     context.elements.favoritesFilter.checked = context.state.favoritesOnly;

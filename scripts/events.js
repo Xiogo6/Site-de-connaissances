@@ -193,6 +193,7 @@
         ...(context.state.aiConfig || {}),
         apiKey: context.elements.aiApiKeyInput.value.trim(),
       };
+      context.ai?.saveConfig?.(context.state.aiConfig);
       context.renderers.renderAiSettings();
       context.renderers.renderKnowledgeMode();
     });
@@ -201,6 +202,7 @@
         ...(context.state.aiConfig || {}),
         model: context.elements.aiModelInput.value.trim(),
       };
+      context.ai?.saveConfig?.(context.state.aiConfig);
       context.renderers.renderAiSettings();
     });
     context.elements.aiSaveButton?.addEventListener("click", () => {

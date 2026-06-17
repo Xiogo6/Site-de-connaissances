@@ -257,6 +257,9 @@
                   </span>
                 </div>
 
+              </div>
+
+              <div class="form-grid form-grid-meta">
                 <label>
                   <span class="field-label">Type</span>
                   <select id="note-type" class="select-input">
@@ -272,9 +275,7 @@
                     <option value="question">Question</option>
                   </select>
                 </label>
-              </div>
 
-              <div class="form-grid form-grid-meta">
                 <label>
                   <span class="field-label">Tags</span>
                   <input
@@ -354,6 +355,14 @@
 
               <label class="editor-label">
                 <span class="field-label">Contenu</span>
+                <div class="editor-mini-actions">
+                  <button id="ai-assist-button" class="button button-inline button-flat" type="button">
+                    Reformuler
+                  </button>
+                  <button id="ai-undo-button" class="button button-inline button-flat is-hidden" type="button">
+                    Annuler reformulation
+                  </button>
+                </div>
                 <div class="editor-toolbar" role="toolbar" aria-label="Mise en forme">
                   <button class="button button-inline" data-format-action="heading-1" type="button">
                     Titre
@@ -389,15 +398,6 @@
               </label>
 
               <div class="editor-secondary-actions is-hidden">
-                <button id="ai-assist-button" class="button button-primary button-inline" type="button">
-                  Gemini: re-ecrire la note
-                </button>
-                <button id="ai-questions-button" class="button button-inline" type="button">
-                  Gemini: generer les questions
-                </button>
-                <button id="ai-undo-button" class="button button-ghost button-inline is-hidden" type="button">
-                  Annuler la re-ecriture
-                </button>
                 <span id="ai-editor-status" class="pill pill-soft">IA locale</span>
               </div>
 
@@ -407,13 +407,18 @@
                     <p class="eyebrow">Questions de quiz</p>
                     <h4>Tableau de la note</h4>
                   </div>
-                  <button
-                    id="add-quiz-question-button"
-                    class="button button-primary button-inline"
-                    type="button"
-                  >
-                    Ajouter une ligne
-                  </button>
+                  <div class="section-actions">
+                    <button id="ai-questions-button" class="button button-inline button-flat" type="button">
+                      Generer les questions
+                    </button>
+                    <button
+                      id="add-quiz-question-button"
+                      class="button button-primary button-inline"
+                      type="button"
+                    >
+                      Ajouter une ligne
+                    </button>
+                  </div>
                 </div>
                 <div class="table-shell quiz-bank-shell">
                   <table class="data-table quiz-bank-table">

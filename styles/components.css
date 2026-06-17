@@ -531,6 +531,46 @@
   padding: 0 12px;
 }
 
+.button-flat {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--accent-strong);
+  padding-left: 0;
+  padding-right: 0;
+  text-decoration: none;
+}
+
+.button-flat:hover {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.button-flat.button-primary,
+.button-flat.button-ghost {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.editor-mini-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .sidebar-tabs {
   display: grid;
   gap: 8px;
@@ -677,6 +717,22 @@ body[data-theme="dark"] .button-danger {
   background: rgba(219, 92, 92, 0.12);
   border-color: rgba(219, 92, 92, 0.28);
   color: #ffb0a7;
+}
+
+:root[data-theme="dark"] .button-flat,
+body[data-theme="dark"] .button-flat {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--accent-soft);
+}
+
+:root[data-theme="dark"] .button-flat:hover,
+body[data-theme="dark"] .button-flat:hover {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--accent);
 }
 
 .stat-card,

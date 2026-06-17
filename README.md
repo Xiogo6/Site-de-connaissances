@@ -79,9 +79,10 @@ La version actuelle est excellente pour un usage local et pour une consultation 
 
 - une cle Gemini peut etre enregistree localement dans l'onglet `Parametres`
 - la cle reste sur l'appareil courant et n'est pas envoyee dans la sync Supabase
-- le bouton `Gemini: re-ecrire la note` ne fait que la relecture
-- le bouton `Gemini: generer les questions` lance la fabrication des quiz de facon separée
-- le bouton `Annuler la re-ecriture` permet de revenir en arriere si le resultat ne convient pas
+- la cle est enregistree automatiquement pendant la saisie pour etre reutilisable au prochain chargement
+- le bouton `Reformuler` ne fait que la relecture
+- le bouton `Creer les questions` lance la fabrication des quiz de facon separée
+- le bouton `Annuler reformulation` permet de revenir en arriere si le resultat ne convient pas
 - cette voie est pratique pour un usage perso sur telephone sans maintenir de backend
 
 ## Donnees
