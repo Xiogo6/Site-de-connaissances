@@ -411,6 +411,9 @@
 
     context.elements.graphCanvas.addEventListener("click", context.graph.handleGraphClick);
     context.elements.graphCanvas.addEventListener("pointerdown", context.graph.handleGraphPointerDown);
+    context.elements.graphCanvas.addEventListener("wheel", context.graph.handleGraphWheel, {
+      passive: false,
+    });
     window.addEventListener("pointermove", context.graph.handleGraphPointerMove);
     window.addEventListener("pointerup", context.graph.handleGraphPointerUp);
     window.addEventListener("pointercancel", context.graph.handleGraphPointerUp);

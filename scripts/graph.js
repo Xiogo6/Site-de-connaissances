@@ -5,6 +5,9 @@
     const { clamp, escapeHtml, extractLinks, extractSummary, unique } = AtlasApp.helpers;
     const CANVAS_WIDTH = 960;
     const CANVAS_HEIGHT = 620;
+    const MAX_GRAPH_ZOOM = 4.4;
+    const GRAPH_LABEL_BREAKPOINT = "(max-width: 780px)";
+    let zoomAnimationFrame = null;
 
   function getGraphNotes() {
     const base =
@@ -78,6 +81,65 @@
 
   function getNodeDegree(nodeId, edges) {
     return edges.filter((edge) => edge.from === nodeId || edge.to === nodeId).length;
+  }
+
+  function isCompactGraphViewport() {
+    return global.matchMedia?.(GRAPH_LABEL_BREAKPOINT)?.matches ?? false;
+  }
+
+  function getGraphLabelMode(node, degree, zoom, isCurrent, isSelected) {
+    if (isCurrent || isSelected) {
+      return "key";
+    }
+
+    const compactViewport = isCompactGraphViewport();
+
+    if (node.kind === "tag") {
+      if (!compactViewport || zoom >= 1.2 || degree >= 4) {
+        return zoom >= 2.35 ? "full" : "compact";
+      }
+      return null;
+    }
+
+    if (!compactViewport) {
+      if (zoom >= 2 || degree >= 7) {
+        return "full";
+      }
+      if (zoom >= 1.35 || degree >= 4) {
+        return "compact";
+      }
+      return null;
+    }
+
+    if (zoom >= 3 || degree >= 7) {
+      return "full";
+    }
+    if (zoom >= 2 || degree >= 4) {
+      return "compact";
+    }
+    if (zoom >= 1.45 && degree >= 6) {
+      return "compact";
+    }
+    return null;
+  }
+
+  function releaseLockedNode(nodeId = context.state.graphDrag.nodeId) {
+    if (!nodeId) {
+      return;
+    }
+
+    const position = context.state.graphPositions.get(nodeId);
+    if (position) {
+      position.locked = false;
+    }
+  }
+
+  function stopZoomAnimation() {
+    if (!zoomAnimationFrame) {
+      return;
+    }
+    global.cancelAnimationFrame(zoomAnimationFrame);
+    zoomAnimationFrame = null;
   }
 
   function getTypePalette(type) {
@@ -382,7 +444,7 @@
   }
 
   function getGraphViewBox() {
-    const zoom = clamp(context.state.graphZoom || 1, 1, 2.8);
+    const zoom = clamp(context.state.graphZoom || 1, 1, MAX_GRAPH_ZOOM);
     const width = CANVAS_WIDTH / zoom;
     const height = CANVAS_HEIGHT / zoom;
     const centeredX = (CANVAS_WIDTH - width) / 2;
@@ -403,7 +465,11 @@
     const height = CANVAS_HEIGHT;
     const centerX = width / 2;
     const centerY = height / 2;
+    const zoom = clamp(context.state.graphZoom || 1, 1, MAX_GRAPH_ZOOM);
     const viewBox = getGraphViewBox();
+    const focusNodeId = context.state.graphSelection?.id || context.state.activeNoteId || null;
+    const adjacency = buildAdjacency(graph);
+    const focusNeighbors = focusNodeId ? adjacency.get(focusNodeId) || new Set() : new Set();
 
     context.elements.graphCanvas.setAttribute(
       "viewBox",
@@ -478,12 +544,17 @@
     graph.edges.forEach((edge) => {
       const from = context.state.graphPositions.get(edge.from);
       const to = context.state.graphPositions.get(edge.to);
+      const isFocusEdge =
+        Boolean(focusNodeId) && (edge.from === focusNodeId || edge.to === focusNodeId);
       const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
       line.setAttribute("x1", from.x);
       line.setAttribute("y1", from.y);
       line.setAttribute("x2", to.x);
       line.setAttribute("y2", to.y);
-      line.setAttribute("class", `graph-edge${edge.kind === "tag" ? " is-tag-edge" : ""}`);
+      line.setAttribute(
+        "class",
+        `graph-edge${edge.kind === "tag" ? " is-tag-edge" : ""}${isFocusEdge ? " is-focus-edge" : ""}`
+      );
       context.elements.graphCanvas.appendChild(line);
     });
 
@@ -494,10 +565,11 @@
         context.state.graphSelection &&
         context.state.graphSelection.kind === node.kind &&
         context.state.graphSelection.id === node.id;
+      const isRelatedToFocus =
+        !focusNodeId || node.id === focusNodeId || focusNeighbors.has(node.id) || isSelected;
       const degree = getNodeDegree(node.id, graph.edges);
-      const compactLabels = window.matchMedia("(max-width: 780px)").matches;
-      const shouldShowLabel =
-        !compactLabels || isCurrent || isSelected || node.kind === "tag" || degree >= 5;
+      const labelMode = getGraphLabelMode(node, degree, zoom, isCurrent, isSelected);
+      const shouldShowLabel = Boolean(labelMode);
       const palette =
         node.kind === "tag"
           ? { fill: "#69a77a", stroke: "#dcf0e1", label: "#ffffff" }
@@ -514,12 +586,17 @@
       circle.setAttribute("cy", position.y);
       const nodeRadius =
         node.kind === "tag"
-          ? 8 + Math.min(degree * 2, 8)
+          ? 7 + Math.min(degree * 1.4, 8)
           : isCurrent
-            ? 20 + Math.min(degree * 1.8, 12)
-            : 10 + Math.min(degree * 2.4, 18);
+            ? 17 + Math.min(degree * 1.4, 11)
+            : 8 + Math.min(degree * 1.7, 14);
       circle.setAttribute("r", String(nodeRadius));
-      circle.setAttribute("class", `graph-node${isCurrent || isSelected ? " is-current" : ""}`);
+      circle.setAttribute(
+        "class",
+        `graph-node${isCurrent || isSelected ? " is-current" : ""}${
+          !isRelatedToFocus ? " is-muted" : ""
+        }`
+      );
       circle.style.fill = nodeFill;
       circle.style.stroke = nodeStroke;
       circle.style.strokeWidth = isCurrent || isSelected ? "3" : "2";
@@ -527,20 +604,21 @@
       group.appendChild(circle);
       if (shouldShowLabel) {
         const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        label.setAttribute("x", position.x + nodeRadius + 6);
+        label.setAttribute("x", position.x + nodeRadius + (labelMode === "compact" ? 5 : 7));
         label.setAttribute("y", position.y + 3);
         label.setAttribute(
           "class",
           [
             "graph-label",
             node.kind === "tag" ? "is-tag-label" : "",
-            compactLabels && !isCurrent && !isSelected ? "is-compact" : "",
+            labelMode === "compact" ? "is-compact" : "",
             isCurrent || isSelected ? "is-key" : "",
+            !isRelatedToFocus ? "is-muted" : "",
           ]
             .filter(Boolean)
             .join(" ")
         );
-        label.style.fill = "#ffffff";
+        label.style.fill = palette.label;
         label.textContent = node.label;
         group.appendChild(label);
       }
@@ -627,7 +705,11 @@
       context.state.graphDrag.activePointers = {};
     }
     updateActivePointer(event);
-    if (event.pointerType === "touch" && getActivePointerCount() > 1) {
+    stopZoomAnimation();
+
+    if (event.pointerType === "touch" && getTouchPointerCount() > 1) {
+      releaseLockedNode();
+      startPinchGesture();
       event.preventDefault();
       return;
     }
@@ -638,7 +720,7 @@
     context.state.graphDrag.startClientX = event.clientX;
     context.state.graphDrag.startClientY = event.clientY;
 
-    if (group) {
+    if (group && event.pointerType !== "touch") {
       const point = getSvgPoint(event);
       const nodeId = group.dataset.graphNodeId;
       const position = context.state.graphPositions.get(nodeId);
@@ -664,6 +746,15 @@
 
   function handleGraphPointerMove(event) {
     updateActivePointer(event);
+
+    if (getTouchPointerCount() > 1) {
+      if (context.state.graphDrag.mode !== "pinch") {
+        releaseLockedNode();
+        startPinchGesture();
+      }
+      handlePinchMove(event);
+      return;
+    }
 
     if (context.state.graphDrag.mode === "pinch") {
       handlePinchMove(event);
@@ -719,6 +810,7 @@
         context.state.graphDrag.suppressClickUntil = Date.now() + 280;
       }
       clearPinchGesture();
+      continuePanAfterPinch();
       return;
     }
 
@@ -729,6 +821,7 @@
     if (context.state.graphDrag.moved) {
       context.state.graphDrag.suppressClickUntil = Date.now() + 280;
     }
+    releaseLockedNode();
     context.state.graphDrag.mode = null;
     context.state.graphDrag.nodeId = null;
     context.state.graphDrag.pointerId = null;
@@ -748,6 +841,8 @@
 
   function updateActivePointer(event) {
     context.state.graphDrag.activePointers[event.pointerId] = {
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
       clientX: event.clientX,
       clientY: event.clientY,
     };
@@ -765,18 +860,17 @@
     return Object.values(context.state.graphDrag.activePointers);
   }
 
+  function getTouchPointerCount() {
+    return getActivePointerEntries().filter((pointer) => pointer.pointerType === "touch").length;
+  }
+
   function startPinchGesture() {
-    const pointers = getActivePointerEntries();
+    const pointers = getActivePointerEntries().filter((pointer) => pointer.pointerType === "touch");
     if (pointers.length < 2) {
       return;
     }
 
-    if (context.state.graphDrag.nodeId) {
-      const position = context.state.graphPositions.get(context.state.graphDrag.nodeId);
-      if (position) {
-        position.locked = true;
-      }
-    }
+    releaseLockedNode();
 
     const [first, second] = pointers;
     const centerX = (first.clientX + second.clientX) / 2;
@@ -808,8 +902,23 @@
     context.state.graphDrag.pinchStartDistance = 0;
   }
 
+  function continuePanAfterPinch() {
+    const [pointer] = getActivePointerEntries().filter((entry) => entry.pointerType === "touch");
+    if (!pointer) {
+      return;
+    }
+
+    context.state.graphDrag.mode = "pan";
+    context.state.graphDrag.pointerId = pointer.pointerId;
+    context.state.graphDrag.startClientX = pointer.clientX;
+    context.state.graphDrag.startClientY = pointer.clientY;
+    context.state.graphDrag.startPanX = context.state.graphViewport.panX || 0;
+    context.state.graphDrag.startPanY = context.state.graphViewport.panY || 0;
+    context.state.graphDrag.moved = false;
+  }
+
   function handlePinchMove(event) {
-    const pointers = getActivePointerEntries();
+    const pointers = getActivePointerEntries().filter((pointer) => pointer.pointerType === "touch");
     if (pointers.length < 2) {
       return;
     }
@@ -825,7 +934,7 @@
       (context.state.graphDrag.pinchStartZoom || 1) *
         (distance / Math.max(context.state.graphDrag.pinchStartDistance || 1, 1)),
       1,
-      2.8
+      MAX_GRAPH_ZOOM
     );
 
     setZoomAtPoint(
@@ -839,10 +948,37 @@
     event.preventDefault();
   }
 
+  function handleGraphWheel(event) {
+    stopZoomAnimation();
+
+    if (event.ctrlKey || event.metaKey) {
+      const zoomFactor = Math.exp(-event.deltaY * 0.0022);
+      setZoomAtPoint(
+        (context.state.graphZoom || 1) * zoomFactor,
+        event.clientX,
+        event.clientY
+      );
+      context.state.graphDrag.suppressClickUntil = Date.now() + 140;
+      event.preventDefault();
+      return;
+    }
+
+    const viewBox = getGraphViewBox();
+    const rect = context.elements.graphCanvas.getBoundingClientRect();
+    const scaleX = viewBox.width / rect.width;
+    const scaleY = viewBox.height / rect.height;
+
+    context.state.graphViewport.panX = (context.state.graphViewport.panX || 0) + event.deltaX * scaleX;
+    context.state.graphViewport.panY = (context.state.graphViewport.panY || 0) + event.deltaY * scaleY;
+    context.state.graphDrag.suppressClickUntil = Date.now() + 80;
+    drawGraph();
+    event.preventDefault();
+  }
+
   function setZoomAtPoint(nextZoom, clientX, clientY, focalGraphX = null, focalGraphY = null) {
     const rect = context.elements.graphCanvas.getBoundingClientRect();
     const currentViewBox = getGraphViewBox();
-    const safeZoom = clamp(nextZoom, 1, 2.8);
+    const safeZoom = clamp(nextZoom, 1, MAX_GRAPH_ZOOM);
     const nextWidth = CANVAS_WIDTH / safeZoom;
     const nextHeight = CANVAS_HEIGHT / safeZoom;
     const centeredX = (CANVAS_WIDTH - nextWidth) / 2;
@@ -860,14 +996,58 @@
     drawGraph();
   }
 
+  function animateZoomTo(nextZoom, clientX, clientY) {
+    stopZoomAnimation();
+
+    const startZoom = context.state.graphZoom || 1;
+    const targetZoom = clamp(nextZoom, 1, MAX_GRAPH_ZOOM);
+    if (Math.abs(targetZoom - startZoom) < 0.01) {
+      setZoomAtPoint(targetZoom, clientX, clientY);
+      return;
+    }
+
+    const rect = context.elements.graphCanvas.getBoundingClientRect();
+    const currentViewBox = getGraphViewBox();
+    const ratioX = clamp((clientX - rect.left) / rect.width, 0, 1);
+    const ratioY = clamp((clientY - rect.top) / rect.height, 0, 1);
+    const focalGraphX = currentViewBox.x + ratioX * currentViewBox.width;
+    const focalGraphY = currentViewBox.y + ratioY * currentViewBox.height;
+    const startTime = global.performance.now();
+    const duration = 180;
+
+    const tick = (now) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const interpolatedZoom = startZoom + (targetZoom - startZoom) * eased;
+      setZoomAtPoint(interpolatedZoom, clientX, clientY, focalGraphX, focalGraphY);
+
+      if (progress < 1) {
+        zoomAnimationFrame = global.requestAnimationFrame(tick);
+        return;
+      }
+
+      zoomAnimationFrame = null;
+    };
+
+    zoomAnimationFrame = global.requestAnimationFrame(tick);
+  }
+
   function zoomIn() {
     const rect = context.elements.graphCanvas.getBoundingClientRect();
-    setZoomAtPoint((context.state.graphZoom || 1) + 0.2, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    animateZoomTo(
+      (context.state.graphZoom || 1) + 0.28,
+      rect.left + rect.width / 2,
+      rect.top + rect.height / 2
+    );
   }
 
   function zoomOut() {
     const rect = context.elements.graphCanvas.getBoundingClientRect();
-    setZoomAtPoint((context.state.graphZoom || 1) - 0.2, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    animateZoomTo(
+      (context.state.graphZoom || 1) - 0.28,
+      rect.left + rect.width / 2,
+      rect.top + rect.height / 2
+    );
   }
 
   return {
@@ -879,6 +1059,7 @@
     handleGraphPointerDown,
     handleGraphPointerMove,
     handleGraphPointerUp,
+    handleGraphWheel,
     recenterGraphLayout,
     renderGraphFocus,
     zoomIn,
