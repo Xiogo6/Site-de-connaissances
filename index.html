@@ -390,9 +390,15 @@
 
               <div class="editor-secondary-actions is-hidden">
                 <button id="ai-assist-button" class="button button-primary button-inline" type="button">
-                  Gemini: re-ecrire + quiz
+                  Gemini: re-ecrire la note
                 </button>
-                <span id="ai-status" class="pill pill-soft">IA locale</span>
+                <button id="ai-questions-button" class="button button-inline" type="button">
+                  Gemini: generer les questions
+                </button>
+                <button id="ai-undo-button" class="button button-ghost button-inline is-hidden" type="button">
+                  Annuler la re-ecriture
+                </button>
+                <span id="ai-editor-status" class="pill pill-soft">IA locale</span>
               </div>
 
               <div class="link-section quiz-bank-panel">
@@ -826,7 +832,7 @@
                   </button>
                 </div>
 
-                <p id="ai-status" class="helper-copy helper-copy-compact">
+                <p id="ai-settings-status" class="helper-copy helper-copy-compact">
                   Aucun acces Gemini configure pour le moment.
                 </p>
               </div>

@@ -4,13 +4,12 @@
   AtlasApp.createAiModule = function createAiModule(context) {
     const storageKey = AtlasApp.config.aiStorageKey;
     const defaultModel = AtlasApp.config.geminiDefaultModel;
-    const apiBaseUrl = AtlasApp.config.geminiOpenAiBaseUrl;
+    const apiBaseUrl = AtlasApp.config.geminiBaseUrl;
 
     function normalizeConfig(raw = {}) {
-      const model = sanitizeModel(raw.model);
       return {
         apiKey: typeof raw.apiKey === "string" ? raw.apiKey.trim() : "",
-        model,
+        model: sanitizeModel(raw.model),
       };
     }
 
@@ -93,7 +92,13 @@
     async function testConnection() {
       const config = saveConfig(syncInputsToState());
       if (!config.apiKey) {
-        throw new Error("Ajoute d'abord ta cle Gemini.");
+        setStatus({
+          busy: false,
+          type: "error",
+          message: "Ajoute d'abord ta cle Gemini.",
+          error: "Aucune cle API n'a ete fournie.",
+        });
+        return false;
       }
 
       setStatus({
@@ -104,25 +109,11 @@
       });
 
       try {
-        const content = await callGemini(
-          [
-            {
-              role: "system",
-              content: "Return only valid JSON.",
-            },
-            {
-              role: "user",
-              content: 'Answer with only this JSON object: {"ok":true,"message":"pong"}.',
-            },
-          ],
-          config,
-          {
-            temperature: 0,
-          }
-        );
+        const content = await callGemini("Reponds uniquement par pong.", config, {
+          temperature: 0,
+        });
 
-        const payload = parseJsonPayload(content);
-        if (!payload || payload.ok !== true) {
+        if (String(content || "").trim().toLowerCase() !== "pong") {
           throw new Error("La reponse de test est invalide.");
         }
 
@@ -133,6 +124,7 @@
           error: "",
           lastRunAt: new Date().toISOString(),
         });
+        return true;
       } catch (error) {
         setStatus({
           busy: false,
@@ -140,11 +132,75 @@
           message: "Echec du test Gemini.",
           error: error.message || "Connexion impossible.",
         });
+        return false;
+      }
+    }
+
+    async function rewriteActiveNote() {
+      const note = context.notes.getActiveNote();
+      if (!note) {
+        throw new Error("Aucune note active.");
+      }
+
+      const config = saveConfig(syncInputsToState());
+      if (!config.apiKey) {
+        throw new Error("Ajoute d'abord ta cle Gemini.");
+      }
+
+      const draftTitle = context.elements.titleInput?.value.trim() || note.title || "Sans titre";
+      const draftContent = context.elements.contentInput?.value || note.content || "";
+      const draftType = context.elements.typeInput?.value || note.type || "concept";
+      const draftMetadata = context.notes.collectMetadataFromInputs
+        ? context.notes.collectMetadataFromInputs()
+        : note.metadata || {};
+
+      captureRewriteBackup(note);
+
+      setStatus({
+        busy: true,
+        type: "working",
+        message: "Gemini re-ecrit la note...",
+        error: "",
+      });
+
+      try {
+        const content = await callGemini(
+          buildRewritePrompt({
+            title: draftTitle,
+            type: draftType,
+            metadata: draftMetadata,
+            content: draftContent,
+          }),
+          config,
+          {
+            temperature: 0.2,
+          }
+        );
+
+        const payload = parseJsonPayload(content);
+        const rewrittenContent = normalizeRewritePayload(payload, draftTitle, note);
+        applyRewriteResult(note, rewrittenContent, draftTitle);
+
+        setStatus({
+          busy: false,
+          type: "success",
+          message: "Reecriture appliquee. Tu peux l'annuler si besoin.",
+          error: "",
+          lastRunAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        clearRewriteBackup(note.id);
+        setStatus({
+          busy: false,
+          type: "error",
+          message: "Gemini a rencontre un probleme.",
+          error: error.message || "Echec de l'assistant.",
+        });
         throw error;
       }
     }
 
-    async function improveActiveNote() {
+    async function generateQuestionsForActiveNote() {
       const note = context.notes.getActiveNote();
       if (!note) {
         throw new Error("Aucune note active.");
@@ -169,42 +225,33 @@
       setStatus({
         busy: true,
         type: "working",
-        message: "Gemini relit la note et ses questions...",
+        message: "Gemini genere les questions...",
         error: "",
       });
 
       try {
         const content = await callGemini(
-          [
-            {
-              role: "system",
-              content:
-                "You rewrite personal notes and produce concise study questions. Return only valid JSON.",
-            },
-            {
-              role: "user",
-              content: buildNotePrompt({
-                title: draftTitle,
-                type: draftType,
-                metadata: draftMetadata,
-                content: draftContent,
-                existingQuestions,
-              }),
-            },
-          ],
+          buildQuestionPrompt({
+            title: draftTitle,
+            type: draftType,
+            metadata: draftMetadata,
+            content: draftContent,
+            existingQuestions,
+          }),
           config,
           {
-            temperature: 0.2,
+            temperature: 0.35,
           }
         );
 
-        const payload = normalizeResult(parseJsonPayload(content), note, draftTitle);
-        applyAssistantResult(note, payload, draftTitle);
+        const payload = parseJsonPayload(content);
+        const quizQuestions = normalizeQuestionPayload(payload, note);
+        applyQuestionsResult(note, quizQuestions);
 
         setStatus({
           busy: false,
           type: "success",
-          message: "Note et questions mises a jour.",
+          message: "Questions mises a jour.",
           error: "",
           lastRunAt: new Date().toISOString(),
         });
@@ -219,20 +266,99 @@
       }
     }
 
-    async function callGemini(messages, config, options = {}) {
-      const response = await fetch(`${apiBaseUrl}chat/completions`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${config.apiKey}`,
-          "Content-Type": "application/json",
+    function captureRewriteBackup(note) {
+      context.state.aiRewriteBackup = {
+        noteId: note.id,
+        noteSnapshot: cloneValue(note),
+        editorSnapshot: {
+          title: context.elements.titleInput?.value.trim() || note.title || "Sans titre",
+          content: context.elements.contentInput?.value || note.content || "",
+          type: context.elements.typeInput?.value || note.type || "concept",
+          metadata: context.notes.collectMetadataFromInputs
+            ? context.notes.collectMetadataFromInputs()
+            : cloneValue(note.metadata || {}),
+          quizQuestions: cloneValue(context.state.editorQuizQuestions || note.quizQuestions || []),
         },
-        body: JSON.stringify({
-          model: config.model,
-          messages,
-          temperature:
-            typeof options.temperature === "number" ? options.temperature : 0.2,
-        }),
+        capturedAt: new Date().toISOString(),
+      };
+      context.renderers?.renderKnowledgeMode();
+    }
+
+    function clearRewriteBackup(noteId = null) {
+      if (noteId && context.state.aiRewriteBackup?.noteId !== noteId) {
+        return;
+      }
+
+      context.state.aiRewriteBackup = null;
+      context.renderers?.renderKnowledgeMode();
+    }
+
+    function hasRewriteBackup(noteId = context.state.activeNoteId) {
+      return Boolean(context.state.aiRewriteBackup && context.state.aiRewriteBackup.noteId === noteId);
+    }
+
+    function restoreLastRewrite() {
+      const backup = context.state.aiRewriteBackup;
+      if (!backup) {
+        setStatus({
+          busy: false,
+          type: "error",
+          message: "Aucune reecriture a annuler.",
+          error: "",
+        });
+        return false;
+      }
+
+      const note = context.notes.getActiveNote();
+      if (!note || note.id !== backup.noteId) {
+        clearRewriteBackup();
+        setStatus({
+          busy: false,
+          type: "error",
+          message: "Impossible de retrouver la note d'origine.",
+          error: "",
+        });
+        return false;
+      }
+
+      context.state.noteViewMode = "edit";
+      context.elements.titleInput.value = backup.noteSnapshot.title || note.title || "Sans titre";
+      context.elements.contentInput.value = backup.noteSnapshot.content || note.content || "";
+      context.notes.handleEditorContentChange();
+      clearRewriteBackup();
+      context.notes.saveCurrentNote({ stayInEdit: true });
+      setStatus({
+        busy: false,
+        type: "success",
+        message: "Reecriture annulee.",
+        error: "",
+        lastRunAt: new Date().toISOString(),
       });
+      return true;
+    }
+
+    async function callGemini(prompt, config, options = {}) {
+      const response = await fetch(
+        `${apiBaseUrl}${encodeURIComponent(config.model)}:generateContent`,
+        {
+          method: "POST",
+          headers: {
+            "x-goog-api-key": config.apiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: String(prompt || "") }],
+              },
+            ],
+            generationConfig: {
+              temperature: typeof options.temperature === "number" ? options.temperature : 0.2,
+            },
+          }),
+        }
+      );
 
       if (!response.ok) {
         const text = await response.text();
@@ -240,7 +366,7 @@
       }
 
       const data = await response.json();
-      const content = data?.choices?.[0]?.message?.content;
+      const content = extractTextFromResponse(data);
       if (typeof content !== "string" || !content.trim()) {
         throw new Error("Gemini a renvoye une reponse vide.");
       }
@@ -248,36 +374,97 @@
       return content;
     }
 
-    function buildNotePrompt({ title, type, metadata, content, existingQuestions }) {
+    function extractTextFromResponse(data) {
+      if (typeof data?.text === "string" && data.text.trim()) {
+        return data.text;
+      }
+
+      const parts = data?.candidates?.[0]?.content?.parts;
+      if (!Array.isArray(parts)) {
+        return "";
+      }
+
+      return parts
+        .map((part) => (typeof part?.text === "string" ? part.text : ""))
+        .join("")
+        .trim();
+    }
+
+    function buildRewritePrompt({ title, type, metadata, content }) {
+      return [
+        "Tu es un redacteur qui relit une note personnelle.",
+        "",
+        "Objectif :",
+        "- corriger l'orthographe, la grammaire et la ponctuation",
+        "- clarifier le texte sans changer le sens",
+        "- reformuler legerement si cela rend la lecture plus simple",
+        "- garder toutes les informations utiles presentes dans la note",
+        "- ne pas fabriquer de nouveaux faits",
+        "- conserver le titre fourni sans le changer",
+        "- ne pas generer de questions ici",
+        "- rendre la note plus lisible meme si le sujet est technique",
+        "",
+        "Mise en forme Markdown :",
+        "- garder le titre principal en # Titre",
+        "- utiliser des sous-titres en ## si cela aide",
+        "- utiliser des puces - pour les listes et les idees courtes",
+        "- mettre en gras les termes importants avec **...**",
+        "- utiliser l'italique *...* seulement pour nuancer",
+        "- utiliser des liens wiki [[Nom de page]] quand une autre page pertinente existe",
+        "- garder les sources ou references utiles en bas si elles sont deja presentes",
+        "",
+        "Contraintes de sortie :",
+        '- retourne uniquement un JSON valide, sans markdown ni commentaire',
+        '- le JSON doit contenir uniquement la cle "content"',
+        "- content doit commencer par la ligne # avec le titre fourni",
+        "- une idee par ligne ou par puce quand c est pertinent",
+        "- si une phrase est ambigue, reste sobre sans changer le sens",
+        "- si la note contient une personne, fais ressortir naissance, deces, role et realisations",
+        "- si la note contient un evenement, fais ressortir debut, fin, cause et consequence",
+        "- si la note contient une date, fais ressortir la date exacte ou la periode",
+        "",
+        `Titre: ${title}`,
+        `Type: ${type}`,
+        `Metadata: ${JSON.stringify(metadata || {})}`,
+        "",
+        "Contenu brut :",
+        content || "",
+      ].join("\n");
+    }
+
+    function buildQuestionPrompt({ title, type, metadata, content, existingQuestions }) {
       const existingQuestionLines = existingQuestions.length
         ? existingQuestions
-            .map(
-              (question) =>
-                `- ${question.question} => ${question.answers.join(" | ")}`
-            )
+            .map((question) => `- ${question.question} => ${question.answers.join(" | ")}`)
             .join("\n")
         : "- Aucune";
 
       return [
-        "Tu ameliores une note personnelle.",
+        "Tu es un redacteur de questions de revision.",
         "",
         "Objectif :",
-        "- clarifier la note",
-        "- garder toute l'information utile",
-        "- n'inventer aucun fait",
-        "- generer des questions de rappel actif",
-        "- conserver le titre fourni sans le changer",
+        "- fabriquer des questions basees sur la note fournie",
+        "- viser un niveau intermediaire a complexe",
+        "- garder les questions pertinentes et directement liees au texte",
+        "- eviter les questions culturelles hors sujet",
+        "- proposer des formulations claires et naturelles",
+        "- garder les reponses tres courtes",
+        "- ne pas forcer une question si la note est trop pauvre ou trop floue",
+        "",
+        "Regles de questions :",
+        "- une question par point cle quand c est pertinent",
+        "- tu peux proposer des variantes de bonne reponse",
+        "- chaque reponse doit tenir en 3 mots maximum",
+        "- utilise plusieurs orthographes ou formulations proches dans le tableau answers",
+        "- si une info est absente ou trop incertaine, n invente rien",
+        "- si un autre sujet partage la meme reponse, une double reference est autorisee",
         "",
         "Contraintes de sortie :",
         '- retourne uniquement un JSON valide, sans markdown ni commentaire',
-        '- le JSON doit contenir les cles "content" et "quizQuestions"',
+        '- le JSON doit contenir la cle "quizQuestions"',
         '- quizQuestions doit etre un tableau d objets avec les cles "question" et "answers"',
-        "- answers doit etre un tableau de chaines",
-        "- content doit commencer par la ligne # avec le titre fourni",
-        "- les questions doivent rester courtes et directement exploitables pour un quiz",
-        "- pour une personne, privilegie naissance, deces, role et realisations",
-        "- pour un evenement, privilegie debut, fin, cause et consequence",
-        "- pour une date, fais ressortir la date exacte ou la periode",
+        "- answers doit etre un tableau de chaines courtes",
+        "- si aucune question pertinente n est possible, renvoie un tableau vide",
         "",
         `Titre: ${title}`,
         `Type: ${type}`,
@@ -314,19 +501,25 @@
       }
     }
 
-    function normalizeResult(payload, note, fallbackTitle) {
+    function normalizeRewritePayload(payload, fallbackTitle, note) {
       const content = ensureLeadingHeading(
         typeof payload?.content === "string" ? payload.content : "",
         fallbackTitle || note.title || "Sans titre"
       );
+
+      if (!content) {
+        throw new Error("La reponse ne contient pas de contenu exploitable.");
+      }
+
+      return content;
+    }
+
+    function normalizeQuestionPayload(payload, note) {
       const quizQuestions = Array.isArray(payload?.quizQuestions)
         ? payload.quizQuestions
         : [];
 
-      return {
-        content,
-        quizQuestions: context.data.normalizeQuizQuestionCollection(quizQuestions, note.id),
-      };
+      return context.data.normalizeQuizQuestionCollection(quizQuestions, note.id);
     }
 
     function ensureLeadingHeading(content, title) {
@@ -386,19 +579,18 @@
       return merged;
     }
 
-    function applyAssistantResult(note, result, fallbackTitle) {
-      const nextContent = ensureLeadingHeading(result.content, fallbackTitle || note.title);
-      const currentTitle = context.elements.titleInput?.value.trim() || fallbackTitle || note.title;
+    function applyRewriteResult(note, rewrittenContent, fallbackTitle) {
+      const nextContent = ensureLeadingHeading(rewrittenContent, fallbackTitle || note.title);
 
       context.elements.contentInput.value = nextContent;
       context.notes.handleEditorContentChange();
-      if (context.elements.titleInput.value.trim() !== currentTitle) {
-        context.elements.titleInput.value = currentTitle;
-      }
+      context.notes.saveCurrentNote({ stayInEdit: true });
+    }
 
+    function applyQuestionsResult(note, quizQuestions) {
       const mergedQuestions = mergeQuizQuestions(
         context.state.editorQuizQuestions || [],
-        result.quizQuestions,
+        quizQuestions,
         note.id
       );
 
@@ -407,13 +599,26 @@
       context.notes.saveCurrentNote({ stayInEdit: true });
     }
 
+    function cloneValue(value) {
+      if (typeof structuredClone === "function") {
+        return structuredClone(value);
+      }
+
+      return JSON.parse(JSON.stringify(value));
+    }
+
     return {
-      applyActiveNoteAssistant: improveActiveNote,
+      applyActiveNoteAssistant: rewriteActiveNote,
+      clearRewriteBackup,
       focusSettings,
+      generateQuestionsForActiveNote,
       getConfig,
       getDefaultStatus,
       hasApiKey,
+      hasRewriteBackup,
       loadConfig,
+      restoreLastRewrite,
+      rewriteActiveNote,
       saveConfig,
       setStatus,
       testConnection,

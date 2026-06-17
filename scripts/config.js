@@ -105,7 +105,7 @@ Backlink : page qui cite la page actuelle.`,
     appStorageKey: "atlas-connaissance-app",
     snapshotStorageKey: "atlas-connaissance-snapshots",
     aiStorageKey: "atlas-connaissance-ai",
-    geminiOpenAiBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
+    geminiBaseUrl: "https://generativelanguage.googleapis.com/v1beta/models/",
     geminiDefaultModel: "gemini-3.5-flash",
     dataVersion: 11,
     supabase: {
