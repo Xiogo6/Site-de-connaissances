@@ -212,6 +212,7 @@
     const aiWrapper = context.elements.aiAssistButton?.closest(".editor-secondary-actions");
     const aiConfig = context.ai?.getConfig?.() || context.state.aiConfig || {};
     const aiStatus = context.state.aiStatus || context.ai?.getDefaultStatus?.() || {};
+    const hasRewriteBackup = context.ai?.hasRewriteBackup?.();
     context.elements.knowledgeWorkspace.classList.toggle("is-editing", isEditing);
     if (!isEditing) {
       document.body.classList.remove("editor-writing");
@@ -238,11 +239,44 @@
         ? "Configurer Gemini"
         : isBusy
           ? "Gemini en cours..."
-          : "Gemini: re-ecrire + quiz";
+          : "Re-ecrire la note";
       setActionButtonLabel(context.elements.aiAssistButton, label);
       context.elements.aiAssistButton.disabled = readOnly || isBusy;
       context.elements.aiAssistButton.classList.toggle("button-primary", hasConfig);
       context.elements.aiAssistButton.classList.toggle("button-ghost", !hasConfig);
+    }
+    if (context.elements.aiQuestionsButton) {
+      const hasConfig = Boolean(aiConfig.apiKey);
+      const isBusy = Boolean(aiStatus.busy);
+      const label = !hasConfig
+        ? "Configurer Gemini"
+        : isBusy
+          ? "Gemini en cours..."
+          : "Generer les questions";
+      setActionButtonLabel(context.elements.aiQuestionsButton, label);
+      context.elements.aiQuestionsButton.disabled = readOnly || isBusy;
+      context.elements.aiQuestionsButton.classList.toggle("button-primary", false);
+      context.elements.aiQuestionsButton.classList.toggle("button-ghost", !hasConfig);
+    }
+    if (context.elements.aiUndoButton) {
+      context.elements.aiUndoButton.classList.toggle(
+        "is-hidden",
+        !isEditing || readOnly || !hasRewriteBackup
+      );
+      context.elements.aiUndoButton.disabled = readOnly || Boolean(aiStatus.busy) || !hasRewriteBackup;
+    }
+    if (context.elements.aiEditorStatus) {
+      const hasConfig = Boolean(aiConfig.apiKey);
+      const defaultMessage = hasConfig
+        ? hasRewriteBackup
+          ? "Reecriture disponible a annuler."
+          : "Gemini est pret."
+        : "IA locale";
+      context.elements.aiEditorStatus.textContent =
+        aiStatus.error || aiStatus.message || defaultMessage;
+      context.elements.aiEditorStatus.classList.toggle("is-error", aiStatus.type === "error");
+      context.elements.aiEditorStatus.classList.toggle("is-success", aiStatus.type === "success");
+      context.elements.aiEditorStatus.classList.toggle("is-working", Boolean(aiStatus.busy));
     }
     renderPrimaryActionButton(isEditing);
     renderQuickActionButton(isEditing);
@@ -338,6 +372,8 @@
       context.elements.contentInput,
       context.elements.deleteActiveNoteButton,
       context.elements.aiAssistButton,
+      context.elements.aiQuestionsButton,
+      context.elements.aiUndoButton,
       context.elements.templateType,
       context.elements.aiApiKeyInput,
       context.elements.aiModelInput,
@@ -1848,15 +1884,15 @@
       context.elements.aiModelInput.value = config.model || AtlasApp.config.geminiDefaultModel;
     }
 
-    if (context.elements.aiStatus) {
+    if (context.elements.aiSettingsStatus) {
       const hasKey = Boolean(config.apiKey);
       const defaultMessage = hasKey
         ? "Gemini est pret."
         : "Ajoute ta cle Gemini pour utiliser l'assistant.";
-      context.elements.aiStatus.textContent = status.error || status.message || defaultMessage;
-      context.elements.aiStatus.classList.toggle("is-error", status.type === "error");
-      context.elements.aiStatus.classList.toggle("is-success", status.type === "success");
-      context.elements.aiStatus.classList.toggle("is-working", Boolean(status.busy));
+      context.elements.aiSettingsStatus.textContent = status.error || status.message || defaultMessage;
+      context.elements.aiSettingsStatus.classList.toggle("is-error", status.type === "error");
+      context.elements.aiSettingsStatus.classList.toggle("is-success", status.type === "success");
+      context.elements.aiSettingsStatus.classList.toggle("is-working", Boolean(status.busy));
     }
   }
 

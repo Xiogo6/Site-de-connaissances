@@ -78,6 +78,7 @@
       sportMode: "mass",
       editorQuizQuestions: [],
       editorQuizQuestionsNoteId: null,
+      aiRewriteBackup: null,
       aiConfig: {},
       aiStatus: {
         busy: false,

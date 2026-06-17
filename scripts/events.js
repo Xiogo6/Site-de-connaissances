@@ -4,7 +4,7 @@
   AtlasApp.createEventsModule = function createEventsModule(context) {
   let readingPointer = null;
 
-  function handleAiAssistClick() {
+  function handleAiRewriteClick() {
     if (context.data.isReadOnlyMode()) {
       return;
     }
@@ -19,9 +19,42 @@
       context.renderers.renderKnowledgeMode();
     }
 
-    context.ai
-      .applyActiveNoteAssistant()
-      .catch(() => {});
+    context.ai?.rewriteActiveNote?.().catch(() => {});
+  }
+
+  function handleAiQuestionsClick() {
+    if (context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    if (!context.ai?.hasApiKey?.()) {
+      context.ai?.focusSettings?.();
+      return;
+    }
+
+    if (context.state.noteViewMode !== "edit") {
+      context.state.noteViewMode = "edit";
+      context.renderers.renderKnowledgeMode();
+    }
+
+    context.ai?.generateQuestionsForActiveNote?.().catch(() => {});
+  }
+
+  function handleAiUndoRewriteClick() {
+    if (context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    try {
+      context.ai?.restoreLastRewrite?.();
+    } catch (error) {
+      context.ai?.setStatus?.({
+        busy: false,
+        type: "error",
+        message: "Impossible d'annuler la reecriture.",
+        error: error?.message || "Echec de l'annulation.",
+      });
+    }
   }
 
   function bindEvents() {
@@ -152,7 +185,9 @@
     context.elements.templateEditor?.addEventListener("input", (event) => {
       context.state.templateDrafts[context.state.activeTemplateType] = event.target.value;
     });
-    context.elements.aiAssistButton?.addEventListener("click", handleAiAssistClick);
+    context.elements.aiAssistButton?.addEventListener("click", handleAiRewriteClick);
+    context.elements.aiQuestionsButton?.addEventListener("click", handleAiQuestionsClick);
+    context.elements.aiUndoButton?.addEventListener("click", handleAiUndoRewriteClick);
     context.elements.aiApiKeyInput?.addEventListener("input", () => {
       context.state.aiConfig = {
         ...(context.state.aiConfig || {}),
@@ -194,7 +229,14 @@
       context.renderers.renderEverything();
     });
     context.elements.aiTestButton?.addEventListener("click", () => {
-      context.ai?.testConnection?.().catch(() => {});
+      context.ai?.testConnection?.().catch((error) => {
+        context.ai?.setStatus?.({
+          busy: false,
+          type: "error",
+          message: "Echec du test Gemini.",
+          error: error?.message || "Connexion impossible.",
+        });
+      });
     });
     context.elements.saveTemplateButton?.addEventListener("click", context.notes.saveTemplate);
     context.elements.resetTemplateButton?.addEventListener("click", context.notes.resetTemplate);
