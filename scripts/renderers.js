@@ -40,6 +40,7 @@
     renderTimelineView();
     renderSportTracker();
     renderTemplateEditor();
+    renderAiSettings();
     renderPublishCenter();
     renderQuickCapture();
     renderSidebarRecap();
@@ -207,6 +208,10 @@
 
   function renderKnowledgeMode() {
     const isEditing = context.state.noteViewMode === "edit";
+    const readOnly = context.data.isReadOnlyMode();
+    const aiWrapper = context.elements.aiAssistButton?.closest(".editor-secondary-actions");
+    const aiConfig = context.ai?.getConfig?.() || context.state.aiConfig || {};
+    const aiStatus = context.state.aiStatus || context.ai?.getDefaultStatus?.() || {};
     context.elements.knowledgeWorkspace.classList.toggle("is-editing", isEditing);
     if (!isEditing) {
       document.body.classList.remove("editor-writing");
@@ -225,6 +230,20 @@
       "is-hidden",
       !isEditing || !context.state.activeNoteId
     );
+    aiWrapper?.classList.toggle("is-hidden", !isEditing || readOnly);
+    if (context.elements.aiAssistButton) {
+      const hasConfig = Boolean(aiConfig.apiKey);
+      const isBusy = Boolean(aiStatus.busy);
+      const label = !hasConfig
+        ? "Configurer Gemini"
+        : isBusy
+          ? "Gemini en cours..."
+          : "Gemini: re-ecrire + quiz";
+      setActionButtonLabel(context.elements.aiAssistButton, label);
+      context.elements.aiAssistButton.disabled = readOnly || isBusy;
+      context.elements.aiAssistButton.classList.toggle("button-primary", hasConfig);
+      context.elements.aiAssistButton.classList.toggle("button-ghost", !hasConfig);
+    }
     renderPrimaryActionButton(isEditing);
     renderQuickActionButton(isEditing);
   }
@@ -318,7 +337,13 @@
       ...context.elements.formatButtons,
       context.elements.contentInput,
       context.elements.deleteActiveNoteButton,
+      context.elements.aiAssistButton,
       context.elements.templateType,
+      context.elements.aiApiKeyInput,
+      context.elements.aiModelInput,
+      context.elements.aiSaveButton,
+      context.elements.aiClearButton,
+      context.elements.aiTestButton,
       context.elements.templateEditor,
       context.elements.saveTemplateButton,
       context.elements.resetTemplateButton,
@@ -1811,6 +1836,30 @@
     );
   }
 
+  function renderAiSettings() {
+    const config = context.ai?.getConfig?.() || context.state.aiConfig || {};
+    const status = context.state.aiStatus || context.ai?.getDefaultStatus?.() || {};
+
+    if (context.elements.aiApiKeyInput && document.activeElement !== context.elements.aiApiKeyInput) {
+      context.elements.aiApiKeyInput.value = config.apiKey || "";
+    }
+
+    if (context.elements.aiModelInput && document.activeElement !== context.elements.aiModelInput) {
+      context.elements.aiModelInput.value = config.model || AtlasApp.config.geminiDefaultModel;
+    }
+
+    if (context.elements.aiStatus) {
+      const hasKey = Boolean(config.apiKey);
+      const defaultMessage = hasKey
+        ? "Gemini est pret."
+        : "Ajoute ta cle Gemini pour utiliser l'assistant.";
+      context.elements.aiStatus.textContent = status.error || status.message || defaultMessage;
+      context.elements.aiStatus.classList.toggle("is-error", status.type === "error");
+      context.elements.aiStatus.classList.toggle("is-success", status.type === "success");
+      context.elements.aiStatus.classList.toggle("is-working", Boolean(status.busy));
+    }
+  }
+
   function syncDynamicControls() {
     populateSelect(
       context.elements.typeInput,
@@ -1943,6 +1992,7 @@
     renderPreview,
     renderPublishCenter,
     renderQuickCapture,
+    renderAiSettings,
     renderQuizQuestionBank,
     renderVisualizationMode,
     renderSidebarDrawer,

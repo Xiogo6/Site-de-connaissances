@@ -388,6 +388,13 @@
                 ></textarea>
               </label>
 
+              <div class="editor-secondary-actions is-hidden">
+                <button id="ai-assist-button" class="button button-primary button-inline" type="button">
+                  Gemini: re-ecrire + quiz
+                </button>
+                <span id="ai-status" class="pill pill-soft">IA locale</span>
+              </div>
+
               <div class="link-section quiz-bank-panel">
                 <div class="section-heading">
                   <div>
@@ -774,6 +781,60 @@
             <section class="panel">
               <div class="panel-header">
                 <div>
+                  <p class="eyebrow">IA personnelle</p>
+                  <h3>Gemini local</h3>
+                </div>
+              </div>
+
+              <div class="link-section">
+                <p class="helper-copy">
+                  La cle reste sur cet appareil. Tu peux utiliser Gemini directement depuis ton telephone sans backend.
+                </p>
+
+                <div class="form-grid">
+                  <label>
+                    <span class="field-label">Cle API Gemini</span>
+                    <input
+                      id="ai-api-key"
+                      class="text-input"
+                      type="password"
+                      autocomplete="off"
+                      placeholder="AIza..."
+                    />
+                  </label>
+
+                  <label>
+                    <span class="field-label">Modele</span>
+                    <input
+                      id="ai-model"
+                      class="text-input"
+                      type="text"
+                      placeholder="gemini-3.5-flash"
+                    />
+                  </label>
+                </div>
+
+                <div class="stack-actions compact-actions">
+                  <button id="ai-save-button" class="button button-primary" type="button">
+                    Enregistrer
+                  </button>
+                  <button id="ai-test-button" class="button" type="button">
+                    Tester la connexion
+                  </button>
+                  <button id="ai-clear-button" class="button button-ghost" type="button">
+                    Effacer la cle
+                  </button>
+                </div>
+
+                <p id="ai-status" class="helper-copy helper-copy-compact">
+                  Aucun acces Gemini configure pour le moment.
+                </p>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
                   <p class="eyebrow">Parametres</p>
                   <h3>Types de pages</h3>
                 </div>
@@ -1094,6 +1155,7 @@
     <script src="./scripts/dom.js"></script>
     <script src="./scripts/helpers.js"></script>
     <script src="./scripts/data.js"></script>
+    <script src="./scripts/ai.js"></script>
     <script src="./scripts/notes.js"></script>
     <script src="./scripts/graph.js"></script>
     <script src="./scripts/quiz.js"></script>
