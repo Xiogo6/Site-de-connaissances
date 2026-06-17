@@ -4,6 +4,26 @@
   AtlasApp.createEventsModule = function createEventsModule(context) {
   let readingPointer = null;
 
+  function handleAiAssistClick() {
+    if (context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    if (!context.ai?.hasApiKey?.()) {
+      context.ai?.focusSettings?.();
+      return;
+    }
+
+    if (context.state.noteViewMode !== "edit") {
+      context.state.noteViewMode = "edit";
+      context.renderers.renderKnowledgeMode();
+    }
+
+    context.ai
+      .applyActiveNoteAssistant()
+      .catch(() => {});
+  }
+
   function bindEvents() {
     context.elements.sidebarTabs.forEach((tab) => {
       tab.addEventListener("click", () => {
@@ -131,6 +151,50 @@
     });
     context.elements.templateEditor?.addEventListener("input", (event) => {
       context.state.templateDrafts[context.state.activeTemplateType] = event.target.value;
+    });
+    context.elements.aiAssistButton?.addEventListener("click", handleAiAssistClick);
+    context.elements.aiApiKeyInput?.addEventListener("input", () => {
+      context.state.aiConfig = {
+        ...(context.state.aiConfig || {}),
+        apiKey: context.elements.aiApiKeyInput.value.trim(),
+      };
+      context.renderers.renderAiSettings();
+      context.renderers.renderKnowledgeMode();
+    });
+    context.elements.aiModelInput?.addEventListener("input", () => {
+      context.state.aiConfig = {
+        ...(context.state.aiConfig || {}),
+        model: context.elements.aiModelInput.value.trim(),
+      };
+      context.renderers.renderAiSettings();
+    });
+    context.elements.aiSaveButton?.addEventListener("click", () => {
+      context.ai?.saveConfig?.(context.state.aiConfig);
+      context.ai?.setStatus?.({
+        busy: false,
+        type: "success",
+        message: "Configuration Gemini enregistree.",
+        error: "",
+        lastRunAt: new Date().toISOString(),
+      });
+    });
+    context.elements.aiClearButton?.addEventListener("click", () => {
+      context.state.aiConfig = {
+        apiKey: "",
+        model: AtlasApp.config.geminiDefaultModel,
+      };
+      context.ai?.saveConfig?.(context.state.aiConfig);
+      context.ai?.setStatus?.({
+        busy: false,
+        type: "idle",
+        message: "Cle Gemini effacee.",
+        error: "",
+        lastRunAt: null,
+      });
+      context.renderers.renderEverything();
+    });
+    context.elements.aiTestButton?.addEventListener("click", () => {
+      context.ai?.testConnection?.().catch(() => {});
     });
     context.elements.saveTemplateButton?.addEventListener("click", context.notes.saveTemplate);
     context.elements.resetTemplateButton?.addEventListener("click", context.notes.resetTemplate);

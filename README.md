@@ -75,6 +75,13 @@ Ouvrez simplement `index.html` dans votre navigateur.
 
 La version actuelle est excellente pour un usage local et pour une consultation mobile publiee, mais elle ne synchronise pas encore automatiquement les modifications entre ordinateur et telephone. Pour une vraie synchro en temps reel, il faudra ajouter un backend ou une base distante.
 
+## IA personnelle avec Gemini
+
+- une cle Gemini peut etre enregistree localement dans l'onglet `Parametres`
+- la cle reste sur l'appareil courant et n'est pas envoyee dans la sync Supabase
+- le bouton `Gemini: re-ecrire + quiz` applique la relecture et genere des questions sur la note active
+- cette voie est pratique pour un usage perso sur telephone sans maintenir de backend
+
 ## Donnees
 
 Les donnees sont stockees dans le `localStorage` du navigateur sous la cle `atlas-connaissance-notes`.

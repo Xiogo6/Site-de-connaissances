@@ -78,6 +78,14 @@
       sportMode: "mass",
       editorQuizQuestions: [],
       editorQuizQuestionsNoteId: null,
+      aiConfig: {},
+      aiStatus: {
+        busy: false,
+        type: "idle",
+        message: "",
+        error: "",
+        lastRunAt: null,
+      },
       timeline: {
         scope: "folder",
         folderId: "",
@@ -94,9 +102,11 @@
   };
 
   context.data = AtlasApp.createDataModule(context);
+  context.ai = AtlasApp.createAiModule(context);
   context.state.notes = context.data.loadNotes();
   context.state.settings = context.data.loadSettings();
   context.state.snapshots = context.data.loadSnapshots();
+  context.state.aiConfig = context.ai.loadConfig();
   context.state.sourceMode = context.data.getSourceMode();
   context.notes = AtlasApp.createNotesModule(context);
   context.graph = AtlasApp.createGraphModule(context);

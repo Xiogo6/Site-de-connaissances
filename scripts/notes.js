@@ -622,7 +622,8 @@
     });
   }
 
-  function saveCurrentNote() {
+  function saveCurrentNote(options = {}) {
+    const { stayInEdit = false } = options;
     if (context.data.isReadOnlyMode()) {
       return;
     }
@@ -681,7 +682,7 @@
       context.state.pendingNewNoteId = null;
       context.state.previousActiveNoteId = null;
     }
-    context.state.noteViewMode = "read";
+    context.state.noteViewMode = stayInEdit ? "edit" : "read";
     clearEditorTemplateSeed();
     context.renderers.renderEverything();
   }
