@@ -5,6 +5,7 @@
     const { clamp, escapeHtml, extractLinks, extractSummary, unique } = AtlasApp.helpers;
     const CANVAS_WIDTH = 960;
     const CANVAS_HEIGHT = 620;
+    const MIN_GRAPH_ZOOM = 0.08;
     const MAX_GRAPH_ZOOM = 4.4;
     const GRAPH_LABEL_BREAKPOINT = "(max-width: 780px)";
     let zoomAnimationFrame = null;
@@ -444,16 +445,18 @@
   }
 
   function getGraphViewBox() {
-    const zoom = clamp(context.state.graphZoom || 1, 1, MAX_GRAPH_ZOOM);
+    const zoom = clamp(context.state.graphZoom || 1, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
     const width = CANVAS_WIDTH / zoom;
     const height = CANVAS_HEIGHT / zoom;
     const centeredX = (CANVAS_WIDTH - width) / 2;
     const centeredY = (CANVAS_HEIGHT - height) / 2;
-    const maxX = CANVAS_WIDTH - width;
-    const maxY = CANVAS_HEIGHT - height;
+    const minX = Math.min(0, CANVAS_WIDTH - width);
+    const maxX = Math.max(0, CANVAS_WIDTH - width);
+    const minY = Math.min(0, CANVAS_HEIGHT - height);
+    const maxY = Math.max(0, CANVAS_HEIGHT - height);
     return {
-      x: clamp(centeredX + (context.state.graphViewport.panX || 0), 0, maxX),
-      y: clamp(centeredY + (context.state.graphViewport.panY || 0), 0, maxY),
+      x: clamp(centeredX + (context.state.graphViewport.panX || 0), minX, maxX),
+      y: clamp(centeredY + (context.state.graphViewport.panY || 0), minY, maxY),
       width,
       height,
     };
@@ -465,7 +468,7 @@
     const height = CANVAS_HEIGHT;
     const centerX = width / 2;
     const centerY = height / 2;
-    const zoom = clamp(context.state.graphZoom || 1, 1, MAX_GRAPH_ZOOM);
+    const zoom = clamp(context.state.graphZoom || 1, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
     const viewBox = getGraphViewBox();
     const focusNodeId = context.state.graphSelection?.id || context.state.activeNoteId || null;
     const adjacency = buildAdjacency(graph);
@@ -933,7 +936,7 @@
     const nextZoom = clamp(
       (context.state.graphDrag.pinchStartZoom || 1) *
         (distance / Math.max(context.state.graphDrag.pinchStartDistance || 1, 1)),
-      1,
+      MIN_GRAPH_ZOOM,
       MAX_GRAPH_ZOOM
     );
 
@@ -978,7 +981,7 @@
   function setZoomAtPoint(nextZoom, clientX, clientY, focalGraphX = null, focalGraphY = null) {
     const rect = context.elements.graphCanvas.getBoundingClientRect();
     const currentViewBox = getGraphViewBox();
-    const safeZoom = clamp(nextZoom, 1, MAX_GRAPH_ZOOM);
+    const safeZoom = clamp(nextZoom, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
     const nextWidth = CANVAS_WIDTH / safeZoom;
     const nextHeight = CANVAS_HEIGHT / safeZoom;
     const centeredX = (CANVAS_WIDTH - nextWidth) / 2;
@@ -1000,7 +1003,7 @@
     stopZoomAnimation();
 
     const startZoom = context.state.graphZoom || 1;
-    const targetZoom = clamp(nextZoom, 1, MAX_GRAPH_ZOOM);
+    const targetZoom = clamp(nextZoom, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
     if (Math.abs(targetZoom - startZoom) < 0.01) {
       setZoomAtPoint(targetZoom, clientX, clientY);
       return;
@@ -1035,7 +1038,7 @@
   function zoomIn() {
     const rect = context.elements.graphCanvas.getBoundingClientRect();
     animateZoomTo(
-      (context.state.graphZoom || 1) + 0.28,
+      (context.state.graphZoom || 1) * 1.18,
       rect.left + rect.width / 2,
       rect.top + rect.height / 2
     );
@@ -1044,7 +1047,7 @@
   function zoomOut() {
     const rect = context.elements.graphCanvas.getBoundingClientRect();
     animateZoomTo(
-      (context.state.graphZoom || 1) - 0.28,
+      (context.state.graphZoom || 1) / 1.18,
       rect.left + rect.width / 2,
       rect.top + rect.height / 2
     );

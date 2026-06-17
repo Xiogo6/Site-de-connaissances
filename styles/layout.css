@@ -283,6 +283,7 @@ body[data-theme="dark"] .tab.is-active {
 .editor-parent-field {
   display: grid;
   gap: 8px;
+  grid-column: 1 / -1;
 }
 
 .editor-parent-field.is-hidden {
@@ -302,6 +303,7 @@ body[data-theme="dark"] .tab.is-active {
   grid-template-columns: auto minmax(0, 1fr);
   min-height: 44px;
   padding: 9px 12px;
+  grid-column: 1 / -1;
 }
 
 .editor-classify-toggle.is-hidden {
@@ -634,6 +636,10 @@ body[data-theme="dark"] .tab.is-active {
   .form-grid,
   .helper-grid {
     grid-template-columns: 1fr;
+  }
+
+  .form-grid-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .date-editor-grid {
