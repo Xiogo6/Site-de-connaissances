@@ -668,6 +668,13 @@ body[data-theme="dark"] .tab.is-active {
     padding-top: 0;
   }
 
+  body.graph-view-active #visualization-tab.is-active {
+    height: 0;
+    min-height: 0;
+    overflow: visible;
+    padding: 0;
+  }
+
   body.graph-view-active #graph-tab.is-active {
     background: #02040a;
     margin-inline: 0;
@@ -688,10 +695,10 @@ body[data-theme="dark"] .tab.is-active {
 
   body.graph-view-active .graph-panel {
     background:
-      radial-gradient(circle at 18% 18%, rgba(84, 108, 132, 0.16), transparent 24%),
-      radial-gradient(circle at 78% 20%, rgba(56, 74, 94, 0.12), transparent 22%),
-      radial-gradient(circle at 56% 74%, rgba(76, 96, 118, 0.12), transparent 32%),
-      linear-gradient(180deg, rgba(2, 4, 10, 0.99), rgba(3, 5, 12, 0.99));
+      radial-gradient(circle at 18% 16%, rgba(76, 96, 124, 0.15), transparent 22%),
+      radial-gradient(circle at 84% 18%, rgba(43, 58, 81, 0.14), transparent 24%),
+      radial-gradient(circle at 52% 70%, rgba(88, 104, 124, 0.1), transparent 36%),
+      linear-gradient(180deg, rgba(2, 4, 9, 1), rgba(4, 7, 14, 0.995) 48%, rgba(2, 4, 9, 1));
     border: 0;
     box-shadow: none;
     border-radius: 0;
@@ -704,12 +711,34 @@ body[data-theme="dark"] .tab.is-active {
     position: relative;
   }
 
+  body.graph-view-active .graph-panel::before,
+  body.graph-view-active .graph-panel::after {
+    content: "";
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    z-index: 1;
+  }
+
+  body.graph-view-active .graph-panel::before {
+    background: linear-gradient(180deg, rgba(2, 4, 9, 0.92), rgba(2, 4, 9, 0));
+    height: 118px;
+    top: 0;
+  }
+
+  body.graph-view-active .graph-panel::after {
+    background: linear-gradient(180deg, rgba(2, 4, 9, 0), rgba(2, 4, 9, 0.84));
+    bottom: 0;
+    height: 112px;
+  }
+
   body.graph-view-active .graph-panel .panel-header {
     align-items: center;
     background: transparent;
     display: flex;
     left: 0;
-    padding: calc(env(safe-area-inset-top, 0px) + 46px) 72px 4px;
+    padding: calc(env(safe-area-inset-top, 0px) + 52px) 78px 4px 74px;
     pointer-events: none;
     position: fixed;
     top: 0;
@@ -727,18 +756,18 @@ body[data-theme="dark"] .tab.is-active {
   }
 
   body.graph-view-active .graph-panel .panel-header h3 {
-    color: rgba(223, 231, 239, 0.68);
-    font-size: clamp(0.84rem, 2.8vw, 0.98rem);
+    color: rgba(223, 231, 239, 0.6);
+    font-size: clamp(0.8rem, 2.6vw, 0.94rem);
     letter-spacing: -0.02em;
     text-shadow: 0 1px 10px rgba(0, 0, 0, 0.48);
   }
 
   body.graph-view-active .mode-switcher {
-    left: 50%;
+    left: 14px;
     position: fixed;
-    top: max(env(safe-area-inset-top, 0px), 6px);
-    transform: translateX(-50%);
-    width: min(calc(100vw - 112px), 262px);
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    transform: none;
+    width: auto;
     z-index: 90;
   }
 
@@ -860,6 +889,30 @@ body[data-theme="dark"] .tab.is-active {
     padding: 0;
   }
 
+  body.graph-view-active .graph-stage::before,
+  body.graph-view-active .graph-stage::after {
+    content: "";
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    z-index: 2;
+  }
+
+  body.graph-view-active .graph-stage::before {
+    background:
+      linear-gradient(180deg, rgba(2, 4, 9, 0.74), rgba(2, 4, 9, 0)),
+      radial-gradient(circle at 50% 0, rgba(110, 129, 154, 0.16), transparent 44%);
+    height: 136px;
+    top: 0;
+  }
+
+  body.graph-view-active .graph-stage::after {
+    background: linear-gradient(180deg, rgba(2, 4, 9, 0), rgba(2, 4, 9, 0.8));
+    bottom: 0;
+    height: 128px;
+  }
+
   body.graph-view-active .graph-canvas {
     background: transparent;
     border: 0;
@@ -876,7 +929,7 @@ body[data-theme="dark"] .tab.is-active {
 
   body.graph-view-active .graph-zoom-stack {
     right: 14px;
-    top: calc(env(safe-area-inset-top, 0px) + 96px);
+    top: calc(env(safe-area-inset-top, 0px) + 102px);
     z-index: 88;
   }
 
