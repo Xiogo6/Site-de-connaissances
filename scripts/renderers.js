@@ -45,6 +45,7 @@
     renderQuickCapture();
     renderSidebarRecap();
     renderOrganization();
+    renderTagSettings();
     context.mascot?.sync(true);
   }
 
@@ -674,6 +675,22 @@
       `;
       context.elements.typeSettingsList.appendChild(row);
     });
+  }
+
+  function renderTagSettings() {
+    if (!context.elements.tagRenameSource) {
+      return;
+    }
+
+    const tagOptions = [
+      { value: "", label: "Choisir un tag" },
+      ...context.notes.getAllTags().map((tag) => ({ value: tag, label: tag })),
+    ];
+    populateSelect(
+      context.elements.tagRenameSource,
+      tagOptions,
+      context.elements.tagRenameSource.value || ""
+    );
   }
 
   function renderPreview(note = context.notes.getActiveNote(), isDraft = false) {

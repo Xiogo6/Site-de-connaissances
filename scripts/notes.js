@@ -6,6 +6,7 @@
       extractLinks,
       normalizeFlexibleDateInput,
       normalizeLinkTitle,
+      normalizeTag,
       parseTags,
       unique,
     } = AtlasApp.helpers;
@@ -1296,6 +1297,69 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     );
   }
 
+  function renameTag(oldTag, nextTag) {
+    if (context.data.isReadOnlyMode()) {
+      return false;
+    }
+
+    const source = normalizeTag(oldTag);
+    const target = normalizeTag(nextTag);
+    if (!source || !target || source === target) {
+      return false;
+    }
+
+    let didChange = false;
+
+    context.state.notes.forEach((note) => {
+      if (!Array.isArray(note.tags) || !note.tags.length) {
+        return;
+      }
+
+      const hasSource = note.tags.some((tag) => normalizeTag(tag) === source);
+      if (!hasSource) {
+        return;
+      }
+
+      note.tags = unique(
+        note.tags
+          .map((tag) => (normalizeTag(tag) === source ? target : tag))
+          .filter(Boolean)
+      );
+      didChange = true;
+    });
+
+    if (!didChange) {
+      return false;
+    }
+
+    if (context.state.tagFilter && normalizeTag(context.state.tagFilter) === source) {
+      context.state.tagFilter = target;
+    }
+
+    if (context.state.graphTagFilter && normalizeTag(context.state.graphTagFilter) === source) {
+      context.state.graphTagFilter = target;
+    }
+
+    if (context.state.timeline?.tag && normalizeTag(context.state.timeline.tag) === source) {
+      context.state.timeline.tag = target;
+    }
+
+    if (context.elements.quizTag && normalizeTag(context.elements.quizTag.value) === source) {
+      context.elements.quizTag.value = target;
+    }
+
+    if (
+      context.state.graphSelection?.kind === "tag" &&
+      normalizeTag(context.state.graphSelection.id.replace("tag::", "")) === source
+    ) {
+      context.state.graphSelection = { kind: "tag", id: `tag::${target}` };
+    }
+
+    context.data.saveNotes();
+    context.renderers.renderEverything();
+    return true;
+  }
+
   function isOrphanNote(note, sourceNotes = context.state.notes) {
     const outgoing = unique(extractLinks(note.content));
     const backlinks = sourceNotes.filter((candidate) => {
@@ -1347,6 +1411,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     isFolderCollapsed,
     isNoteDue,
     isOrphanNote,
+    renameTag,
     moveActiveNoteToRoot,
     moveNoteToParent,
     moveNoteToRoot,

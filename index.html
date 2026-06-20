@@ -875,6 +875,47 @@
             <section class="panel">
               <div class="panel-header">
                 <div>
+                  <p class="eyebrow">Parametres</p>
+                  <h3>Tags</h3>
+                </div>
+              </div>
+
+              <div class="link-section">
+                <p class="helper-copy">
+                  Renomme un tag ici pour le mettre a jour partout dans les filtres, la frise et les
+                  pages qui l'utilisent.
+                </p>
+
+                <div class="form-grid">
+                  <label>
+                    <span class="field-label">Tag a renommer</span>
+                    <select id="tag-rename-source" class="select-input">
+                      <option value="">Choisir un tag</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span class="field-label">Nouveau nom</span>
+                    <input
+                      id="tag-rename-target"
+                      class="text-input"
+                      type="text"
+                      placeholder="ex: memoire"
+                    />
+                  </label>
+                </div>
+
+                <div class="stack-actions compact-actions">
+                  <button id="rename-tag-button" class="button button-primary" type="button">
+                    Renommer le tag
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
                   <p class="eyebrow">Publication</p>
                   <h3>Centre de publication</h3>
                 </div>
