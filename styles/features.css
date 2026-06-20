@@ -3142,10 +3142,10 @@ body.graph-view-active::before {
 }
 
 body.graph-view-active .mode-switcher {
-  left: 14px;
+  left: calc(390px + 24px + ((100vw - 390px - 48px - 320px) / 2));
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 10px);
-  transform: none;
+  top: calc(env(safe-area-inset-top, 0px) + 24px);
+  transform: translateX(-50%);
   width: auto;
   z-index: 132;
 }
@@ -3187,8 +3187,12 @@ body.graph-view-active .graph-mode-button.is-active {
 
 body.graph-view-active .graph-filter-toggle {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  top: calc(env(safe-area-inset-top, 0px) + 24px);
   z-index: 133;
+}
+
+body.graph-view-active .graph-panel {
+  padding-top: 68px;
 }
 
 @media (max-width: 780px) {
