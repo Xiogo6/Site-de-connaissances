@@ -67,6 +67,26 @@
     }
   }
 
+  function handleTagRenameClick() {
+    if (context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    const source = context.elements.tagRenameSource?.value?.trim() || "";
+    const target = context.elements.tagRenameTarget?.value?.trim() || "";
+    if (!source || !target) {
+      return;
+    }
+
+    const didRename = context.notes.renameTag(source, target);
+    if (didRename) {
+      context.elements.tagRenameTarget.value = "";
+      return;
+    }
+
+    context.elements.tagRenameTarget.focus();
+  }
+
   function bindEvents() {
     window.addEventListener("beforeunload", handleBeforeUnload);
 
@@ -255,6 +275,20 @@
     context.elements.saveTemplateButton?.addEventListener("click", context.notes.saveTemplate);
     context.elements.resetTemplateButton?.addEventListener("click", context.notes.resetTemplate);
     context.elements.addTypeButton?.addEventListener("click", context.notes.addCustomType);
+    context.elements.tagRenameSource?.addEventListener("change", () => {
+      if (!context.elements.tagRenameTarget || context.elements.tagRenameTarget.value.trim()) {
+        return;
+      }
+
+      context.elements.tagRenameTarget.value = context.elements.tagRenameSource.value;
+    });
+    context.elements.tagRenameTarget?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleTagRenameClick();
+      }
+    });
+    context.elements.renameTagButton?.addEventListener("click", handleTagRenameClick);
     context.elements.newTypeLabelInput?.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
