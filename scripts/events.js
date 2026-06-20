@@ -4,6 +4,16 @@
   AtlasApp.createEventsModule = function createEventsModule(context) {
   let readingPointer = null;
 
+  function handleBeforeUnload(event) {
+    if (context.state.remote?.status !== "syncing") {
+      return;
+    }
+
+    event.preventDefault();
+    event.returnValue = "";
+    return "";
+  }
+
   function handleAiRewriteClick() {
     if (context.data.isReadOnlyMode()) {
       return;
@@ -58,6 +68,8 @@
   }
 
   function bindEvents() {
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     context.elements.sidebarTabs.forEach((tab) => {
       tab.addEventListener("click", () => {
         context.state.sidebarTab = tab.dataset.sidebarTab;

@@ -868,10 +868,12 @@
           status: "error",
           lastError: "Synchronisation bloquee: aucune page a envoyer",
         });
+        context.renderers?.renderWorkspaceBanner();
         return remoteSyncQueue;
       }
 
       setRemoteState({ status: "syncing", lastError: "" });
+      context.renderers?.renderWorkspaceBanner();
 
       remoteSyncQueue = remoteSyncQueue
         .catch(() => {})

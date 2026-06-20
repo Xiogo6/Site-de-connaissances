@@ -51,8 +51,11 @@
   function renderTabs() {
     document.body.classList.toggle("utility-drawer-open", context.state.utilityDrawerOpen);
     const quizViewActive = context.state.activeTab === "quiz";
+    const visualizationViewActive = context.state.activeTab === "visualization";
     document.documentElement.classList.toggle("quiz-view-active", quizViewActive);
     document.body.classList.toggle("quiz-view-active", quizViewActive);
+    document.documentElement.classList.toggle("visualization-view-active", visualizationViewActive);
+    document.body.classList.toggle("visualization-view-active", visualizationViewActive);
     const graphViewActive =
       context.state.activeTab === "graph" ||
       (context.state.activeTab === "visualization" && context.state.visualizationMode === "graph");
@@ -159,7 +162,33 @@
   }
 
   function renderWorkspaceBanner() {
-    context.elements.workspaceBanner.innerHTML = "";
+    const remote = context.state.remote || {};
+    let message = "";
+    let variant = "";
+
+    if (remote.status === "syncing") {
+      message = "Attention : synchronisation en cours. Ne fermez pas la page.";
+      variant = "is-warning";
+    } else if (remote.status === "error" && context.data.isRemoteConfigured()) {
+      message = "Attention : synchronisation en echec. Vos changements restent sur ce Mac.";
+      variant = "is-error";
+    }
+
+    if (!message) {
+      context.elements.workspaceBanner.innerHTML = "";
+      return;
+    }
+
+    context.elements.workspaceBanner.innerHTML = `
+      <div
+        class="workspace-banner-message ${variant}"
+        role="status"
+        aria-live="polite"
+        ${remote.lastError ? `title="${escapeHtml(remote.lastError)}"` : ""}
+      >
+        ${escapeHtml(message)}
+      </div>
+    `;
   }
 
   function renderTheme() {
