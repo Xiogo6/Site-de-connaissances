@@ -89,7 +89,7 @@
 }
 
 .workspace.is-editing {
-  grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.9fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   min-width: 0;
 }
 
