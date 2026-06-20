@@ -3192,6 +3192,14 @@ body.graph-view-active .graph-filter-toggle {
 }
 
 @media (max-width: 780px) {
+  html.graph-view-active,
+  body.graph-view-active,
+  html.visualization-view-active,
+  body.visualization-view-active {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   .sidebar-drawer-backdrop {
     display: block;
   }

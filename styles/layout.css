@@ -70,6 +70,30 @@
   width: 100%;
 }
 
+.workspace-banner-message {
+  align-items: center;
+  border: 1px solid rgba(191, 91, 44, 0.18);
+  border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(47, 36, 24, 0.08);
+  display: inline-flex;
+  font-size: 0.8rem;
+  gap: 8px;
+  line-height: 1.35;
+  max-width: min(100%, 980px);
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.workspace-banner-message.is-warning {
+  background: rgba(255, 237, 216, 0.96);
+  color: #7e4a26;
+}
+
+.workspace-banner-message.is-error {
+  background: rgba(255, 232, 232, 0.96);
+  color: #8f2d2d;
+}
+
 .workspace,
 .graph-layout,
 .quiz-layout,
@@ -821,6 +845,7 @@ body[data-theme="dark"] .tab.is-active {
     backdrop-filter: blur(18px);
     display: none;
     gap: 10px;
+    pointer-events: auto;
     padding: 10px;
     position: fixed;
     right: 14px;
@@ -849,15 +874,18 @@ body[data-theme="dark"] .tab.is-active {
     justify-content: flex-start;
     min-height: 42px;
     padding: 0 14px;
+    pointer-events: auto;
     width: 100%;
   }
 
   body.graph-view-active .graph-panel .graph-controls .toggle-row input {
     margin-right: 8px;
+    pointer-events: auto;
   }
 
   body.graph-view-active .graph-panel .graph-controls .toggle-row span {
     display: inline;
+    pointer-events: auto;
   }
 
   body.graph-view-active .graph-panel .graph-controls .select-input {
@@ -867,6 +895,7 @@ body[data-theme="dark"] .tab.is-active {
     color: rgba(238, 242, 248, 0.9);
     min-height: 42px;
     padding-inline: 14px 36px;
+    pointer-events: auto;
     width: 100%;
   }
 
@@ -880,6 +909,7 @@ body[data-theme="dark"] .tab.is-active {
     justify-content: center;
     min-height: 42px;
     min-width: 42px;
+    pointer-events: auto;
     padding: 0 14px;
   }
 
