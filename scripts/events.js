@@ -159,6 +159,14 @@
       }
       context.renderers.renderEverything();
     });
+    context.elements.feedTagFilterButton?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      context.state.feedTagFilterOpen = !context.state.feedTagFilterOpen;
+      context.renderers.renderFeed();
+    });
+    context.elements.feedTagFilterPopover?.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
     context.elements.feedExcludedTags?.addEventListener("click", handleFeedExcludedTagClick);
     context.elements.feedClearFilters?.addEventListener("click", clearFeedFilters);
     context.elements.feedList?.addEventListener("touchstart", handleFeedTouchStart, { passive: true });
@@ -187,6 +195,7 @@
       context.state.tagFilter = "all";
       context.state.favoritesOnly = false;
       context.state.feedExcludedTags = [];
+      context.state.feedTagFilterOpen = false;
       context.elements.searchInput.value = "";
       context.elements.typeFilter.value = "all";
       context.elements.tagFilter.value = "all";
@@ -693,7 +702,7 @@
     });
 
     window.addEventListener("scroll", handleBottomNavScroll, { passive: true });
-    window.addEventListener("wheel", handleFeedWheelRefresh, { passive: true });
+    window.addEventListener("wheel", handleFeedWheelRefresh, { passive: false });
   }
 
   function handleFeedTouchStart(event) {
@@ -716,17 +725,17 @@
       return;
     }
 
-    const distance = event.touches[0].clientY - feedPull.startY;
+    const distance = feedPull.startY - event.touches[0].clientY;
     if (distance <= 0) {
       updateFeedPullVisual(0);
       return;
     }
 
     feedPull.distance = Math.min(110, distance * 0.55);
-    feedPull.ready = feedPull.distance >= 64;
+    feedPull.ready = feedPull.distance >= 72;
     updateFeedPullVisual(feedPull.distance);
 
-    if (distance > 8 && event.cancelable) {
+    if (feedPull.ready && event.cancelable) {
       event.preventDefault();
     }
   }
@@ -753,11 +762,14 @@
       !canPullRefreshFeed() ||
       feedShuffleLocked ||
       Math.abs(event.deltaY) < 70 ||
-      event.deltaY >= 0
+      event.deltaY <= 0
     ) {
       return;
     }
 
+    if (event.cancelable) {
+      event.preventDefault();
+    }
     shuffleFeedFromGesture();
   }
 
@@ -785,6 +797,7 @@
     context.state.tagFilter = "all";
     context.state.favoritesOnly = false;
     context.state.feedExcludedTags = [];
+    context.state.feedTagFilterOpen = false;
 
     if (context.elements.searchInput) {
       context.elements.searchInput.value = "";
@@ -826,6 +839,7 @@
     context.state.feedSeed = Date.now();
     context.renderers.renderFeed();
     context.renderers.renderTabs();
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     showFeedRefreshComplete();
     window.setTimeout(() => {
       feedShuffleLocked = false;
@@ -833,13 +847,13 @@
   }
 
   function updateFeedPullVisual(distance) {
-    document.body.style.setProperty("--feed-pull-offset", `${Math.round(distance)}px`);
+    document.body.style.setProperty("--feed-pull-offset", `${-Math.round(distance)}px`);
     document.body.classList.toggle("feed-pulling", distance > 4);
-    document.body.classList.toggle("feed-refresh-ready", distance >= 64);
+    document.body.classList.toggle("feed-refresh-ready", distance >= 72);
   }
 
   function showFeedRefreshComplete() {
-    document.body.style.setProperty("--feed-pull-offset", "34px");
+    document.body.style.setProperty("--feed-pull-offset", "-34px");
     document.body.classList.add("feed-pulling", "feed-refresh-complete");
     document.body.classList.remove("feed-refresh-ready");
     window.setTimeout(resetFeedPull, 520);

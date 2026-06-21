@@ -159,17 +159,17 @@
 
 .tabs {
   background:
-    radial-gradient(circle at 28% 12%, rgba(255, 255, 255, 0.82), transparent 30%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 249, 240, 0.18)),
-    rgba(255, 249, 240, 0.38);
-  border: 1px solid rgba(255, 255, 255, 0.52);
+    radial-gradient(circle at 28% 12%, rgba(255, 255, 255, 0.72), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 249, 240, 0.08)),
+    rgba(255, 249, 240, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.38);
   border-radius: 999px;
-  -webkit-backdrop-filter: blur(22px) saturate(1.45) contrast(1.06);
-  backdrop-filter: blur(22px) saturate(1.45) contrast(1.06);
+  -webkit-backdrop-filter: blur(28px) saturate(1.58) contrast(1.08);
+  backdrop-filter: blur(28px) saturate(1.58) contrast(1.08);
   box-shadow:
-    0 22px 48px rgba(28, 23, 18, 0.18),
-    0 1px 0 rgba(255, 255, 255, 0.34),
-    inset 0 1px 1px rgba(255, 255, 255, 0.76),
+    0 22px 48px rgba(28, 23, 18, 0.13),
+    0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 1px 1px rgba(255, 255, 255, 0.6),
     inset 0 -12px 24px rgba(255, 255, 255, 0.08),
     inset 0 -1px 0 rgba(72, 58, 43, 0.08);
   display: inline-flex;
@@ -257,16 +257,16 @@
 .utility-launcher {
   align-items: center;
   background:
-    radial-gradient(circle at 32% 12%, rgba(255, 255, 255, 0.74), transparent 34%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 249, 240, 0.18)),
-    rgba(255, 249, 240, 0.36);
-  border: 1px solid rgba(255, 255, 255, 0.46);
+    radial-gradient(circle at 32% 12%, rgba(255, 255, 255, 0.66), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 249, 240, 0.08)),
+    rgba(255, 249, 240, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.34);
   border-radius: 999px;
-  -webkit-backdrop-filter: blur(22px) saturate(1.35) contrast(1.05);
-  backdrop-filter: blur(22px) saturate(1.35) contrast(1.05);
+  -webkit-backdrop-filter: blur(28px) saturate(1.52) contrast(1.07);
+  backdrop-filter: blur(28px) saturate(1.52) contrast(1.07);
   box-shadow:
-    0 14px 34px rgba(42, 31, 20, 0.14),
-    inset 0 1px 1px rgba(255, 255, 255, 0.66),
+    0 14px 34px rgba(42, 31, 20, 0.1),
+    inset 0 1px 1px rgba(255, 255, 255, 0.52),
     inset 0 -1px 0 rgba(86, 70, 48, 0.08);
   color: var(--text);
   cursor: pointer;
@@ -298,12 +298,12 @@ body[data-theme="dark"] .sidebar-launcher {
 body[data-theme="dark"] .utility-launcher,
 body[data-theme="dark"] .sidebar-launcher {
   background:
-    radial-gradient(circle at 30% 10%, rgba(230, 244, 232, 0.16), transparent 34%),
-    linear-gradient(135deg, rgba(39, 59, 50, 0.34), rgba(10, 18, 15, 0.18)),
-    rgba(8, 18, 15, 0.5);
+    radial-gradient(circle at 30% 10%, rgba(230, 244, 232, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(39, 59, 50, 0.22), rgba(10, 18, 15, 0.1)),
+    rgba(8, 18, 15, 0.32);
   border-color: rgba(235, 228, 212, 0.15);
   box-shadow:
-    0 14px 34px rgba(0, 0, 0, 0.28),
+    0 14px 34px rgba(0, 0, 0, 0.22),
     inset 0 1px 1px rgba(255, 255, 255, 0.13),
     inset 0 -1px 0 rgba(255, 255, 255, 0.04);
 }
@@ -311,12 +311,12 @@ body[data-theme="dark"] .sidebar-launcher {
 :root[data-theme="dark"] .tabs,
 body[data-theme="dark"] .tabs {
   background:
-    radial-gradient(circle at 30% 10%, rgba(230, 244, 232, 0.16), transparent 32%),
-    linear-gradient(135deg, rgba(38, 56, 49, 0.42), rgba(18, 26, 23, 0.22)),
-    rgba(8, 18, 15, 0.56);
+    radial-gradient(circle at 30% 10%, rgba(230, 244, 232, 0.18), transparent 32%),
+    linear-gradient(135deg, rgba(38, 56, 49, 0.24), rgba(18, 26, 23, 0.12)),
+    rgba(8, 18, 15, 0.34);
   border-color: rgba(235, 228, 212, 0.16);
   box-shadow:
-    0 22px 48px rgba(0, 0, 0, 0.34),
+    0 22px 48px rgba(0, 0, 0, 0.26),
     0 1px 0 rgba(255, 255, 255, 0.08),
     inset 0 1px 1px rgba(255, 255, 255, 0.16),
     inset 0 -14px 28px rgba(255, 255, 255, 0.035);
@@ -753,12 +753,12 @@ body[data-theme="dark"] .tab.is-active {
   :root[data-theme="dark"] .tabs,
   body[data-theme="dark"] .tabs {
     background:
-      radial-gradient(circle at 30% 10%, rgba(230, 244, 232, 0.16), transparent 32%),
-      linear-gradient(135deg, rgba(38, 56, 49, 0.42), rgba(18, 26, 23, 0.22)),
-      rgba(8, 18, 15, 0.56);
+      radial-gradient(circle at 30% 10%, rgba(230, 244, 232, 0.18), transparent 32%),
+      linear-gradient(135deg, rgba(38, 56, 49, 0.24), rgba(18, 26, 23, 0.12)),
+      rgba(8, 18, 15, 0.34);
     border-color: rgba(235, 228, 212, 0.16);
     box-shadow:
-      0 22px 48px rgba(0, 0, 0, 0.34),
+      0 22px 48px rgba(0, 0, 0, 0.26),
       inset 0 1px 1px rgba(255, 255, 255, 0.16),
       inset 0 -14px 28px rgba(255, 255, 255, 0.035);
   }
@@ -886,11 +886,12 @@ body[data-theme="dark"] .tab.is-active {
   }
 
   body.graph-view-active .graph-panel {
-    background:
-      radial-gradient(circle at 18% 16%, rgba(76, 96, 124, 0.15), transparent 22%),
-      radial-gradient(circle at 84% 18%, rgba(43, 58, 81, 0.14), transparent 24%),
-      radial-gradient(circle at 52% 70%, rgba(88, 104, 124, 0.1), transparent 36%),
-      linear-gradient(180deg, rgba(2, 4, 9, 1), rgba(4, 7, 14, 0.995) 48%, rgba(2, 4, 9, 1));
+    background: linear-gradient(
+      180deg,
+      rgba(2, 4, 9, 1) 0%,
+      rgba(2, 4, 9, 1) 52%,
+      rgba(2, 4, 9, 1) 100%
+    );
     border: 0;
     box-shadow: none;
     border-radius: 0;

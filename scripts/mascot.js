@@ -7,6 +7,7 @@
     const SPEECH_DURATION = 4200;
     const SPEECH_COOLDOWN = 14000;
     const SPEECH_CHANCE = 0.55;
+    const MASCOT_ANIMATIONS_SUSPENDED = true;
 
     function route(...frames) {
       return frames;
@@ -303,6 +304,12 @@
         return;
       }
 
+      if (MASCOT_ANIMATIONS_SUSPENDED) {
+        root.classList.add("is-hidden");
+        hideSpeech(root);
+        return;
+      }
+
       const nextScene = getScene();
       root.classList.toggle("is-hidden", !nextScene);
       if (!nextScene) {
@@ -377,6 +384,11 @@
 
     function start() {
       if (roamTimer) {
+        return;
+      }
+
+      if (MASCOT_ANIMATIONS_SUSPENDED) {
+        syncScene(true);
         return;
       }
 

@@ -30,7 +30,7 @@
       })();
     </script>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=15" />
+    <link rel="stylesheet" href="./styles.css?v=21" />
   </head>
   <body>
     <div class="shell">
@@ -212,7 +212,7 @@
             <header class="feed-toolbar">
               <div>
                 <p class="eyebrow">Feed</p>
-                <h2>Pages a parcourir</h2>
+                <h2>Atlas de pages</h2>
               </div>
               <div class="feed-toolbar-actions">
                 <div class="segmented-control" aria-label="Mode du feed">
@@ -234,7 +234,21 @@
                 <input id="feed-favorites-filter" type="checkbox" />
                 <span>Favoris</span>
               </label>
-              <div id="feed-excluded-tags" class="feed-excluded-tags" aria-label="Tags masques"></div>
+              <div class="feed-tag-filter-control">
+                <button
+                  id="feed-tag-filter-button"
+                  class="feed-tag-filter-button"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="feed-tag-filter-popover"
+                >
+                  Tags masques
+                  <span id="feed-excluded-count" class="feed-excluded-count" aria-hidden="true"></span>
+                </button>
+                <div id="feed-tag-filter-popover" class="feed-tag-filter-popover is-hidden">
+                  <div id="feed-excluded-tags" class="feed-excluded-tags" aria-label="Tags masques"></div>
+                </div>
+              </div>
               <button id="feed-clear-filters" class="feed-filter-clear" type="button">Effacer</button>
             </section>
             <div id="feed-refresh-indicator" class="feed-refresh-indicator" aria-hidden="true"></div>
@@ -618,7 +632,6 @@
               <div class="panel-header">
                 <div>
                   <p class="eyebrow">Carte vivante</p>
-                  <h3>Reseau des connaissances</h3>
                 </div>
                 <div id="graph-controls" class="inline-actions graph-controls">
                   <label class="toggle-row" for="graph-show-tags">
@@ -1240,17 +1253,17 @@
       </div>
     </div>
 
-    <script src="./scripts/config.js"></script>
-    <script src="./scripts/dom.js"></script>
-    <script src="./scripts/helpers.js"></script>
-    <script src="./scripts/data.js"></script>
-    <script src="./scripts/ai.js"></script>
-    <script src="./scripts/notes.js"></script>
-    <script src="./scripts/graph.js"></script>
-    <script src="./scripts/quiz.js"></script>
-    <script src="./scripts/mascot.js"></script>
-    <script src="./scripts/renderers.js"></script>
-    <script src="./scripts/events.js"></script>
-    <script src="./app.js"></script>
+    <script src="./scripts/config.js?v=21"></script>
+    <script src="./scripts/dom.js?v=21"></script>
+    <script src="./scripts/helpers.js?v=21"></script>
+    <script src="./scripts/data.js?v=21"></script>
+    <script src="./scripts/ai.js?v=21"></script>
+    <script src="./scripts/notes.js?v=21"></script>
+    <script src="./scripts/graph.js?v=21"></script>
+    <script src="./scripts/quiz.js?v=21"></script>
+    <script src="./scripts/mascot.js?v=21"></script>
+    <script src="./scripts/renderers.js?v=21"></script>
+    <script src="./scripts/events.js?v=21"></script>
+    <script src="./app.js?v=21"></script>
   </body>
 </html>

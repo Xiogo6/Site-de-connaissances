@@ -3,6 +3,14 @@
 
   AtlasApp.createQuizModule = function createQuizModule(context) {
     const { escapeHtml, shuffle } = AtlasApp.helpers;
+    const EASY_POOL_MINIMUM_FOR_MIXED_ROTATION = 3;
+    const EARLY_ROTATION_AVERAGE_ASKED_LIMIT = 2;
+    const EARLY_ROTATION_SEEN_RATIO_LIMIT = 0.65;
+    const ROTATION_REST_HOURS = {
+      difficult: 12,
+      intermediate: 24,
+      easy: 72,
+    };
     let quizTimerHandle = null;
 
     function getScopedNotes(scope, tagValue, folderId = "") {
@@ -170,21 +178,35 @@
       context.state.quiz.revealPending = false;
     }
 
+    /*
+      Politique de rotation des quiz
+
+      Le but n'est pas de respecter aveuglement les categories, mais d'eviter
+      les boucles de questions, surtout au debut quand certaines categories ne
+      contiennent qu'une ou deux cartes.
+
+      1. On part de toutes les questions disponibles, pas d'une seule question
+         par note. La rotation se decide donc au niveau de chaque question.
+      2. Une question vue recemment peut etre mise au repos selon sa difficulte:
+         les difficiles peuvent revenir vite, les intermediaires attendent un
+         peu, et les faciles attendent nettement plus longtemps.
+      3. En mode mixte/priorite, les questions faciles ne recoivent un quota
+         que si leur bassin est assez large. Une unique question facile peut
+         revenir comme appoint rare, mais elle n'est jamais forcee juste pour
+         remplir le quota.
+      4. Au debut, quand beaucoup de questions sont nouvelles ou peu vues, la
+         repartition favorise l'exploration: nouvelles/difficiles d'abord,
+         intermediaires ensuite, faciles au compte-gouttes.
+      5. Les categories restent utiles pour lire le tableau de bord, mais la
+         selection utilise un score de priorite: anciennete depuis la derniere
+         apparition, nombre de passages, erreurs, et difficulte.
+    */
     function pickQuizQuestionsForSession(notes, requestedAmount) {
       if (!notes.length || requestedAmount <= 0) {
         return [];
       }
 
-      const noteCandidates = notes
-        .map((note) => {
-          const question = pickQuestionForNote(note.quizQuestions || []);
-          if (!question) {
-            return null;
-          }
-
-          return buildSessionQuestion(note, question);
-        })
-        .filter(Boolean);
+      const noteCandidates = collectSessionQuestionCandidates(notes);
 
       if (!noteCandidates.length) {
         return [];
@@ -192,19 +214,20 @@
 
       const focus = normalizeQuizFocus(context.elements.quizMode?.value);
       const focusedCandidates = noteCandidates.filter((candidate) => matchesQuizFocus(candidate, focus));
+      const rotationCandidates = focusedCandidates.filter((candidate) => isRotationEligible(candidate));
 
-      if (!focusedCandidates.length) {
+      if (!rotationCandidates.length) {
         return [];
       }
 
-      const quotas = computeDifficultyQuotas(requestedAmount);
+      const quotas = computeDifficultyQuotas(requestedAmount, rotationCandidates, focus);
       const pools = {
         difficult: [],
         intermediate: [],
         easy: [],
       };
 
-      focusedCandidates.forEach((candidate) => {
+      rotationCandidates.forEach((candidate) => {
         pools[candidate.difficulty].push(candidate);
       });
 
@@ -220,7 +243,7 @@
       });
 
       if (selected.length < requestedAmount) {
-        const remainder = focusedCandidates.filter((item) => !usedKeys.has(item.sessionKey));
+        const remainder = rotationCandidates.filter((item) => !usedKeys.has(item.sessionKey));
         pickFromPool(remainder, requestedAmount - selected.length, usedKeys).forEach((item) =>
           selected.push(item)
         );
@@ -229,16 +252,13 @@
       return shuffle(selected).slice(0, requestedAmount);
     }
 
-    function pickQuestionForNote(questions) {
-      const pool = (questions || [])
-        .map((question, index) => normalizeQuizQuestion(question, index))
-        .filter(Boolean);
-
-      if (!pool.length) {
-        return null;
-      }
-
-      return weightedPick(pool, (item) => questionWeight(item));
+    function collectSessionQuestionCandidates(notes) {
+      return notes.flatMap((note) =>
+        (note.quizQuestions || [])
+          .map((question, index) => normalizeQuizQuestion(question, index))
+          .filter(Boolean)
+          .map((question) => buildSessionQuestion(note, question))
+      );
     }
 
     function normalizeQuizQuestion(question, index = 0) {
@@ -392,9 +412,26 @@
       return candidate.difficulty === normalizedFocus;
     }
 
-    function computeDifficultyQuotas(amount) {
-      const easy = Math.round(amount * 0.2);
-      const intermediate = Math.round(amount * 0.4);
+    function computeDifficultyQuotas(amount, candidates = [], focus = "mixed") {
+      const normalizedFocus = normalizeQuizFocus(focus);
+      if (["difficult", "intermediate", "easy"].includes(normalizedFocus)) {
+        return {
+          difficult: normalizedFocus === "difficult" ? amount : 0,
+          intermediate: normalizedFocus === "intermediate" ? amount : 0,
+          easy: normalizedFocus === "easy" ? amount : 0,
+        };
+      }
+
+      const profile = getRotationProfile(candidates);
+      const earlyRotation = profile.averageAsked < EARLY_ROTATION_AVERAGE_ASKED_LIMIT ||
+        profile.seenRatio < EARLY_ROTATION_SEEN_RATIO_LIMIT;
+      const easyPoolSize = candidates.filter((candidate) => candidate.difficulty === "easy").length;
+      const easyRatio = earlyRotation ? 0.1 : 0.15;
+      const intermediateRatio = earlyRotation ? 0.3 : 0.35;
+      const easy = easyPoolSize >= EASY_POOL_MINIMUM_FOR_MIXED_ROTATION
+        ? Math.min(Math.floor(amount * easyRatio), easyPoolSize)
+        : 0;
+      const intermediate = Math.round(amount * intermediateRatio);
       const difficult = Math.max(amount - easy - intermediate, 0);
 
       return {
@@ -404,11 +441,52 @@
       };
     }
 
-    function questionWeight(question) {
-      const asked = Number(question.stats?.asked) || 0;
-      const baseWeight = 1 / (asked + 1);
-      const freshness = question.stats?.lastAskedAt ? 0.15 : 0.35;
-      return baseWeight + freshness;
+    function getRotationProfile(candidates) {
+      if (!candidates.length) {
+        return {
+          averageAsked: 0,
+          seenRatio: 0,
+        };
+      }
+
+      const totals = candidates.reduce(
+        (summary, candidate) => {
+          const asked = Number(candidate.statsBefore?.asked) || 0;
+          return {
+            asked: summary.asked + asked,
+            seen: summary.seen + (asked > 0 ? 1 : 0),
+          };
+        },
+        { asked: 0, seen: 0 }
+      );
+
+      return {
+        averageAsked: totals.asked / candidates.length,
+        seenRatio: totals.seen / candidates.length,
+      };
+    }
+
+    function isRotationEligible(candidate) {
+      return !isQuestionCoolingDown(candidate);
+    }
+
+    function isQuestionCoolingDown(candidate) {
+      const restHours = ROTATION_REST_HOURS[candidate.difficulty] || 0;
+      const asked = Number(candidate.statsBefore?.asked) || 0;
+      if (!asked || restHours <= 0) {
+        return false;
+      }
+
+      return getHoursSinceLastAsked(candidate.statsBefore?.lastAskedAt) < restHours;
+    }
+
+    function getHoursSinceLastAsked(lastAskedAt) {
+      const timestamp = Date.parse(lastAskedAt || "");
+      if (!Number.isFinite(timestamp)) {
+        return Infinity;
+      }
+
+      return Math.max((Date.now() - timestamp) / 36e5, 0);
     }
 
     function weightedPick(items, weightGetter) {
@@ -437,7 +515,7 @@
       const chosen = [];
 
       while (available.length && chosen.length < count) {
-        const selected = weightedPick(available, (item) => 1 / ((item.statsBefore?.asked || 0) + 1));
+        const selected = weightedPick(available, (item) => rotationWeight(item));
         if (!selected) {
           break;
         }
@@ -451,6 +529,30 @@
       }
 
       return chosen;
+    }
+
+    function rotationWeight(candidate) {
+      const stats = candidate.statsBefore || {};
+      const asked = Number(stats.asked) || 0;
+      const correct = Number(stats.correct) || 0;
+      const wrong = Math.max(asked - correct, 0);
+      const hoursSinceLastAsked = getHoursSinceLastAsked(stats.lastAskedAt);
+      const difficultyWeight = {
+        difficult: 8,
+        intermediate: 4,
+        easy: 1,
+      }[candidate.difficulty] || 2;
+      const discoveryBoost = asked === 0 ? 18 : 0;
+      const spacingBoost = Number.isFinite(hoursSinceLastAsked)
+        ? Math.min(hoursSinceLastAsked / 4, 8)
+        : 8;
+      const practiceBalance = 6 / (asked + 1);
+      const errorBoost = wrong * 1.8;
+      const masteryPenalty = Math.min(correct * 0.35, 4);
+      const rawWeight =
+        discoveryBoost + difficultyWeight + spacingBoost + practiceBalance + errorBoost - masteryPenalty;
+
+      return Math.max(candidate.difficulty === "easy" ? rawWeight * 0.35 : rawWeight, 0.1);
     }
 
     function setQuizAnswer(index, value) {
@@ -1281,4 +1383,3 @@
     };
   };
 })(window);
-

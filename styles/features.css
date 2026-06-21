@@ -633,6 +633,12 @@ body:not(.quiz-view-active) .aster-roamer {
   display: none;
 }
 
+body.quiz-view-active .quiz-aster,
+body.quiz-view-active .quiz-aster * {
+  animation: none !important;
+  transition-duration: 0ms !important;
+}
+
 .quiz-aster-result .quiz-aster-orbit {
   animation-duration: 12.8s;
 }
@@ -3210,6 +3216,17 @@ body.graph-view-active .graph-panel {
   body.visualization-view-active {
     overflow: hidden;
     overscroll-behavior: none;
+  }
+
+  html.graph-view-active,
+  body.graph-view-active,
+  body.graph-view-active .graph-panel,
+  body.graph-view-active .graph-stage,
+  body.graph-view-active .graph-controls,
+  body.graph-view-active .graph-filter-toggle,
+  body.graph-view-active .graph-zoom-stack,
+  body.graph-view-active .mode-switcher {
+    touch-action: none;
   }
 
   .sidebar-drawer-backdrop {
