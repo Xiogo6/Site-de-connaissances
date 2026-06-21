@@ -1337,7 +1337,9 @@
     const toggleFolderButton = event.target.closest("[data-toggle-folder]");
     if (toggleFolderButton) {
       event.stopPropagation();
-      context.notes.toggleFolderCollapse(toggleFolderButton.dataset.toggleFolder);
+      animateFolderToggle(toggleFolderButton, () =>
+        context.notes.toggleFolderCollapse(toggleFolderButton.dataset.toggleFolder)
+      );
       return;
     }
 
@@ -1360,7 +1362,9 @@
     const toggleFolderButton = event.target.closest("[data-toggle-folder]");
     if (toggleFolderButton) {
       event.stopPropagation();
-      context.notes.toggleFolderCollapse(toggleFolderButton.dataset.toggleFolder);
+      animateFolderToggle(toggleFolderButton, () =>
+        context.notes.toggleFolderCollapse(toggleFolderButton.dataset.toggleFolder)
+      );
       return;
     }
 
@@ -1445,6 +1449,42 @@
       context.notes.deleteNoteById(deleteButton.dataset[datasetKeys.remove]);
       return;
     }
+  }
+
+  function animateFolderToggle(toggleButton, applyToggle) {
+    const noteId = toggleButton.dataset.toggleFolder;
+    const entry = toggleButton.closest(".tree-entry-flat, .hierarchy-node");
+    const container = entry?.parentElement;
+    const isCollapsed = context.notes.isFolderCollapsed(noteId);
+
+    if (!entry || !container || isCollapsed) {
+      applyToggle();
+      window.requestAnimationFrame(() => {
+        container?.classList.add("hierarchy-motion-enter");
+        window.setTimeout(() => container?.classList.remove("hierarchy-motion-enter"), 180);
+      });
+      return;
+    }
+
+    const depth = Number(entry.dataset.depth || 0);
+    const closingEntries = [];
+    let sibling = entry.nextElementSibling;
+    while (sibling) {
+      const siblingDepth = Number(sibling.dataset.depth || 0);
+      if (siblingDepth <= depth) {
+        break;
+      }
+      closingEntries.push(sibling);
+      sibling = sibling.nextElementSibling;
+    }
+
+    if (!closingEntries.length) {
+      applyToggle();
+      return;
+    }
+
+    closingEntries.forEach((child) => child.classList.add("is-folder-closing"));
+    window.setTimeout(applyToggle, 140);
   }
 
   function handleTagSuggestionClick(event) {
