@@ -1464,12 +1464,8 @@
     const beforeRects = getHierarchyMotionRects(container);
     applyToggle();
 
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        animateHierarchySurface(container, isOpening);
-        animateHierarchyLayout(container, beforeRects);
-      });
-    });
+    animateHierarchySurface(container, isOpening);
+    animateHierarchyLayout(container, beforeRects);
   }
 
   function getHierarchyMotionRects(container) {
@@ -1496,7 +1492,7 @@
       if (!beforeRect) {
         animateHierarchyEntry(entry, {
           delay: Math.min(index * 7, 42),
-          duration: 150,
+          duration: 210,
           opacity: 0,
           transform: "translateY(-5px)",
         });
@@ -1510,7 +1506,7 @@
       }
 
       animateHierarchyEntry(entry, {
-        duration: 170,
+        duration: 220,
         transform: `translate(${deltaX}px, ${deltaY}px)`,
       });
     });
@@ -1523,7 +1519,7 @@
     container.style.opacity = "0.985";
     container.getBoundingClientRect();
 
-    container.style.transition = "transform 155ms cubic-bezier(0.2, 0, 0.18, 1), opacity 155ms ease";
+    container.style.transition = "transform 210ms cubic-bezier(0.22, 0.72, 0.22, 1), opacity 210ms ease";
     window.requestAnimationFrame(() => {
       container.style.transform = "translateY(0)";
       container.style.opacity = "1";
@@ -1532,17 +1528,17 @@
       container.style.transition = "";
       container.style.transform = "";
       container.style.opacity = "";
-    }, 215);
+    }, 270);
   }
 
-  function animateHierarchyEntry(entry, { delay = 0, duration = 170, opacity = 1, transform }) {
+  function animateHierarchyEntry(entry, { delay = 0, duration = 220, opacity = 1, transform }) {
     entry.style.transition = "none";
     entry.style.transitionDelay = "";
     entry.style.transform = transform;
     entry.style.opacity = String(opacity);
     entry.getBoundingClientRect();
 
-    entry.style.transition = `transform ${duration}ms cubic-bezier(0.2, 0, 0.18, 1), opacity ${duration}ms ease`;
+    entry.style.transition = `transform ${duration}ms cubic-bezier(0.22, 0.72, 0.22, 1), opacity ${duration}ms ease`;
     entry.style.transitionDelay = delay ? `${delay}ms` : "";
     window.requestAnimationFrame(() => {
       entry.style.transform = "translate(0, 0)";
