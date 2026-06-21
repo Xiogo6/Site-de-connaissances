@@ -30,7 +30,7 @@
       })();
     </script>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=11" />
   </head>
   <body>
     <div class="shell">
@@ -128,7 +128,17 @@
           </button>
 
           <nav class="tabs" aria-label="Sections principales">
-            <button class="tab is-active" data-tab="knowledge" type="button">
+            <button class="tab is-active" data-tab="feed" type="button">
+              <span class="tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                  <path d="M5 18c2.8-3.2 5.1-4.8 7-4.8s4.2 1.6 7 4.8" />
+                  <path d="M7 8.5c1.8-1.5 3.5-2.2 5-2.2s3.2.7 5 2.2" />
+                  <path d="M10 12h4" />
+                </svg>
+              </span>
+              <span class="tab-label">Feed</span>
+            </button>
+            <button class="tab" data-tab="knowledge" type="button">
               <span class="tab-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" role="presentation">
                   <path d="M6 4h9l3 3v13H6z" />
@@ -136,14 +146,6 @@
                 </svg>
               </span>
               <span class="tab-label">Pages</span>
-            </button>
-            <button class="tab" data-tab="organisation" type="button">
-              <span class="tab-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" role="presentation">
-                  <path d="M5 5h14v4H5zM5 11h6v8H5zM13 11h6v8h-6z" />
-                </svg>
-              </span>
-              <span class="tab-label">Organisation</span>
             </button>
             <button class="tab" data-tab="visualization" type="button">
               <span class="tab-icon" aria-hidden="true">
@@ -205,7 +207,27 @@
           </button>
         </div>
 
-        <section id="knowledge-tab" class="tab-panel is-active">
+        <section id="feed-tab" class="tab-panel is-active">
+          <div class="feed-layout" aria-label="Feed des pages">
+            <header class="feed-toolbar">
+              <div>
+                <p class="eyebrow">Feed</p>
+                <h2>Pages a parcourir</h2>
+              </div>
+              <div class="feed-toolbar-actions">
+                <div class="segmented-control" aria-label="Mode du feed">
+                  <button class="is-active" data-feed-mode="random" type="button">Aleatoire</button>
+                  <button data-feed-mode="foryou" type="button">Pour toi</button>
+                </div>
+                <span id="feed-count" class="pill"></span>
+              </div>
+            </header>
+            <div id="feed-refresh-indicator" class="feed-refresh-indicator" aria-hidden="true"></div>
+            <div id="feed-list" class="feed-list"></div>
+          </div>
+        </section>
+
+        <section id="knowledge-tab" class="tab-panel">
           <div id="knowledge-workspace" class="workspace">
             <section class="panel panel-editor">
               <div class="panel-header">
