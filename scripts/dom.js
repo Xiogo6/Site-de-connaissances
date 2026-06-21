@@ -38,6 +38,7 @@
       utilityLinks: [...document.querySelectorAll("[data-utility-tab]")],
       themeToggleButton: document.querySelector("#theme-toggle-button"),
       panels: {
+        feed: document.querySelector("#feed-tab"),
         knowledge: document.querySelector("#knowledge-tab"),
         organisation: document.querySelector("#organisation-tab"),
         visualization: document.querySelector("#visualization-tab"),
@@ -48,6 +49,10 @@
         sport: document.querySelector("#sport-tab"),
         publish: document.querySelector("#publish-tab"),
       },
+      feedList: document.querySelector("#feed-list"),
+      feedModeButtons: [...document.querySelectorAll("[data-feed-mode]")],
+      feedRefreshIndicator: document.querySelector("#feed-refresh-indicator"),
+      feedCount: document.querySelector("#feed-count"),
       knowledgeWorkspace: document.querySelector("#knowledge-workspace"),
       titleInput: document.querySelector("#note-title"),
       typeInput: document.querySelector("#note-type"),

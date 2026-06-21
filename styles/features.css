@@ -1411,7 +1411,7 @@ body.quiz-view-active .quiz-player-score strong {
 }
 
 body[data-theme="dark"].quiz-view-active .top-navigation {
-  background: rgba(18, 22, 26, 0.88);
+  background: rgba(12, 18, 16, 0.88);
   border: 1px solid rgba(237, 244, 242, 0.1);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
 }
@@ -1419,7 +1419,7 @@ body[data-theme="dark"].quiz-view-active .top-navigation {
 html[data-theme="dark"].quiz-view-active,
 body[data-theme="dark"].quiz-view-active {
   background:
-    linear-gradient(180deg, rgba(10, 14, 18, 0.98), rgba(18, 22, 26, 1)),
+    linear-gradient(180deg, rgba(10, 14, 18, 0.98), rgba(12, 18, 16, 1)),
     #0d1116;
   color: #edf4f2;
 }
@@ -1551,7 +1551,7 @@ body.quiz-view-active .quiz-answer-feedback .quiz-contest-button {
 body[data-theme="dark"].quiz-view-active .quiz-session-item {
   --quiz-item-border-target: rgba(237, 244, 242, 0.1);
   --quiz-item-shadow-target: rgba(0, 0, 0, 0.22);
-  background: rgba(18, 22, 26, 0.84);
+  background: rgba(12, 18, 16, 0.84);
   border-color: rgba(237, 244, 242, 0.1);
 }
 
@@ -2907,7 +2907,7 @@ body.utility-drawer-open .quick-capture-toggle {
 body[data-theme="dark"] .utility-link {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 42%),
-    linear-gradient(180deg, rgba(24, 28, 33, 0.96), rgba(30, 35, 41, 0.96));
+    linear-gradient(180deg, rgba(18, 26, 23, 0.96), rgba(22, 31, 28, 0.96));
   border-color: rgba(208, 122, 76, 0.2);
   box-shadow: 0 10px 22px rgba(5, 7, 10, 0.28);
 }
@@ -2916,7 +2916,7 @@ body[data-theme="dark"] .utility-link {
 body[data-theme="dark"] .utility-link.is-active {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 42%),
-    rgba(43, 49, 57, 0.96);
+    rgba(27, 39, 35, 0.96);
   border-color: rgba(208, 122, 76, 0.42);
   color: #f0b08a;
 }
@@ -2926,7 +2926,7 @@ body[data-theme="dark"] .utility-link[data-utility-tab="settings"] {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 44%),
     linear-gradient(135deg, rgba(73, 106, 143, 0.34), rgba(73, 106, 143, 0.08)),
-    rgba(24, 28, 33, 0.96);
+    rgba(18, 26, 23, 0.96);
   border-color: rgba(124, 168, 218, 0.28);
 }
 
@@ -2935,7 +2935,7 @@ body[data-theme="dark"] .utility-link[data-utility-tab="sport"] {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 44%),
     linear-gradient(135deg, rgba(93, 116, 97, 0.36), rgba(93, 116, 97, 0.08)),
-    rgba(24, 28, 33, 0.96);
+    rgba(18, 26, 23, 0.96);
   border-color: rgba(125, 161, 145, 0.3);
 }
 
@@ -2944,7 +2944,7 @@ body[data-theme="dark"] #theme-toggle-button.utility-link {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 44%),
     linear-gradient(135deg, rgba(208, 122, 76, 0.38), rgba(208, 122, 76, 0.1)),
-    rgba(24, 28, 33, 0.96);
+    rgba(18, 26, 23, 0.96);
   border-color: rgba(208, 122, 76, 0.38);
 }
 
@@ -2984,7 +2984,7 @@ body[data-theme="dark"] .timeline-moment {
 body[data-theme="dark"] .organization-dropzone.is-over,
 body[data-theme="dark"] .hierarchy-node.is-drop-target,
 body[data-theme="dark"] .tree-entry-flat.is-drop-target {
-  background: rgba(43, 49, 57, 0.96);
+  background: rgba(27, 39, 35, 0.96);
 }
 
 :root[data-theme="dark"] .graph-canvas,
@@ -3000,7 +3000,7 @@ body[data-theme="dark"] .quiz-game-card,
 body[data-theme="dark"] .quiz-session-card {
   background:
     radial-gradient(circle at top right, rgba(208, 122, 76, 0.16), transparent 32%),
-    linear-gradient(135deg, rgba(24, 28, 33, 0.98), rgba(32, 38, 44, 0.9));
+    linear-gradient(135deg, rgba(18, 26, 23, 0.98), rgba(24, 35, 31, 0.9));
 }
 
 :root[data-theme="dark"] .quiz-question-stage,
@@ -3013,7 +3013,7 @@ body[data-theme="dark"] .quiz-game-rules span,
 body[data-theme="dark"] .quiz-session-score,
 body[data-theme="dark"] .quiz-score-pill,
 body[data-theme="dark"] .quiz-question-meta span {
-  background: rgba(18, 22, 26, 0.78);
+  background: rgba(12, 18, 16, 0.78);
   border-color: rgba(215, 201, 185, 0.14);
 }
 
@@ -3276,7 +3276,7 @@ body.graph-view-active .graph-panel {
   body[data-theme="dark"].quiz-view-active .main-layout,
   body[data-theme="dark"].quiz-view-active #quiz-tab.is-active {
     background:
-      linear-gradient(180deg, rgba(10, 14, 18, 0.98), rgba(18, 22, 26, 1)),
+      linear-gradient(180deg, rgba(10, 14, 18, 0.98), rgba(12, 18, 16, 1)),
       #0d1116;
   }
 

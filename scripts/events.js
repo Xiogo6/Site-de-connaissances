@@ -3,6 +3,15 @@
 
   AtlasApp.createEventsModule = function createEventsModule(context) {
   let readingPointer = null;
+  let lastScrollY = window.scrollY || 0;
+  let navScrollTicking = false;
+  let feedPull = {
+    active: false,
+    startY: 0,
+    distance: 0,
+    ready: false,
+  };
+  let feedShuffleLocked = false;
 
   function handleBeforeUnload(event) {
     if (context.state.remote?.status !== "syncing") {
@@ -122,6 +131,17 @@
 
     context.elements.knowledgeList.addEventListener("click", handleKnowledgeListClick);
     context.elements.organizationTree.addEventListener("click", handleOrganizationListClick);
+    context.elements.feedList?.addEventListener("click", handleFeedClick);
+    context.elements.feedModeButtons?.forEach((button) => {
+      button.addEventListener("click", () => {
+        context.state.feedMode = button.dataset.feedMode || "random";
+        context.renderers.renderFeed();
+      });
+    });
+    context.elements.feedList?.addEventListener("touchstart", handleFeedTouchStart, { passive: true });
+    context.elements.feedList?.addEventListener("touchmove", handleFeedTouchMove, { passive: false });
+    context.elements.feedList?.addEventListener("touchend", handleFeedTouchEnd, { passive: true });
+    context.elements.feedList?.addEventListener("touchcancel", handleFeedTouchCancel, { passive: true });
 
     context.elements.typeFilter.addEventListener("change", (event) => {
       context.state.typeFilter = event.target.value;
@@ -649,6 +669,192 @@
     });
 
     bindSidebarSwipe();
+    window.addEventListener("scroll", handleBottomNavScroll, { passive: true });
+    window.addEventListener("wheel", handleFeedWheelRefresh, { passive: true });
+  }
+
+  function handleFeedTouchStart(event) {
+    if (!canPullRefreshFeed() || event.touches.length !== 1) {
+      resetFeedPull();
+      return;
+    }
+
+    feedPull = {
+      active: true,
+      startY: event.touches[0].clientY,
+      distance: 0,
+      ready: false,
+    };
+    updateFeedPullVisual(0);
+  }
+
+  function handleFeedTouchMove(event) {
+    if (!feedPull.active || event.touches.length !== 1) {
+      return;
+    }
+
+    const distance = event.touches[0].clientY - feedPull.startY;
+    if (distance <= 0) {
+      updateFeedPullVisual(0);
+      return;
+    }
+
+    feedPull.distance = Math.min(110, distance * 0.55);
+    feedPull.ready = feedPull.distance >= 64;
+    updateFeedPullVisual(feedPull.distance);
+
+    if (distance > 8 && event.cancelable) {
+      event.preventDefault();
+    }
+  }
+
+  function handleFeedTouchEnd() {
+    if (!feedPull.active) {
+      return;
+    }
+
+    if (feedPull.ready) {
+      shuffleFeedFromGesture();
+      return;
+    }
+
+    resetFeedPull();
+  }
+
+  function handleFeedTouchCancel() {
+    resetFeedPull();
+  }
+
+  function handleFeedWheelRefresh(event) {
+    if (
+      !canPullRefreshFeed() ||
+      feedShuffleLocked ||
+      Math.abs(event.deltaY) < 70 ||
+      event.deltaY >= 0
+    ) {
+      return;
+    }
+
+    shuffleFeedFromGesture();
+  }
+
+  function canPullRefreshFeed() {
+    return context.state.activeTab === "feed" && window.scrollY <= 6;
+  }
+
+  function shuffleFeedFromGesture() {
+    if (feedShuffleLocked) {
+      resetFeedPull();
+      return;
+    }
+
+    feedShuffleLocked = true;
+    context.state.feedMode = "random";
+    context.state.feedSeed = Date.now();
+    context.renderers.renderFeed();
+    context.renderers.renderTabs();
+    showFeedRefreshComplete();
+    window.setTimeout(() => {
+      feedShuffleLocked = false;
+    }, 700);
+  }
+
+  function updateFeedPullVisual(distance) {
+    document.body.style.setProperty("--feed-pull-offset", `${Math.round(distance)}px`);
+    document.body.classList.toggle("feed-pulling", distance > 4);
+    document.body.classList.toggle("feed-refresh-ready", distance >= 64);
+  }
+
+  function showFeedRefreshComplete() {
+    document.body.style.setProperty("--feed-pull-offset", "34px");
+    document.body.classList.add("feed-pulling", "feed-refresh-complete");
+    document.body.classList.remove("feed-refresh-ready");
+    window.setTimeout(resetFeedPull, 520);
+  }
+
+  function resetFeedPull() {
+    feedPull = {
+      active: false,
+      startY: 0,
+      distance: 0,
+      ready: false,
+    };
+    document.body.style.removeProperty("--feed-pull-offset");
+    document.body.classList.remove("feed-pulling", "feed-refresh-ready", "feed-refresh-complete");
+  }
+
+  function handleFeedClick(event) {
+    const shareButton = event.target.closest("[data-feed-share-note]");
+    if (shareButton) {
+      event.stopPropagation();
+      announceNoteAction(shareButton.dataset.feedShareNote, "Partage pret a configurer.");
+      return;
+    }
+
+    const commentButton = event.target.closest("[data-feed-comment-note]");
+    if (commentButton) {
+      event.stopPropagation();
+      announceNoteAction(commentButton.dataset.feedCommentNote, "Commentaires bientot disponibles.");
+      return;
+    }
+
+    const openButton = event.target.closest("[data-feed-open-note]");
+    const card = event.target.closest("[data-feed-note-id]");
+    const noteId = openButton?.dataset.feedOpenNote || card?.dataset.feedNoteId;
+    if (!noteId) {
+      return;
+    }
+
+    context.state.activeNoteId = noteId;
+    context.state.activeTab = "knowledge";
+    context.state.noteViewMode = "read";
+    context.state.sidebarDrawerOpen = false;
+    context.state.utilityDrawerOpen = false;
+    context.renderers.renderEverything();
+    scrollToTop();
+  }
+
+  function announceNoteAction(noteId, message) {
+    const note = context.state.notes.find((candidate) => candidate.id === noteId);
+    let toast = document.querySelector("#feed-toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "feed-toast";
+      toast.className = "feed-toast";
+      toast.setAttribute("role", "status");
+      document.body.appendChild(toast);
+    }
+
+    toast.textContent = note ? `${message} ${note.title}` : message;
+    toast.classList.add("is-visible");
+    window.setTimeout(() => {
+      toast.classList.remove("is-visible");
+    }, 1800);
+  }
+
+  function handleBottomNavScroll() {
+    if (navScrollTicking) {
+      return;
+    }
+
+    navScrollTicking = true;
+    window.requestAnimationFrame(() => {
+      const currentY = window.scrollY || 0;
+      const delta = currentY - lastScrollY;
+      const shouldCompact = currentY > 80 && delta > 5;
+      const shouldExpand = delta < -5 || currentY < 40;
+
+      if (shouldCompact !== context.state.feedNavCompact && shouldCompact) {
+        context.state.feedNavCompact = true;
+        document.body.classList.add("feed-nav-compact");
+      } else if (shouldExpand && context.state.feedNavCompact) {
+        context.state.feedNavCompact = false;
+        document.body.classList.remove("feed-nav-compact");
+      }
+
+      lastScrollY = currentY;
+      navScrollTicking = false;
+    });
   }
 
   function closeUtilityDrawer() {
@@ -753,6 +959,11 @@
 
   function renderActiveTabContent() {
     context.renderers.renderKnowledgeMode();
+
+    if (context.state.activeTab === "feed") {
+      context.renderers.renderFeed();
+      return;
+    }
 
     if (context.state.activeTab === "organisation") {
       context.renderers.renderOrganization();

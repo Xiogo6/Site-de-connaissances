@@ -21,10 +21,10 @@ body {
 :root[data-theme="dark"] body,
 body[data-theme="dark"] {
   background:
-    linear-gradient(125deg, rgba(255, 255, 255, 0.06), transparent 30%),
-    radial-gradient(circle at top left, rgba(208, 122, 76, 0.18), transparent 28%),
-    radial-gradient(circle at top right, rgba(94, 124, 112, 0.16), transparent 24%),
-    linear-gradient(180deg, #181b1f 0%, #101317 100%);
+    linear-gradient(125deg, rgba(255, 255, 255, 0.045), transparent 30%),
+    radial-gradient(circle at top left, rgba(208, 122, 76, 0.14), transparent 28%),
+    radial-gradient(circle at top right, rgba(80, 132, 112, 0.16), transparent 26%),
+    linear-gradient(180deg, #111815 0%, #0b100e 100%);
 }
 
 button,

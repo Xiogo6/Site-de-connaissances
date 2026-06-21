@@ -20,6 +20,7 @@
     renderSidebarDrawer();
     renderFiltersPanel();
     renderTabs();
+    renderFeed();
     renderVisualizationMode();
     renderGraphFilters();
     renderWorkspaceBanner();
@@ -51,6 +52,9 @@
 
   function renderTabs() {
     document.body.classList.toggle("utility-drawer-open", context.state.utilityDrawerOpen);
+    document.body.classList.toggle("feed-nav-compact", context.state.feedNavCompact);
+    document.documentElement.classList.toggle("feed-view-active", context.state.activeTab === "feed");
+    document.body.classList.toggle("feed-view-active", context.state.activeTab === "feed");
     const quizViewActive = context.state.activeTab === "quiz";
     const visualizationViewActive = context.state.activeTab === "visualization";
     document.documentElement.classList.toggle("quiz-view-active", quizViewActive);
@@ -458,6 +462,137 @@
         ? "Aucune page ne correspond aux filtres"
         : "Aucune page pour le moment",
     });
+  }
+
+  function renderFeed() {
+    if (!context.elements.feedList) {
+      return;
+    }
+
+    const filtered = context.notes.getFilteredNotes();
+    const notes = getOrderedFeedNotes(filtered);
+    context.elements.feedCount.textContent = `${notes.length} page${notes.length > 1 ? "s" : ""}`;
+    context.elements.feedModeButtons.forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.feedMode === context.state.feedMode);
+    });
+
+    if (!notes.length) {
+      context.elements.feedList.innerHTML = `
+        <article class="feed-empty">
+          <h3>Aucune page dans ce feed</h3>
+          <p>Modifiez les filtres dans la bibliotheque pour relancer le flux.</p>
+        </article>
+      `;
+      return;
+    }
+
+    context.elements.feedList.innerHTML = notes.map((note, index) => renderFeedCard(note, index, notes.length)).join("");
+  }
+
+  function getOrderedFeedNotes(notes) {
+    const feedNotes = [...notes];
+    if (context.state.feedMode === "foryou") {
+      return feedNotes.sort((left, right) => getForYouScore(right) - getForYouScore(left));
+    }
+
+    return feedNotes.sort((left, right) => {
+      const leftRank = getRandomFeedRank(left.id);
+      const rightRank = getRandomFeedRank(right.id);
+      if (leftRank !== rightRank) {
+        return leftRank - rightRank;
+      }
+      return left.title.localeCompare(right.title, "fr", { sensitivity: "base" });
+    });
+  }
+
+  function getRandomFeedRank(noteId) {
+    return hashString(`${context.state.feedSeed}:${noteId}`);
+  }
+
+  function getForYouScore(note) {
+    const active = context.notes.getActiveNote();
+    const activeTags = new Set((active?.tags || []).map((tag) => tag.toLowerCase()));
+    const noteTags = (note.tags || []).map((tag) => tag.toLowerCase());
+    const sharedTags = noteTags.filter((tag) => activeTags.has(tag)).length;
+    const activeLinks = active ? extractLinks(active.content || "").map((title) => title.toLowerCase()) : [];
+    const linkedToActive = activeLinks.includes(String(note.title || "").toLowerCase());
+    const recentlyUpdated = new Date(note.updatedAt || note.createdAt || 0).getTime() || 0;
+    const weeksOld = recentlyUpdated ? (Date.now() - recentlyUpdated) / 1000 / 60 / 60 / 24 / 7 : 12;
+    const recencyScore = Math.max(0, 12 - Math.min(12, weeksOld));
+
+    return (
+      (note.favorite ? 40 : 0) +
+      sharedTags * 18 +
+      (linkedToActive ? 24 : 0) +
+      context.notes.getConnectionCount(note) * 2 +
+      recencyScore
+    );
+  }
+
+  function renderFeedCard(note, index, total) {
+    const typeLabel = context.data.getNoteTypeLabels()[note.type] || "Concept";
+    const readableContent = getReadablePreviewContent(note) || "Cette page est prete a etre enrichie.";
+    const updated = context.helpers.formatDate(note.updatedAt || note.createdAt);
+    const tagMarkup = (note.tags || [])
+      .slice(0, 6)
+      .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
+      .join("");
+    const favoriteMarkup = note.favorite ? '<span class="tag tag-favorite">Favori</span>' : "";
+
+    return `
+      <article class="feed-card" data-feed-note-id="${note.id}" aria-label="${escapeHtml(note.title)}">
+        <button class="feed-card-open" data-feed-open-note="${note.id}" type="button" aria-label="Ouvrir ${escapeHtml(
+          note.title
+        )}">
+          <span class="feed-card-index">${index + 1} / ${total}</span>
+          <span class="feed-title-row">
+            ${getNoteTypeIconMarkup(note.type)}
+            <span>${escapeHtml(note.title || "Sans titre")}</span>
+          </span>
+          <span class="feed-meta-row">
+            <span>${escapeHtml(typeLabel)}</span>
+            <span>${escapeHtml(updated)}</span>
+          </span>
+        </button>
+        <div class="feed-content">
+          ${renderNoteHtml(readableContent)}
+        </div>
+        <footer class="feed-card-footer">
+          <div class="feed-tags">
+            ${favoriteMarkup}
+            ${tagMarkup}
+          </div>
+          <div class="feed-actions" aria-label="Actions de page">
+            <button type="button" class="feed-action" data-feed-share-note="${note.id}" aria-label="Partager">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M7 12l10-6-4 12-2-5z" />
+                <path d="M7 12l4 1" />
+              </svg>
+            </button>
+            <button type="button" class="feed-action" data-feed-comment-note="${note.id}" aria-label="Commenter">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M6 6h12v9H9l-3 3z" />
+              </svg>
+            </button>
+            <button type="button" class="feed-action" data-feed-open-note="${note.id}" aria-label="Ouvrir">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M7 17L17 7" />
+                <path d="M9 7h8v8" />
+              </svg>
+            </button>
+          </div>
+        </footer>
+      </article>
+    `;
+  }
+
+  function hashString(value) {
+    let hash = 2166136261;
+    for (let index = 0; index < value.length; index += 1) {
+      hash ^= value.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
   }
 
   function filterHierarchyForest(nodes, allowedIds) {
@@ -2080,6 +2215,7 @@
     renderConnections,
     renderDueReviewList,
     renderEverything,
+    renderFeed,
     renderFiltersPanel,
     renderGraphFilters,
     renderHierarchyTree,
