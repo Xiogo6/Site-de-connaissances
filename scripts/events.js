@@ -167,6 +167,10 @@
     context.elements.feedTagFilterPopover?.addEventListener("click", (event) => {
       event.stopPropagation();
     });
+    context.elements.feedTagFilterPopover?.addEventListener("pointerdown", stopFeedFilterEvent);
+    context.elements.feedTagFilterPopover?.addEventListener("mousedown", stopFeedFilterEvent);
+    context.elements.feedTagFilterPopover?.addEventListener("touchstart", stopFeedFilterEvent, { passive: true });
+    context.elements.feedTagFilterPopover?.addEventListener("touchmove", stopFeedFilterEvent, { passive: true });
     context.elements.feedExcludedTags?.addEventListener("click", handleFeedExcludedTagClick);
     context.elements.feedClearFilters?.addEventListener("click", clearFeedFilters);
     context.elements.feedList?.addEventListener("touchstart", handleFeedTouchStart, { passive: true });
@@ -774,6 +778,8 @@
   }
 
   function handleFeedExcludedTagClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
     const button = event.target.closest("[data-feed-exclude-tag]");
     if (!button) {
       return;
@@ -789,6 +795,10 @@
 
     context.state.feedExcludedTags = [...excluded];
     context.renderers.renderFeed();
+  }
+
+  function stopFeedFilterEvent(event) {
+    event.stopPropagation();
   }
 
   function clearFeedFilters() {
