@@ -61,6 +61,7 @@
       feedSeed: Date.now(),
       feedNavCompact: false,
       feedExcludedTags: [],
+      feedTagFilterOpen: false,
       visualizationMode: "graph",
       sourceMode: "workspace",
       quickCaptureOpen: false,

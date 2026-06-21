@@ -510,6 +510,21 @@
       context.elements.feedFavoritesFilter.checked = context.state.favoritesOnly;
     }
 
+    const excludedCount = (context.state.feedExcludedTags || []).length;
+    if (context.elements.feedExcludedCount) {
+      context.elements.feedExcludedCount.textContent = excludedCount ? String(excludedCount) : "";
+    }
+    if (context.elements.feedTagFilterButton) {
+      context.elements.feedTagFilterButton.classList.toggle("has-active-filter", Boolean(excludedCount));
+      context.elements.feedTagFilterButton.setAttribute(
+        "aria-expanded",
+        context.state.feedTagFilterOpen ? "true" : "false"
+      );
+    }
+    if (context.elements.feedTagFilterPopover) {
+      context.elements.feedTagFilterPopover.classList.toggle("is-hidden", !context.state.feedTagFilterOpen);
+    }
+
     renderFeedExcludedTags();
   }
 
@@ -582,6 +597,10 @@
       .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
       .join("");
     const favoriteMarkup = note.favorite ? '<span class="tag tag-favorite">Favori</span>' : "";
+    const tagsBlock =
+      favoriteMarkup || tagMarkup
+        ? `<span class="feed-tags">${favoriteMarkup}${tagMarkup}</span>`
+        : "";
 
     return `
       <article class="feed-card" data-feed-note-id="${note.id}" aria-label="${escapeHtml(note.title)}">
@@ -589,9 +608,12 @@
           note.title
         )}">
           <span class="feed-card-index">${index + 1} / ${total}</span>
-          <span class="feed-title-row">
-            ${getNoteTypeIconMarkup(note.type)}
-            <span>${escapeHtml(note.title || "Sans titre")}</span>
+          <span class="feed-heading-row">
+            <span class="feed-title-row">
+              ${getNoteTypeIconMarkup(note.type)}
+              <span>${escapeHtml(note.title || "Sans titre")}</span>
+            </span>
+            ${tagsBlock}
           </span>
           <span class="feed-meta-row">
             <span>${escapeHtml(typeLabel)}</span>
@@ -602,10 +624,6 @@
           ${renderNoteHtml(readableContent)}
         </div>
         <footer class="feed-card-footer">
-          <div class="feed-tags">
-            ${favoriteMarkup}
-            ${tagMarkup}
-          </div>
           <div class="feed-actions" aria-label="Actions de page">
             <button type="button" class="feed-action" data-feed-share-note="${note.id}" aria-label="Partager">
               <svg viewBox="0 0 24 24" role="presentation">
