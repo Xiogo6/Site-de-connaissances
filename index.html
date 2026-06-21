@@ -30,7 +30,7 @@
       })();
     </script>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=11" />
+    <link rel="stylesheet" href="./styles.css?v=15" />
   </head>
   <body>
     <div class="shell">
@@ -222,6 +222,21 @@
                 <span id="feed-count" class="pill"></span>
               </div>
             </header>
+            <section class="feed-filter-bar" aria-label="Filtres du feed">
+              <input
+                id="feed-search-input"
+                class="feed-filter-input"
+                type="search"
+                placeholder="Filtrer le feed"
+              />
+              <select id="feed-type-filter" class="feed-filter-select" aria-label="Type de page"></select>
+              <label class="feed-filter-toggle" for="feed-favorites-filter">
+                <input id="feed-favorites-filter" type="checkbox" />
+                <span>Favoris</span>
+              </label>
+              <div id="feed-excluded-tags" class="feed-excluded-tags" aria-label="Tags masques"></div>
+              <button id="feed-clear-filters" class="feed-filter-clear" type="button">Effacer</button>
+            </section>
             <div id="feed-refresh-indicator" class="feed-refresh-indicator" aria-hidden="true"></div>
             <div id="feed-list" class="feed-list"></div>
           </div>

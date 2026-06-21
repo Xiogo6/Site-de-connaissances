@@ -2715,11 +2715,19 @@ body[data-theme="dark"] .timeline-guide {
 }
 
 .quick-capture-toggle {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
-  border: 0;
+  background:
+    radial-gradient(circle at 28% 10%, rgba(255, 255, 255, 0.44), transparent 32%),
+    linear-gradient(135deg, rgba(255, 171, 111, 0.78) 0%, rgba(208, 122, 76, 0.62) 100%),
+    rgba(191, 91, 44, 0.54);
+  border: 1px solid rgba(255, 239, 221, 0.28);
   border-radius: 999px;
+  -webkit-backdrop-filter: blur(18px) saturate(1.42) contrast(1.05);
+  backdrop-filter: blur(18px) saturate(1.42) contrast(1.05);
   bottom: 24px;
-  box-shadow: var(--shadow);
+  box-shadow:
+    0 18px 38px rgba(119, 55, 24, 0.24),
+    inset 0 1px 1px rgba(255, 255, 255, 0.42),
+    inset 0 -1px 0 rgba(104, 39, 13, 0.16);
   color: #fff9f1;
   cursor: pointer;
   min-height: 52px;

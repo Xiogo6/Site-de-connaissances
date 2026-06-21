@@ -60,6 +60,7 @@
       feedMode: "random",
       feedSeed: Date.now(),
       feedNavCompact: false,
+      feedExcludedTags: [],
       visualizationMode: "graph",
       sourceMode: "workspace",
       quickCaptureOpen: false,

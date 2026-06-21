@@ -138,6 +138,29 @@
         context.renderers.renderFeed();
       });
     });
+    context.elements.feedSearchInput?.addEventListener("input", (event) => {
+      context.state.filter = event.target.value.trim().toLowerCase();
+      if (context.elements.searchInput) {
+        context.elements.searchInput.value = context.state.filter;
+      }
+      context.renderers.renderEverything();
+    });
+    context.elements.feedTypeFilter?.addEventListener("change", (event) => {
+      context.state.typeFilter = event.target.value;
+      if (context.elements.typeFilter) {
+        context.elements.typeFilter.value = context.state.typeFilter;
+      }
+      context.renderers.renderEverything();
+    });
+    context.elements.feedFavoritesFilter?.addEventListener("change", (event) => {
+      context.state.favoritesOnly = event.target.checked;
+      if (context.elements.favoritesFilter) {
+        context.elements.favoritesFilter.checked = context.state.favoritesOnly;
+      }
+      context.renderers.renderEverything();
+    });
+    context.elements.feedExcludedTags?.addEventListener("click", handleFeedExcludedTagClick);
+    context.elements.feedClearFilters?.addEventListener("click", clearFeedFilters);
     context.elements.feedList?.addEventListener("touchstart", handleFeedTouchStart, { passive: true });
     context.elements.feedList?.addEventListener("touchmove", handleFeedTouchMove, { passive: false });
     context.elements.feedList?.addEventListener("touchend", handleFeedTouchEnd, { passive: true });
@@ -163,6 +186,7 @@
       context.state.typeFilter = "all";
       context.state.tagFilter = "all";
       context.state.favoritesOnly = false;
+      context.state.feedExcludedTags = [];
       context.elements.searchInput.value = "";
       context.elements.typeFilter.value = "all";
       context.elements.tagFilter.value = "all";
@@ -668,7 +692,6 @@
       }
     });
 
-    bindSidebarSwipe();
     window.addEventListener("scroll", handleBottomNavScroll, { passive: true });
     window.addEventListener("wheel", handleFeedWheelRefresh, { passive: true });
   }
@@ -736,6 +759,56 @@
     }
 
     shuffleFeedFromGesture();
+  }
+
+  function handleFeedExcludedTagClick(event) {
+    const button = event.target.closest("[data-feed-exclude-tag]");
+    if (!button) {
+      return;
+    }
+
+    const tag = button.dataset.feedExcludeTag;
+    const excluded = new Set(context.state.feedExcludedTags || []);
+    if (excluded.has(tag)) {
+      excluded.delete(tag);
+    } else {
+      excluded.add(tag);
+    }
+
+    context.state.feedExcludedTags = [...excluded];
+    context.renderers.renderFeed();
+  }
+
+  function clearFeedFilters() {
+    context.state.filter = "";
+    context.state.typeFilter = "all";
+    context.state.tagFilter = "all";
+    context.state.favoritesOnly = false;
+    context.state.feedExcludedTags = [];
+
+    if (context.elements.searchInput) {
+      context.elements.searchInput.value = "";
+    }
+    if (context.elements.feedSearchInput) {
+      context.elements.feedSearchInput.value = "";
+    }
+    if (context.elements.typeFilter) {
+      context.elements.typeFilter.value = "all";
+    }
+    if (context.elements.feedTypeFilter) {
+      context.elements.feedTypeFilter.value = "all";
+    }
+    if (context.elements.tagFilter) {
+      context.elements.tagFilter.value = "all";
+    }
+    if (context.elements.favoritesFilter) {
+      context.elements.favoritesFilter.checked = false;
+    }
+    if (context.elements.feedFavoritesFilter) {
+      context.elements.feedFavoritesFilter.checked = false;
+    }
+
+    context.renderers.renderEverything();
   }
 
   function canPullRefreshFeed() {
@@ -1234,104 +1307,6 @@
     });
     window.setTimeout(applyFocus, 120);
     window.setTimeout(applyFocus, 260);
-  }
-
-  function bindSidebarSwipe() {
-    let swipe = null;
-
-    window.addEventListener(
-      "touchstart",
-      (event) => {
-        const touch = event.changedTouches?.[0];
-        if (!touch || window.innerWidth > 780) {
-          swipe = null;
-          return;
-        }
-
-        const target = event.target;
-        if (
-          target instanceof HTMLElement &&
-          target.closest(
-            "input, textarea, select, button, .graph-canvas, .quick-capture-panel, .rendered-note, .timeline-canvas, .timeline-stage-shell"
-          )
-        ) {
-          swipe = null;
-          return;
-        }
-
-        swipe = {
-          startedAt: Date.now(),
-          x: touch.clientX,
-          y: touch.clientY,
-          side: touch.clientX < window.innerWidth / 2 ? "left" : "right",
-        };
-      },
-      { passive: true }
-    );
-
-    window.addEventListener(
-      "touchmove",
-      (event) => {
-        if (!swipe || context.state.quickCaptureOpen) {
-          return;
-        }
-
-        const touch = event.changedTouches?.[0];
-        if (!touch) {
-          return;
-        }
-
-        const deltaX = touch.clientX - swipe.x;
-        const deltaY = Math.abs(touch.clientY - swipe.y);
-        const absX = Math.abs(deltaX);
-        const isDeliberateSwipe =
-          Date.now() - swipe.startedAt > 90 && absX > 126 && absX > deltaY * 1.7 && deltaY < 56;
-
-        if (context.state.sidebarDrawerOpen && deltaX < 0 && isDeliberateSwipe) {
-          context.state.sidebarDrawerOpen = false;
-          context.renderers.renderSidebarDrawer();
-          swipe = null;
-          return;
-        }
-
-        if (context.state.utilityDrawerOpen && deltaX > 0 && isDeliberateSwipe) {
-          context.state.utilityDrawerOpen = false;
-          context.renderers.renderTabs();
-          swipe = null;
-          return;
-        }
-
-        if (context.state.sidebarDrawerOpen || context.state.utilityDrawerOpen) {
-          return;
-        }
-
-        if (swipe.side === "left" && deltaX > 0 && isDeliberateSwipe) {
-          context.state.sidebarDrawerOpen = true;
-          context.state.utilityDrawerOpen = false;
-          context.renderers.renderSidebarDrawer();
-          context.renderers.renderTabs();
-          swipe = null;
-          return;
-        }
-
-        if (swipe.side === "right" && deltaX < 0 && isDeliberateSwipe) {
-          context.state.utilityDrawerOpen = true;
-          context.state.sidebarDrawerOpen = false;
-          context.renderers.renderSidebarDrawer();
-          context.renderers.renderTabs();
-          swipe = null;
-        }
-      },
-      { passive: true }
-    );
-
-    window.addEventListener(
-      "touchend",
-      () => {
-        swipe = null;
-      },
-      { passive: true }
-    );
   }
 
   function handleKnowledgeListClick(event) {

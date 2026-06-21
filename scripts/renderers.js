@@ -469,7 +469,8 @@
       return;
     }
 
-    const filtered = context.notes.getFilteredNotes();
+    renderFeedControls();
+    const filtered = getFeedFilteredNotes(context.notes.getFilteredNotes());
     const notes = getOrderedFeedNotes(filtered);
     context.elements.feedCount.textContent = `${notes.length} page${notes.length > 1 ? "s" : ""}`;
     context.elements.feedModeButtons.forEach((button) => {
@@ -487,6 +488,49 @@
     }
 
     context.elements.feedList.innerHTML = notes.map((note, index) => renderFeedCard(note, index, notes.length)).join("");
+  }
+
+  function getFeedFilteredNotes(notes) {
+    const excludedTags = new Set(context.state.feedExcludedTags || []);
+    if (!excludedTags.size) {
+      return notes;
+    }
+
+    return notes.filter((note) => {
+      return !(note.tags || []).some((tag) => excludedTags.has(normalizeTag(tag)));
+    });
+  }
+
+  function renderFeedControls() {
+    if (context.elements.feedSearchInput && document.activeElement !== context.elements.feedSearchInput) {
+      context.elements.feedSearchInput.value = context.state.filter || "";
+    }
+
+    if (context.elements.feedFavoritesFilter) {
+      context.elements.feedFavoritesFilter.checked = context.state.favoritesOnly;
+    }
+
+    renderFeedExcludedTags();
+  }
+
+  function renderFeedExcludedTags() {
+    if (!context.elements.feedExcludedTags) {
+      return;
+    }
+
+    const excluded = new Set(context.state.feedExcludedTags || []);
+    const tags = context.notes.getAllTags();
+    context.elements.feedExcludedTags.innerHTML = tags.length
+      ? tags
+          .map((tag) => {
+            const key = normalizeTag(tag);
+            const isExcluded = excluded.has(key);
+            return `<button class="feed-tag-filter${isExcluded ? " is-excluded" : ""}" type="button" data-feed-exclude-tag="${escapeHtml(
+              key
+            )}" aria-pressed="${isExcluded ? "true" : "false"}">${escapeHtml(tag)}</button>`;
+          })
+          .join("")
+      : '<span class="feed-filter-empty">Aucun tag</span>';
   }
 
   function getOrderedFeedNotes(notes) {
@@ -2113,6 +2157,20 @@
       context.state.typeFilter
     );
 
+    if (context.elements.feedTypeFilter) {
+      populateSelect(
+        context.elements.feedTypeFilter,
+        [
+          { value: "all", label: "Tous les types" },
+          ...context.data.getNoteTypeEntries().map((entry) => ({
+            value: entry.id,
+            label: entry.label,
+          })),
+        ],
+        context.state.typeFilter
+      );
+    }
+
     const tagOptions = [
       { value: "all", label: "Tous les tags" },
       ...context.notes.getAllTags().map((tag) => ({ value: tag, label: tag })),
@@ -2185,6 +2243,9 @@
       context.notes.getActiveNote()?.parentId || ""
     );
     context.elements.favoritesFilter.checked = context.state.favoritesOnly;
+    if (context.elements.feedFavoritesFilter) {
+      context.elements.feedFavoritesFilter.checked = context.state.favoritesOnly;
+    }
     context.elements.graphFocusMode.value = context.state.graphFocusMode;
     context.elements.graphShowTags.checked = context.state.graphShowTags;
     if (context.elements.templateType) {
