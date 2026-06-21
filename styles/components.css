@@ -234,17 +234,6 @@
   transform-origin: top center;
 }
 
-.hierarchy-tree.hierarchy-motion-enter .tree-entry-flat,
-.hierarchy-list.hierarchy-motion-enter .tree-entry-flat {
-  animation: hierarchyFolderEnter 150ms ease-out both;
-}
-
-.tree-entry-flat.is-folder-closing {
-  animation: hierarchyFolderExit 140ms ease-in both;
-  overflow: hidden;
-  pointer-events: none;
-}
-
 .tree-entry-flat[data-depth="1"] {
   margin-left: 18px;
 }
@@ -408,32 +397,6 @@
   display: inline-block;
   height: 28px;
   width: 28px;
-}
-
-@keyframes hierarchyFolderEnter {
-  from {
-    opacity: 0;
-    transform: translateY(-3px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes hierarchyFolderExit {
-  from {
-    max-height: 42px;
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  to {
-    max-height: 0;
-    opacity: 0;
-    transform: translateY(-3px);
-  }
 }
 
 .knowledge-item-menu {

@@ -1452,39 +1452,108 @@
   }
 
   function animateFolderToggle(toggleButton, applyToggle) {
-    const noteId = toggleButton.dataset.toggleFolder;
     const entry = toggleButton.closest(".tree-entry-flat, .hierarchy-node");
     const container = entry?.parentElement;
-    const isCollapsed = context.notes.isFolderCollapsed(noteId);
 
-    if (!entry || !container || isCollapsed) {
+    if (!entry || !container) {
       applyToggle();
+      return;
+    }
+
+    const isOpening = context.notes.isFolderCollapsed(toggleButton.dataset.toggleFolder);
+    const beforeRects = getHierarchyMotionRects(container);
+    applyToggle();
+
+    window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        container?.classList.add("hierarchy-motion-enter");
-        window.setTimeout(() => container?.classList.remove("hierarchy-motion-enter"), 180);
+        animateHierarchySurface(container, isOpening);
+        animateHierarchyLayout(container, beforeRects);
       });
-      return;
-    }
+    });
+  }
 
-    const depth = Number(entry.dataset.depth || 0);
-    const closingEntries = [];
-    let sibling = entry.nextElementSibling;
-    while (sibling) {
-      const siblingDepth = Number(sibling.dataset.depth || 0);
-      if (siblingDepth <= depth) {
-        break;
+  function getHierarchyMotionRects(container) {
+    return [...container.children].reduce((rects, child) => {
+      if (!child.dataset?.noteId) {
+        return rects;
       }
-      closingEntries.push(sibling);
-      sibling = sibling.nextElementSibling;
-    }
 
-    if (!closingEntries.length) {
-      applyToggle();
-      return;
-    }
+      const rect = child.getBoundingClientRect();
+      rects.set(child.dataset.noteId, {
+        left: rect.left,
+        top: rect.top,
+      });
+      return rects;
+    }, new Map());
+  }
 
-    closingEntries.forEach((child) => child.classList.add("is-folder-closing"));
-    window.setTimeout(applyToggle, 140);
+  function animateHierarchyLayout(container, beforeRects) {
+    const entries = [...container.children].filter((child) => child.dataset?.noteId);
+    entries.forEach((entry, index) => {
+      const beforeRect = beforeRects.get(entry.dataset.noteId);
+      const afterRect = entry.getBoundingClientRect();
+
+      if (!beforeRect) {
+        animateHierarchyEntry(entry, {
+          delay: Math.min(index * 7, 42),
+          duration: 150,
+          opacity: 0,
+          transform: "translateY(-5px)",
+        });
+        return;
+      }
+
+      const deltaX = beforeRect.left - afterRect.left;
+      const deltaY = beforeRect.top - afterRect.top;
+      if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
+        return;
+      }
+
+      animateHierarchyEntry(entry, {
+        duration: 170,
+        transform: `translate(${deltaX}px, ${deltaY}px)`,
+      });
+    });
+  }
+
+  function animateHierarchySurface(container, isOpening) {
+    const fromY = isOpening ? -3 : 3;
+    container.style.transition = "none";
+    container.style.transform = `translateY(${fromY}px)`;
+    container.style.opacity = "0.985";
+    container.getBoundingClientRect();
+
+    container.style.transition = "transform 155ms cubic-bezier(0.2, 0, 0.18, 1), opacity 155ms ease";
+    window.requestAnimationFrame(() => {
+      container.style.transform = "translateY(0)";
+      container.style.opacity = "1";
+    });
+    window.setTimeout(() => {
+      container.style.transition = "";
+      container.style.transform = "";
+      container.style.opacity = "";
+    }, 215);
+  }
+
+  function animateHierarchyEntry(entry, { delay = 0, duration = 170, opacity = 1, transform }) {
+    entry.style.transition = "none";
+    entry.style.transitionDelay = "";
+    entry.style.transform = transform;
+    entry.style.opacity = String(opacity);
+    entry.getBoundingClientRect();
+
+    entry.style.transition = `transform ${duration}ms cubic-bezier(0.2, 0, 0.18, 1), opacity ${duration}ms ease`;
+    entry.style.transitionDelay = delay ? `${delay}ms` : "";
+    window.requestAnimationFrame(() => {
+      entry.style.transform = "translate(0, 0)";
+      entry.style.opacity = "1";
+    });
+    window.setTimeout(() => {
+      entry.style.transition = "";
+      entry.style.transitionDelay = "";
+      entry.style.transform = "";
+      entry.style.opacity = "";
+    }, duration + delay + 60);
   }
 
   function handleTagSuggestionClick(event) {
