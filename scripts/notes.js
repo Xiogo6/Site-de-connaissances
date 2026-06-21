@@ -1302,9 +1302,15 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
       return false;
     }
 
-    const source = normalizeTag(oldTag);
-    const target = normalizeTag(nextTag);
-    if (!source || !target || source === target) {
+    const sourceLabel = String(oldTag || "").trim();
+    const targetLabel = String(nextTag || "").trim();
+    const source = normalizeTag(sourceLabel);
+    const target = normalizeTag(targetLabel);
+    if (!source || !targetLabel) {
+      return false;
+    }
+
+    if (source === target && sourceLabel === targetLabel) {
       return false;
     }
 
@@ -1322,7 +1328,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
 
       note.tags = unique(
         note.tags
-          .map((tag) => (normalizeTag(tag) === source ? target : tag))
+          .map((tag) => (normalizeTag(tag) === source ? targetLabel : tag))
           .filter(Boolean)
       );
       didChange = true;
@@ -1333,26 +1339,26 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     }
 
     if (context.state.tagFilter && normalizeTag(context.state.tagFilter) === source) {
-      context.state.tagFilter = target;
+      context.state.tagFilter = targetLabel;
     }
 
     if (context.state.graphTagFilter && normalizeTag(context.state.graphTagFilter) === source) {
-      context.state.graphTagFilter = target;
+      context.state.graphTagFilter = targetLabel;
     }
 
     if (context.state.timeline?.tag && normalizeTag(context.state.timeline.tag) === source) {
-      context.state.timeline.tag = target;
+      context.state.timeline.tag = targetLabel;
     }
 
     if (context.elements.quizTag && normalizeTag(context.elements.quizTag.value) === source) {
-      context.elements.quizTag.value = target;
+      context.elements.quizTag.value = targetLabel;
     }
 
     if (
       context.state.graphSelection?.kind === "tag" &&
       normalizeTag(context.state.graphSelection.id.replace("tag::", "")) === source
     ) {
-      context.state.graphSelection = { kind: "tag", id: `tag::${target}` };
+      context.state.graphSelection = { kind: "tag", id: `tag::${targetLabel}` };
     }
 
     context.data.saveNotes();
