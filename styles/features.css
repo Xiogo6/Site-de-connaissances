@@ -1185,6 +1185,10 @@ body.quiz-view-active .sidebar {
   display: none;
 }
 
+body.quiz-view-active .sidebar.is-open {
+  display: flex;
+}
+
 body.quiz-view-active .main-layout {
   gap: clamp(14px, 2vw, 22px);
   min-height: 100vh;

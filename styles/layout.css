@@ -594,41 +594,41 @@ body[data-theme="dark"] .tab.is-active {
       rgba(255, 249, 240, 0.38);
     border: 1px solid rgba(255, 255, 255, 0.52);
     border-radius: 32px;
-    bottom: 10px;
+    bottom: 8px;
     box-shadow:
       0 22px 48px rgba(28, 23, 18, 0.18),
       inset 0 1px 1px rgba(255, 255, 255, 0.76),
       inset 0 -12px 24px rgba(255, 255, 255, 0.08),
       inset 0 -1px 0 rgba(86, 70, 48, 0.08);
     display: grid;
-    gap: 6px;
+    gap: 5px;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     left: 50%;
-    padding: 7px;
+    padding: 6px;
     position: fixed;
     right: auto;
     transform: translateX(-50%);
-    width: min(calc(100vw - 18px), 414px);
+    width: min(calc(100vw - 28px), 390px);
     z-index: 120;
   }
 
   body.feed-nav-compact .tabs {
     border-radius: 999px;
-    padding: 5px;
+    padding: 4px;
     transform: translateX(-50%) translateY(7px) scale(0.96);
-    width: min(calc(100vw - 84px), 330px);
+    width: min(calc(100vw - 98px), 306px);
   }
 
   body.feed-nav-compact .tab {
     border-radius: 999px;
-    min-height: 54px;
-    padding: 4px 0;
+    min-height: 48px;
+    padding: 3px 0;
   }
 
   body.feed-nav-compact .tab-icon {
-    height: 38px;
-    padding: 8px;
-    width: 38px;
+    height: 34px;
+    padding: 7px;
+    width: 34px;
   }
 
   body.feed-view-active .main-layout {
@@ -704,8 +704,8 @@ body[data-theme="dark"] .tab.is-active {
     border-radius: 24px;
     flex-direction: column;
     gap: 0;
-    min-height: 72px;
-    padding: 6px 2px;
+    min-height: 66px;
+    padding: 5px 2px;
     position: relative;
   }
 
@@ -740,10 +740,10 @@ body[data-theme="dark"] .tab.is-active {
   .tab-icon {
     background: rgba(47, 36, 24, 0.06);
     border-radius: 999px;
-    height: 46px;
+    height: 42px;
     justify-content: center;
-    padding: 9px;
-    width: 46px;
+    padding: 8px;
+    width: 42px;
   }
 
   .tab.is-active .tab-icon {
@@ -1160,27 +1160,27 @@ body[data-theme="dark"] .tab.is-active {
 
 @media (max-width: 420px) {
   .tab {
-    min-height: 68px;
+    min-height: 62px;
   }
 
   .tab-icon {
-    height: 44px;
-    width: 44px;
+    height: 40px;
+    width: 40px;
   }
 }
 
 @media (max-width: 360px) {
   .tabs {
     border-radius: 24px;
-    width: min(calc(100vw - 12px), 414px);
+    width: min(calc(100vw - 28px), 390px);
   }
 
   .tab {
-    min-height: 64px;
+    min-height: 60px;
   }
 
   .tab-icon {
-    height: 42px;
-    width: 42px;
+    height: 38px;
+    width: 38px;
   }
 }

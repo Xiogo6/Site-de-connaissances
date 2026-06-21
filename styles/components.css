@@ -231,6 +231,18 @@
   cursor: default;
   display: block;
   padding: 0;
+  transform-origin: top center;
+}
+
+.hierarchy-tree.hierarchy-motion-enter .tree-entry-flat,
+.hierarchy-list.hierarchy-motion-enter .tree-entry-flat {
+  animation: hierarchyFolderEnter 150ms ease-out both;
+}
+
+.tree-entry-flat.is-folder-closing {
+  animation: hierarchyFolderExit 140ms ease-in both;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .tree-entry-flat[data-depth="1"] {
@@ -379,7 +391,12 @@
   font-size: 0.92rem;
   height: 28px;
   justify-content: center;
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
   width: 28px;
+}
+
+.tree-toggle:active {
+  transform: scale(0.94);
 }
 
 .tree-toggle:hover {
@@ -391,6 +408,32 @@
   display: inline-block;
   height: 28px;
   width: 28px;
+}
+
+@keyframes hierarchyFolderEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hierarchyFolderExit {
+  from {
+    max-height: 42px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-3px);
+  }
 }
 
 .knowledge-item-menu {
@@ -2736,7 +2779,7 @@ body[data-theme="dark"] .feed-toast {
   }
 
   .feed-tag-filter-popover {
-    bottom: calc(104px + env(safe-area-inset-bottom));
+    bottom: calc(92px + env(safe-area-inset-bottom));
     left: 12px;
     max-height: min(52dvh, 430px);
     min-width: 0;
