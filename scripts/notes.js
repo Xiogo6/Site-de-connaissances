@@ -1315,6 +1315,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     }
 
     let didChange = false;
+    const updatedAt = new Date().toISOString();
 
     context.state.notes.forEach((note) => {
       if (!Array.isArray(note.tags) || !note.tags.length) {
@@ -1331,6 +1332,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
           .map((tag) => (normalizeTag(tag) === source ? targetLabel : tag))
           .filter(Boolean)
       );
+      note.updatedAt = updatedAt;
       didChange = true;
     });
 

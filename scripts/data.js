@@ -383,6 +383,13 @@
       });
     }
 
+    function getLatestNoteTimestamp(notes = []) {
+      return notes.reduce((latest, note) => {
+        const updatedAt = Date.parse(note.updatedAt || note.createdAt || "");
+        return Number.isNaN(updatedAt) ? latest : Math.max(latest, updatedAt);
+      }, 0);
+    }
+
     function loadNotes() {
       try {
         const raw =
@@ -827,6 +834,17 @@
           Boolean(remoteSettings.lastPublishAt);
 
         if (hasRemoteData) {
+          const localLatest = getLatestNoteTimestamp(context.state.notes);
+          const remoteLatest = getLatestNoteTimestamp(remoteNotes);
+          if (localLatest > remoteLatest + 1000) {
+            setRemoteState({
+              status: "syncing",
+              lastError: "",
+            });
+            queueRemoteSync({ includeSnapshots: true });
+            return true;
+          }
+
           context.state.notes = remoteNotes;
           context.state.settings = remoteSettings;
           context.state.snapshots = remoteSnapshots;
