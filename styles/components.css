@@ -2182,30 +2182,21 @@ body[data-theme="dark"] .toggle-row-editor {
 
 .feed-filter-bar {
   align-items: center;
-  background:
-    radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.64), transparent 30%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.26), rgba(255, 249, 240, 0.08)),
-    rgba(255, 249, 240, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  border-radius: 18px;
-  -webkit-backdrop-filter: blur(24px) saturate(1.45) contrast(1.05);
-  backdrop-filter: blur(24px) saturate(1.45) contrast(1.05);
-  box-shadow:
-    0 14px 30px rgba(46, 34, 22, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.46),
-    inset 0 -1px 0 rgba(86, 70, 48, 0.07);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   display: grid;
   gap: 8px;
   grid-template-columns: minmax(160px, 1fr) minmax(130px, auto) auto auto auto;
-  padding: 8px;
+  padding: 0;
   position: relative;
-  z-index: 70;
 }
 
 .feed-filter-input,
 .feed-filter-select {
-  background: rgba(255, 255, 255, 0.42);
-  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: var(--surface-muted);
+  border: 1px solid rgba(86, 70, 48, 0.12);
   border-radius: 999px;
   color: var(--text);
   min-height: 36px;
@@ -2224,8 +2215,8 @@ body[data-theme="dark"] .toggle-row-editor {
 }
 
 .feed-filter-toggle {
-  background: rgba(255, 255, 255, 0.32);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: var(--surface-muted);
+  border: 1px solid rgba(86, 70, 48, 0.12);
   color: var(--text-soft);
   gap: 7px;
   padding: 0 10px;
@@ -2241,17 +2232,17 @@ body[data-theme="dark"] .toggle-row-editor {
 }
 
 .feed-filter-clear {
-  background: rgba(255, 255, 255, 0.26);
+  background: transparent;
   color: var(--text-soft);
   padding: 0 12px;
 }
 
 .feed-tag-filter-control {
-  position: relative;
+  display: contents;
 }
 
 .feed-tag-filter-button {
-  background: rgba(255, 255, 255, 0.46);
+  background: var(--surface-muted);
   color: var(--text-soft);
   gap: 7px;
   padding: 0 12px;
@@ -2283,20 +2274,19 @@ body[data-theme="dark"] .toggle-row-editor {
 }
 
 .feed-tag-filter-popover {
-  background: var(--surface);
+  background: var(--surface-muted);
   border: 1px solid rgba(86, 70, 48, 0.13);
   border-radius: 16px;
-  box-shadow: 0 18px 44px rgba(42, 31, 20, 0.18);
-  max-height: min(56vh, 430px);
-  min-width: min(280px, calc(100vw - 36px));
+  box-shadow: none;
+  grid-column: 1 / -1;
+  max-height: min(42vh, 360px);
+  min-width: 0;
+  order: 10;
   overscroll-behavior: contain;
   padding: 10px;
   pointer-events: auto;
-  position: absolute;
-  right: 0;
+  position: static;
   touch-action: pan-y;
-  top: calc(100% + 8px);
-  z-index: 120;
 }
 
 .feed-tag-filter-popover.is-hidden {
@@ -2307,7 +2297,7 @@ body[data-theme="dark"] .toggle-row-editor {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  max-height: min(50vh, 380px);
+  max-height: calc(min(42vh, 360px) - 22px);
   min-width: 0;
   overflow: auto;
   overscroll-behavior: contain;
@@ -2341,18 +2331,12 @@ body[data-theme="dark"] .toggle-row-editor {
 
 .segmented-control {
   align-items: center;
-  background:
-    radial-gradient(circle at 24% 8%, rgba(255, 255, 255, 0.66), transparent 34%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 249, 240, 0.08)),
-    rgba(255, 249, 240, 0.22);
-  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: var(--surface-muted);
+  border: 1px solid rgba(86, 70, 48, 0.12);
   border-radius: 999px;
-  -webkit-backdrop-filter: blur(24px) saturate(1.48) contrast(1.05);
-  backdrop-filter: blur(24px) saturate(1.48) contrast(1.05);
-  box-shadow:
-    0 12px 28px rgba(46, 34, 22, 0.08),
-    inset 0 1px 1px rgba(255, 255, 255, 0.54),
-    inset 0 -1px 0 rgba(86, 70, 48, 0.07);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
   display: inline-flex;
   gap: 4px;
   padding: 4px;
@@ -2371,20 +2355,14 @@ body[data-theme="dark"] .toggle-row-editor {
 }
 
 .segmented-control button.is-active {
-  background:
-    radial-gradient(circle at 32% 10%, rgba(255, 255, 255, 0.62), transparent 34%),
-    rgba(255, 255, 255, 0.36);
+  background: rgba(191, 91, 44, 0.13);
   color: var(--accent-strong);
-  box-shadow:
-    0 8px 18px rgba(81, 55, 30, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.54);
+  box-shadow: none;
 }
 
 .feed-list {
   display: grid;
   gap: 0;
-  transform: translateY(var(--feed-pull-offset, 0));
-  transition: transform 180ms ease;
 }
 
 .feed-refresh-indicator {
@@ -2462,9 +2440,8 @@ body.feed-refresh-complete .feed-refresh-indicator::before {
 
 .feed-heading-row {
   align-items: start;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) minmax(140px, auto);
+  display: block;
+  min-width: 0;
 }
 
 .feed-title-row {
@@ -2487,14 +2464,22 @@ body.feed-refresh-complete .feed-refresh-indicator::before {
 }
 
 .feed-meta-row {
+  align-items: start;
   color: var(--text-soft);
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   font-size: 0.82rem;
   gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, auto);
 }
 
-.feed-meta-row span + span::before {
+.feed-meta-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.feed-meta-main > span + span::before {
   content: "/";
   margin-right: 8px;
   opacity: 0.55;
@@ -2528,8 +2513,16 @@ body.feed-refresh-complete .feed-refresh-indicator::before {
   border-top: 1px solid rgba(86, 70, 48, 0.1);
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: space-between;
   padding-top: 4px;
+}
+
+.feed-updated-date {
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  line-height: 1.2;
+  margin-right: auto;
+  min-width: 0;
 }
 
 .feed-tags {
@@ -2617,15 +2610,14 @@ body[data-theme="dark"] .feed-filter-input,
 body[data-theme="dark"] .feed-filter-select,
 body[data-theme="dark"] .feed-filter-toggle,
 body[data-theme="dark"] .feed-filter-clear {
-  background:
-    radial-gradient(circle at 30% 10%, rgba(230, 244, 232, 0.18), transparent 34%),
-    linear-gradient(135deg, rgba(39, 59, 50, 0.22), rgba(10, 18, 15, 0.1)),
-    rgba(8, 18, 15, 0.32);
+  background: rgba(235, 228, 212, 0.07);
   border-color: rgba(235, 228, 212, 0.15);
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.2),
-    inset 0 1px 1px rgba(255, 255, 255, 0.13),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .feed-filter-bar,
+body[data-theme="dark"] .feed-filter-bar {
+  background: transparent;
 }
 
 :root[data-theme="dark"] .feed-filter-input,
@@ -2660,7 +2652,7 @@ body[data-theme="dark"] .feed-tag-filter-button.has-active-filter {
 body[data-theme="dark"] .feed-tag-filter-popover {
   background: #18211c;
   border-color: rgba(235, 228, 212, 0.12);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+  box-shadow: none;
 }
 
 :root[data-theme="dark"] .feed-tag-filter,
@@ -2722,9 +2714,7 @@ body[data-theme="dark"] .feed-toast {
   }
 
   .feed-filter-bar {
-    border-radius: 16px;
     grid-template-columns: 1fr 1fr;
-    padding: 7px;
   }
 
   .feed-filter-input {
@@ -2738,19 +2728,14 @@ body[data-theme="dark"] .feed-toast {
   }
 
   .feed-tag-filter-control {
-    position: static;
+    display: contents;
   }
 
   .feed-tag-filter-popover {
-    bottom: calc(92px + env(safe-area-inset-bottom));
-    left: 12px;
     max-height: min(52dvh, 430px);
     min-width: 0;
     padding: 12px;
-    position: fixed;
-    right: 12px;
-    top: auto;
-    z-index: 90;
+    position: static;
   }
 
   .feed-excluded-tags {
