@@ -173,10 +173,10 @@
     context.elements.feedTagFilterPopover?.addEventListener("touchmove", stopFeedFilterEvent, { passive: true });
     context.elements.feedExcludedTags?.addEventListener("click", handleFeedExcludedTagClick);
     context.elements.feedClearFilters?.addEventListener("click", clearFeedFilters);
-    context.elements.feedList?.addEventListener("touchstart", handleFeedTouchStart, { passive: true });
-    context.elements.feedList?.addEventListener("touchmove", handleFeedTouchMove, { passive: false });
-    context.elements.feedList?.addEventListener("touchend", handleFeedTouchEnd, { passive: true });
-    context.elements.feedList?.addEventListener("touchcancel", handleFeedTouchCancel, { passive: true });
+    window.addEventListener("touchstart", handleFeedTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleFeedTouchMove, { passive: false });
+    window.addEventListener("touchend", handleFeedTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", handleFeedTouchCancel, { passive: true });
 
     context.elements.typeFilter.addEventListener("change", (event) => {
       context.state.typeFilter = event.target.value;
@@ -710,7 +710,7 @@
   }
 
   function handleFeedTouchStart(event) {
-    if (!canPullRefreshFeed() || event.touches.length !== 1) {
+    if (!canPullRefreshFeed() || isFeedRefreshIgnoredTarget(event.target) || event.touches.length !== 1) {
       resetFeedPull();
       return;
     }
@@ -764,6 +764,7 @@
   function handleFeedWheelRefresh(event) {
     if (
       !canPullRefreshFeed() ||
+      isFeedRefreshIgnoredTarget(event.target) ||
       feedShuffleLocked ||
       Math.abs(event.deltaY) < 70 ||
       event.deltaY <= 0
@@ -836,6 +837,14 @@
 
   function canPullRefreshFeed() {
     return context.state.activeTab === "feed" && window.scrollY <= 6;
+  }
+
+  function isFeedRefreshIgnoredTarget(target) {
+    return Boolean(
+      target?.closest?.(
+        ".feed-filter-bar, .feed-toolbar-actions, .feed-action, .mobile-tab-bar, .mobile-action-bar, [data-tab], input, select, textarea, a"
+      )
+    );
   }
 
   function shuffleFeedFromGesture() {

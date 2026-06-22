@@ -650,14 +650,13 @@ body[data-theme="dark"] .tab.is-active {
   }
 
   body.feed-view-active .feed-list {
-    gap: 0;
+    gap: 8px;
   }
 
   body.feed-view-active .feed-card {
     border-radius: 0;
-    min-height: clamp(420px, 62vh, 560px);
-    min-height: clamp(420px, 62dvh, 560px);
-    padding: 12px 16px 14px;
+    min-height: 0;
+    padding: 12px 16px 18px;
   }
 
   body.feed-view-active .feed-content {

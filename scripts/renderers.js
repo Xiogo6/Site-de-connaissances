@@ -592,6 +592,7 @@
     const typeLabel = context.data.getNoteTypeLabels()[note.type] || "Concept";
     const readableContent = getReadablePreviewContent(note) || "Cette page est prete a etre enrichie.";
     const updated = context.helpers.formatDate(note.updatedAt || note.createdAt);
+    const pageDate = getFeedPageDateLabel(note);
     const tagMarkup = (note.tags || [])
       .slice(0, 6)
       .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
@@ -613,17 +614,20 @@
               ${getNoteTypeIconMarkup(note.type)}
               <span>${escapeHtml(note.title || "Sans titre")}</span>
             </span>
-            ${tagsBlock}
           </span>
           <span class="feed-meta-row">
-            <span>${escapeHtml(typeLabel)}</span>
-            <span>${escapeHtml(updated)}</span>
+            <span class="feed-meta-main">
+              <span>${escapeHtml(typeLabel)}</span>
+              ${pageDate ? `<span>${escapeHtml(pageDate)}</span>` : ""}
+            </span>
+            ${tagsBlock}
           </span>
         </button>
         <div class="feed-content">
           ${renderNoteHtml(readableContent)}
         </div>
         <footer class="feed-card-footer">
+          <span class="feed-updated-date">MàJ: ${escapeHtml(updated)}</span>
           <div class="feed-actions" aria-label="Actions de page">
             <button type="button" class="feed-action" data-feed-share-note="${note.id}" aria-label="Partager">
               <svg viewBox="0 0 24 24" role="presentation">
@@ -646,6 +650,45 @@
         </footer>
       </article>
     `;
+  }
+
+  function getFeedPageDateLabel(note) {
+    const metadata = note.metadata || {};
+    if (!metadata.hasDate) {
+      return "";
+    }
+
+    const labels = {
+      reference: "Date",
+      life: "Naissance / deces",
+      range: "Periode",
+    };
+    const hasStartDate = hasKnownStructuredDate(metadata.startDate);
+    const hasEndDate = hasKnownStructuredDate(metadata.endDate);
+    const hasSingleDate = hasKnownStructuredDate(metadata.singleDate);
+
+    if (metadata.dateMode === "range") {
+      if (!hasStartDate && !hasEndDate) {
+        return "";
+      }
+      return `${labels.range}: ${formatStructuredDate(metadata.startDate)} -> ${formatStructuredDate(
+        metadata.endDate
+      )}`;
+    }
+
+    if (metadata.dateMode === "life") {
+      if (!hasStartDate && !hasEndDate) {
+        return "";
+      }
+      return `${labels.life}: ${formatStructuredDate(metadata.startDate)} -> ${formatStructuredDate(
+        metadata.endDate
+      )}`;
+    }
+
+    if (!hasSingleDate) {
+      return "";
+    }
+    return `${labels.reference}: ${formatStructuredDate(metadata.singleDate)}`;
   }
 
   function hashString(value) {
