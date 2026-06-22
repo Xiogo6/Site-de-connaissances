@@ -591,7 +591,6 @@
   function renderFeedCard(note, index, total) {
     const typeLabel = context.data.getNoteTypeLabels()[note.type] || "Concept";
     const readableContent = getReadablePreviewContent(note) || "Cette page est prete a etre enrichie.";
-    const updated = context.helpers.formatDate(note.updatedAt || note.createdAt);
     const pageDate = getFeedPageDateLabel(note);
     const tagMarkup = (note.tags || [])
       .slice(0, 6)
@@ -627,7 +626,6 @@
           ${renderNoteHtml(readableContent)}
         </div>
         <footer class="feed-card-footer">
-          <span class="feed-updated-date">MàJ: ${escapeHtml(updated)}</span>
           <div class="feed-actions" aria-label="Actions de page">
             <button type="button" class="feed-action" data-feed-share-note="${note.id}" aria-label="Partager">
               <svg viewBox="0 0 24 24" role="presentation">
