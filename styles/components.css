@@ -2513,16 +2513,8 @@ body.feed-refresh-complete .feed-refresh-indicator::before {
   border-top: 1px solid rgba(86, 70, 48, 0.1);
   display: flex;
   gap: 8px;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding-top: 4px;
-}
-
-.feed-updated-date {
-  color: var(--text-soft);
-  font-size: 0.76rem;
-  line-height: 1.2;
-  margin-right: auto;
-  min-width: 0;
 }
 
 .feed-tags {
