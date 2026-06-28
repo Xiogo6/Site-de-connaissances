@@ -126,18 +126,23 @@
   async function init() {
     await context.data.bootstrapWorkspace();
 
-    if (!context.state.notes.length) {
+    const shouldSeedDefaultKnowledge =
+      !context.state.notes.length && context.data.shouldSeedDefaultKnowledge();
+
+    if (shouldSeedDefaultKnowledge) {
       context.state.notes = structuredClone(defaultKnowledge);
       context.data.saveNotes();
     }
 
-    const notesBeforeSystemFolders = context.state.notes.length;
-    const ensuredFolders = context.notes.ensureDefaultFolders();
-    if (
-      context.state.notes.length !== notesBeforeSystemFolders ||
-      ensuredFolders?.didChange
-    ) {
-      context.data.saveNotes({ skipRemote: true });
+    if (context.state.notes.length) {
+      const notesBeforeSystemFolders = context.state.notes.length;
+      const ensuredFolders = context.notes.ensureDefaultFolders();
+      if (
+        context.state.notes.length !== notesBeforeSystemFolders ||
+        ensuredFolders?.didChange
+      ) {
+        context.data.saveNotes({ skipRemote: true });
+      }
     }
 
     context.state.activeNoteId =

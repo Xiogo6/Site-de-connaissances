@@ -729,7 +729,7 @@
       return;
     }
 
-    const distance = feedPull.startY - event.touches[0].clientY;
+    const distance = event.touches[0].clientY - feedPull.startY;
     if (distance <= 0) {
       updateFeedPullVisual(0);
       return;
@@ -739,7 +739,7 @@
     feedPull.ready = feedPull.distance >= 72;
     updateFeedPullVisual(feedPull.distance);
 
-    if (feedPull.ready && event.cancelable) {
+    if (event.cancelable) {
       event.preventDefault();
     }
   }
@@ -767,7 +767,7 @@
       isFeedRefreshIgnoredTarget(event.target) ||
       feedShuffleLocked ||
       Math.abs(event.deltaY) < 70 ||
-      event.deltaY <= 0
+      event.deltaY >= 0
     ) {
       return;
     }
@@ -866,13 +866,13 @@
   }
 
   function updateFeedPullVisual(distance) {
-    document.body.style.setProperty("--feed-pull-offset", `${-Math.round(distance)}px`);
+    document.body.style.setProperty("--feed-pull-offset", `${Math.round(distance)}px`);
     document.body.classList.toggle("feed-pulling", distance > 4);
     document.body.classList.toggle("feed-refresh-ready", distance >= 72);
   }
 
   function showFeedRefreshComplete() {
-    document.body.style.setProperty("--feed-pull-offset", "-34px");
+    document.body.style.setProperty("--feed-pull-offset", "56px");
     document.body.classList.add("feed-pulling", "feed-refresh-complete");
     document.body.classList.remove("feed-refresh-ready");
     window.setTimeout(resetFeedPull, 520);
