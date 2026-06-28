@@ -22,6 +22,7 @@
     };
 
     let remoteSyncQueue = Promise.resolve();
+    let syncBannerTimer = null;
     let dailySnapshotTimer = null;
     const dailySnapshotHour = 3;
     const dailySnapshotRetentionCount = 5;
@@ -33,7 +34,31 @@
         status: isRemoteConfigured() ? "idle" : "local",
         lastSyncedAt: null,
         lastError: "",
+        showSyncWarning: false,
       };
+    }
+
+    function clearSyncBannerTimer() {
+      if (syncBannerTimer) {
+        window.clearTimeout(syncBannerTimer);
+        syncBannerTimer = null;
+      }
+    }
+
+    function scheduleSyncBannerTimer() {
+      clearSyncBannerTimer();
+      syncBannerTimer = window.setTimeout(() => {
+        syncBannerTimer = null;
+        if (context.state.remote?.status !== "syncing") {
+          return;
+        }
+
+        context.state.remote = {
+          ...context.state.remote,
+          showSyncWarning: true,
+        };
+        context.renderers?.renderWorkspaceBanner();
+      }, 3000);
     }
 
     function setRemoteState(patch = {}) {
@@ -42,6 +67,16 @@
         ...context.state.remote,
         ...patch,
       };
+
+      if (context.state.remote.status === "syncing") {
+        if (patch.status === "syncing") {
+          context.state.remote.showSyncWarning = false;
+          scheduleSyncBannerTimer();
+        }
+      } else {
+        context.state.remote.showSyncWarning = false;
+        clearSyncBannerTimer();
+      }
     }
 
     function isRemoteConfigured() {
@@ -390,12 +425,18 @@
       }, 0);
     }
 
+    function hasStoredWorkspaceData() {
+      return Boolean(
+        window.localStorage.getItem(appStorageKey) || window.localStorage.getItem(storageKey)
+      );
+    }
+
     function loadNotes() {
       try {
         const raw =
           window.localStorage.getItem(appStorageKey) || window.localStorage.getItem(storageKey);
         if (!raw) {
-          return structuredClone(defaultKnowledge);
+          return [];
         }
 
         const parsed = JSON.parse(raw);
@@ -403,12 +444,14 @@
           return normalizeNoteCollection(parsed.notes);
         }
 
-        return Array.isArray(parsed)
-          ? normalizeNoteCollection(parsed)
-          : structuredClone(defaultKnowledge);
+        return Array.isArray(parsed) ? normalizeNoteCollection(parsed) : [];
       } catch (error) {
-        return structuredClone(defaultKnowledge);
+        return [];
       }
+    }
+
+    function shouldSeedDefaultKnowledge() {
+      return !isReadOnlyMode() && !isRemoteConfigured() && !hasStoredWorkspaceData();
     }
 
     function getDefaultSettings() {
@@ -885,12 +928,13 @@
         setRemoteState({
           status: "error",
           lastError: "Synchronisation bloquee: aucune page a envoyer",
+          showSyncWarning: false,
         });
         context.renderers?.renderWorkspaceBanner();
         return remoteSyncQueue;
       }
 
-      setRemoteState({ status: "syncing", lastError: "" });
+      setRemoteState({ status: "syncing", lastError: "", showSyncWarning: false });
       context.renderers?.renderWorkspaceBanner();
 
       remoteSyncQueue = remoteSyncQueue
@@ -902,11 +946,13 @@
               status: "synced",
               lastSyncedAt: new Date().toISOString(),
               lastError: "",
+              showSyncWarning: false,
             });
           } catch (error) {
             setRemoteState({
               status: "error",
               lastError: error.message || "Synchronisation impossible",
+              showSyncWarning: false,
             });
           } finally {
             context.renderers?.renderWorkspaceBanner();
@@ -933,12 +979,10 @@
       }
 
       const loaded = await loadWorkspaceFromRemote();
-      if (!loaded && context.state.notes.length) {
-        queueRemoteSync({ includeSnapshots: true });
+      if (loaded || context.state.notes.length) {
+        ensureDailySnapshot("Snapshot quotidien");
+        scheduleDailySnapshot();
       }
-
-      ensureDailySnapshot("Snapshot quotidien");
-      scheduleDailySnapshot();
     }
 
     function downloadPublishedSnapshot() {
@@ -1184,6 +1228,7 @@
       loadPublishedNotesIfNeeded,
       loadSettings,
       loadSnapshots,
+      shouldSeedDefaultKnowledge,
       normalizeImportedNote,
       normalizeNoteCollection,
       normalizeQuizQuestionCollection,

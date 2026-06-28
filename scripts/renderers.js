@@ -171,7 +171,7 @@
     let message = "";
     let variant = "";
 
-    if (remote.status === "syncing") {
+    if (remote.status === "syncing" && remote.showSyncWarning) {
       message = "Attention : synchronisation en cours. Ne fermez pas la page.";
       variant = "is-warning";
     } else if (remote.status === "error" && context.data.isRemoteConfigured()) {

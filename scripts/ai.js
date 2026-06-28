@@ -274,6 +274,14 @@
           title: context.elements.titleInput?.value.trim() || note.title || "Sans titre",
           content: context.elements.contentInput?.value || note.content || "",
           type: context.elements.typeInput?.value || note.type || "concept",
+          tags: context.helpers.parseTags
+            ? context.helpers.parseTags(context.elements.tagsInput?.value || "")
+            : cloneValue(note.tags || []),
+          parentId: context.elements.parentInput?.value || note.parentId || "",
+          favorite:
+            typeof context.elements.favoriteInput?.checked === "boolean"
+              ? context.elements.favoriteInput.checked
+              : Boolean(note.favorite),
           metadata: context.notes.collectMetadataFromInputs
             ? context.notes.collectMetadataFromInputs()
             : cloneValue(note.metadata || {}),
@@ -321,9 +329,52 @@
         return false;
       }
 
+      const snapshot = backup.editorSnapshot || {};
+      const metadata = snapshot.metadata || backup.noteSnapshot?.metadata || note.metadata || {};
+      const restoredTitle =
+        typeof snapshot.title === "string"
+          ? snapshot.title
+          : backup.noteSnapshot?.title || note.title || "Sans titre";
+      const restoredType =
+        typeof snapshot.type === "string" && snapshot.type.trim()
+          ? snapshot.type
+          : note.type || "concept";
+      const restoredContent =
+        typeof snapshot.content === "string"
+          ? snapshot.content
+          : backup.noteSnapshot?.content || note.content || "";
       context.state.noteViewMode = "edit";
-      context.elements.titleInput.value = backup.noteSnapshot.title || note.title || "Sans titre";
-      context.elements.contentInput.value = backup.noteSnapshot.content || note.content || "";
+      context.elements.titleInput.value = restoredTitle;
+      context.elements.typeInput.value = restoredType;
+      context.elements.tagsInput.value = Array.isArray(snapshot.tags)
+        ? snapshot.tags.join(", ")
+        : (note.tags || []).join(", ");
+      context.elements.parentInput.value = snapshot.parentId || "";
+      context.elements.favoriteInput.checked =
+        typeof snapshot.favorite === "boolean" ? snapshot.favorite : Boolean(note.favorite);
+      context.elements.noteHasDate.value = metadata.hasDate ? "true" : "false";
+      context.elements.noteDateMode.value =
+        !metadata.hasDate
+          ? "none"
+          : ["reference", "life", "range"].includes(metadata.dateMode)
+          ? metadata.dateMode
+          : "reference";
+      context.elements.noteDateSingle.value = metadata.singleDate
+        ? context.helpers.formatFlexibleDate(metadata.singleDate)
+        : "";
+      context.elements.noteDateStart.value = metadata.startDate
+        ? context.helpers.formatFlexibleDate(metadata.startDate)
+        : "";
+      context.elements.noteDateEnd.value = metadata.endDate
+        ? context.helpers.formatFlexibleDate(metadata.endDate)
+        : "";
+      context.notes.syncNewPageClassificationControls?.();
+      context.renderers.renderStructuredFields?.();
+      context.elements.contentInput.value = restoredContent;
+      context.state.editorQuizQuestions = cloneValue(
+        snapshot.quizQuestions || backup.noteSnapshot?.quizQuestions || note.quizQuestions || []
+      );
+      context.state.editorQuizQuestionsNoteId = note.id;
       context.notes.handleEditorContentChange();
       clearRewriteBackup();
       context.notes.saveCurrentNote({ stayInEdit: true });
