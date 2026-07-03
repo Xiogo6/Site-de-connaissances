@@ -2794,6 +2794,7 @@ body.utility-drawer-open .quick-capture-toggle {
   display: none;
   inset: 0;
   position: fixed;
+  transition: opacity 160ms ease;
   z-index: 39;
 }
 

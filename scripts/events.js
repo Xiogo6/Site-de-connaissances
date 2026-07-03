@@ -7,11 +7,20 @@
   let navScrollTicking = false;
   let feedPull = {
     active: false,
+    startX: 0,
     startY: 0,
     distance: 0,
     ready: false,
   };
   let feedShuffleLocked = false;
+  let sidebarSwipe = {
+    active: false,
+    horizontal: false,
+    startX: 0,
+    startY: 0,
+    startedAt: 0,
+    wasOpen: false,
+  };
 
   function handleBeforeUnload(event) {
     if (context.state.remote?.status !== "syncing") {
@@ -173,6 +182,10 @@
     context.elements.feedTagFilterPopover?.addEventListener("touchmove", stopFeedFilterEvent, { passive: true });
     context.elements.feedExcludedTags?.addEventListener("click", handleFeedExcludedTagClick);
     context.elements.feedClearFilters?.addEventListener("click", clearFeedFilters);
+    window.addEventListener("touchstart", handleSidebarSwipeStart, { passive: true });
+    window.addEventListener("touchmove", handleSidebarSwipeMove, { passive: false });
+    window.addEventListener("touchend", handleSidebarSwipeEnd, { passive: true });
+    window.addEventListener("touchcancel", resetSidebarSwipe, { passive: true });
     window.addEventListener("touchstart", handleFeedTouchStart, { passive: true });
     window.addEventListener("touchmove", handleFeedTouchMove, { passive: false });
     window.addEventListener("touchend", handleFeedTouchEnd, { passive: true });
@@ -717,6 +730,7 @@
 
     feedPull = {
       active: true,
+      startX: event.touches[0].clientX,
       startY: event.touches[0].clientY,
       distance: 0,
       ready: false,
@@ -729,7 +743,14 @@
       return;
     }
 
-    const distance = event.touches[0].clientY - feedPull.startY;
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - feedPull.startX;
+    const distance = touch.clientY - feedPull.startY;
+    if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(distance) * 1.15) {
+      resetFeedPull();
+      return;
+    }
+
     if (distance <= 0) {
       updateFeedPullVisual(0);
       return;
@@ -776,6 +797,124 @@
       event.preventDefault();
     }
     shuffleFeedFromGesture();
+  }
+
+  function handleSidebarSwipeStart(event) {
+    if (
+      event.touches.length !== 1 ||
+      !window.matchMedia("(max-width: 780px)").matches ||
+      context.state.utilityDrawerOpen ||
+      context.state.quickCaptureOpen
+    ) {
+      resetSidebarSwipe();
+      return;
+    }
+
+    const touch = event.touches[0];
+    const wasOpen = Boolean(context.state.sidebarDrawerOpen);
+    const edgeWidth = Math.min(88, window.innerWidth * 0.24);
+    const startsAtEdge = touch.clientX <= edgeWidth;
+    const startsInDrawer = Boolean(event.target.closest?.("#mobile-sidebar"));
+    if ((!wasOpen && !startsAtEdge) || (wasOpen && !startsInDrawer)) {
+      resetSidebarSwipe();
+      return;
+    }
+
+    sidebarSwipe = {
+      active: true,
+      horizontal: false,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startedAt: Date.now(),
+      wasOpen,
+    };
+  }
+
+  function handleSidebarSwipeMove(event) {
+    if (!sidebarSwipe.active || event.touches.length !== 1) {
+      return;
+    }
+
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - sidebarSwipe.startX;
+    const deltaY = touch.clientY - sidebarSwipe.startY;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    if (!sidebarSwipe.horizontal) {
+      if (absX < 8 && absY < 8) {
+        return;
+      }
+      if (absY >= absX * 1.1) {
+        resetSidebarSwipe();
+        return;
+      }
+      if ((!sidebarSwipe.wasOpen && deltaX <= 0) || (sidebarSwipe.wasOpen && deltaX >= 0)) {
+        resetSidebarSwipe();
+        return;
+      }
+
+      sidebarSwipe.horizontal = true;
+      resetFeedPull();
+      context.elements.sidebarDrawer.classList.add("is-swiping");
+      context.elements.sidebarDrawerBackdrop.classList.remove("is-hidden");
+    }
+
+    const drawerWidth = context.elements.sidebarDrawer.getBoundingClientRect().width || 320;
+    const travel = Math.min(drawerWidth + 16, Math.max(0, Math.abs(deltaX)));
+    const progress = Math.min(1, travel / drawerWidth);
+    const translateX = sidebarSwipe.wasOpen ? -travel : `calc(-100% - 16px + ${travel}px)`;
+    context.elements.sidebarDrawer.style.transform =
+      typeof translateX === "number" ? `translateX(${translateX}px)` : `translateX(${translateX})`;
+    context.elements.sidebarDrawerBackdrop.style.opacity = String(
+      sidebarSwipe.wasOpen ? 1 - progress : progress
+    );
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+  }
+
+  function handleSidebarSwipeEnd(event) {
+    if (!sidebarSwipe.active) {
+      return;
+    }
+
+    const touch = event.changedTouches?.[0];
+    const deltaX = touch ? touch.clientX - sidebarSwipe.startX : 0;
+    const elapsed = Math.max(1, Date.now() - sidebarSwipe.startedAt);
+    const fastSwipe = Math.abs(deltaX) >= 30 && elapsed <= 260;
+    const crossedThreshold = Math.abs(deltaX) >= 64;
+    const shouldToggle = sidebarSwipe.horizontal && (crossedThreshold || fastSwipe);
+    const nextOpen = shouldToggle ? !sidebarSwipe.wasOpen : sidebarSwipe.wasOpen;
+
+    context.elements.sidebarDrawer.classList.remove("is-swiping");
+    context.state.sidebarDrawerOpen = nextOpen;
+    context.renderers.renderSidebarDrawer();
+    context.elements.sidebarDrawer.style.removeProperty("transform");
+    context.elements.sidebarDrawerBackdrop.style.removeProperty("opacity");
+    resetSidebarSwipeState();
+  }
+
+  function resetSidebarSwipe() {
+    if (sidebarSwipe.horizontal) {
+      context.elements.sidebarDrawer.classList.remove("is-swiping");
+      context.elements.sidebarDrawer.style.removeProperty("transform");
+      context.elements.sidebarDrawerBackdrop.style.removeProperty("opacity");
+      context.renderers.renderSidebarDrawer();
+    }
+    resetSidebarSwipeState();
+  }
+
+  function resetSidebarSwipeState() {
+    sidebarSwipe = {
+      active: false,
+      horizontal: false,
+      startX: 0,
+      startY: 0,
+      startedAt: 0,
+      wasOpen: false,
+    };
   }
 
   function handleFeedExcludedTagClick(event) {
@@ -881,6 +1020,7 @@
   function resetFeedPull() {
     feedPull = {
       active: false,
+      startX: 0,
       startY: 0,
       distance: 0,
       ready: false,
