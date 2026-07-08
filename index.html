@@ -30,7 +30,7 @@
       })();
     </script>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=39" />
+    <link rel="stylesheet" href="./styles.css?v=40" />
   </head>
   <body>
     <div class="shell">
@@ -349,7 +349,7 @@
                 <label class="editor-parent-field is-hidden">
                   <span class="field-label">Emplacement</span>
                   <select id="note-parent" class="select-input">
-                    <option value="">Aucune</option>
+                    <option value="">Choisir un dossier</option>
                   </select>
                 </label>
               </div>
@@ -1100,13 +1100,19 @@
 
               <div id="sport-mass-panel" class="sport-table-panel">
                 <div class="sport-table-shell">
-                  <table class="sport-table">
+                  <table class="sport-table sport-mass-table">
+                    <colgroup>
+                      <col class="sport-delete-column" />
+                      <col class="sport-date-column" />
+                      <col class="sport-mass-column" />
+                      <col class="sport-check-column" />
+                    </colgroup>
                     <thead>
                       <tr>
-                        <th>Jour</th>
-                        <th>Masse</th>
-                        <th>A jeun</th>
-                        <th class="sport-action-header">Action</th>
+                        <th class="sport-delete-header" aria-hidden="true"></th>
+                        <th class="sport-date-header">Jour</th>
+                        <th class="sport-mass-header">Masse</th>
+                        <th class="sport-check-header">A jeun</th>
                       </tr>
                     </thead>
                     <tbody id="sport-mass-body"></tbody>
@@ -1120,15 +1126,24 @@
               <div id="sport-performance-panel" class="sport-table-panel is-hidden">
                 <div class="sport-table-shell">
                   <table class="sport-table sport-performance-table">
+                    <colgroup>
+                      <col class="sport-delete-column" />
+                      <col class="sport-date-column" />
+                      <col class="sport-exercise-column" />
+                      <col class="sport-sets-column" />
+                      <col class="sport-reps-column" />
+                      <col class="sport-weight-column" />
+                      <col class="sport-rest-column" />
+                    </colgroup>
                     <thead>
                       <tr>
-                        <th>Jour</th>
+                        <th class="sport-delete-header" aria-hidden="true"></th>
+                        <th class="sport-date-header">Jour</th>
                         <th>Exercice</th>
                         <th>Series</th>
                         <th>Repetitions</th>
                         <th>Poids</th>
                         <th>Repos</th>
-                        <th class="sport-action-header">Action</th>
                       </tr>
                     </thead>
                     <tbody id="sport-performance-body"></tbody>
@@ -1253,17 +1268,17 @@
       </div>
     </div>
 
-    <script src="./scripts/config.js?v=39"></script>
-    <script src="./scripts/dom.js?v=39"></script>
-    <script src="./scripts/helpers.js?v=39"></script>
-    <script src="./scripts/data.js?v=39"></script>
-    <script src="./scripts/ai.js?v=39"></script>
-    <script src="./scripts/notes.js?v=39"></script>
-    <script src="./scripts/graph.js?v=39"></script>
-    <script src="./scripts/quiz.js?v=39"></script>
-    <script src="./scripts/mascot.js?v=39"></script>
-    <script src="./scripts/renderers.js?v=39"></script>
-    <script src="./scripts/events.js?v=39"></script>
-    <script src="./app.js?v=39"></script>
+    <script src="./scripts/config.js?v=40"></script>
+    <script src="./scripts/dom.js?v=40"></script>
+    <script src="./scripts/helpers.js?v=40"></script>
+    <script src="./scripts/data.js?v=40"></script>
+    <script src="./scripts/ai.js?v=40"></script>
+    <script src="./scripts/notes.js?v=40"></script>
+    <script src="./scripts/graph.js?v=40"></script>
+    <script src="./scripts/quiz.js?v=40"></script>
+    <script src="./scripts/mascot.js?v=40"></script>
+    <script src="./scripts/renderers.js?v=40"></script>
+    <script src="./scripts/events.js?v=40"></script>
+    <script src="./app.js?v=40"></script>
   </body>
 </html>
