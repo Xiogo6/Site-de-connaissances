@@ -7,9 +7,9 @@
     const EARLY_ROTATION_AVERAGE_ASKED_LIMIT = 2;
     const EARLY_ROTATION_SEEN_RATIO_LIMIT = 0.65;
     const ROTATION_REST_HOURS = {
-      difficult: 12,
+      difficult: 6,
       intermediate: 24,
-      easy: 72,
+      easy: 96,
     };
     let quizTimerHandle = null;
 
@@ -182,14 +182,12 @@
       Politique de rotation des quiz
 
       Le but n'est pas de respecter aveuglement les categories, mais d'eviter
-      les boucles de questions, surtout au debut quand certaines categories ne
-      contiennent qu'une ou deux cartes.
+      les boucles de questions tout en gardant une vraie logique pedagogique.
 
-      1. On part de toutes les questions disponibles, pas d'une seule question
-         par note. La rotation se decide donc au niveau de chaque question.
+      1. On ne prend qu'une question par page/note dans une session.
       2. Une question vue recemment peut etre mise au repos selon sa difficulte:
-         les difficiles peuvent revenir vite, les intermediaires attendent un
-         peu, et les faciles attendent nettement plus longtemps.
+         les difficiles reviennent plus vite, les intermediaires a un rythme
+         moyen, et les faciles beaucoup plus tard.
       3. En mode mixte/priorite, les questions faciles ne recoivent un quota
          que si leur bassin est assez large. Une unique question facile peut
          revenir comme appoint rare, mais elle n'est jamais forcee juste pour
@@ -199,7 +197,8 @@
          intermediaires ensuite, faciles au compte-gouttes.
       5. Les categories restent utiles pour lire le tableau de bord, mais la
          selection utilise un score de priorite: anciennete depuis la derniere
-         apparition, nombre de passages, erreurs, et difficulte.
+         apparition, nombre de passages, erreurs, difficulte, et une part de
+         hasard pour eviter des sequences trop previsibles.
     */
     function pickQuizQuestionsForSession(notes, requestedAmount) {
       if (!notes.length || requestedAmount <= 0) {
@@ -214,7 +213,7 @@
 
       const focus = normalizeQuizFocus(context.elements.quizMode?.value);
       const focusedCandidates = noteCandidates.filter((candidate) => matchesQuizFocus(candidate, focus));
-      const rotationCandidates = focusedCandidates.filter((candidate) => isRotationEligible(candidate));
+      const rotationCandidates = pickOneQuestionPerNote(focusedCandidates);
 
       if (!rotationCandidates.length) {
         return [];
@@ -250,6 +249,31 @@
       }
 
       return shuffle(selected).slice(0, requestedAmount);
+    }
+
+    function pickOneQuestionPerNote(candidates) {
+      const byNote = new Map();
+
+      candidates.forEach((candidate) => {
+        const bucket = byNote.get(candidate.noteId);
+        if (bucket) {
+          bucket.push(candidate);
+          return;
+        }
+
+        byNote.set(candidate.noteId, [candidate]);
+      });
+
+      return [...byNote.values()]
+        .map((group) => {
+          const eligibleGroup = group.filter((candidate) => isRotationEligible(candidate));
+          if (!eligibleGroup.length) {
+            return null;
+          }
+
+          return weightedPick(eligibleGroup, (candidate) => rotationWeight(candidate));
+        })
+        .filter(Boolean);
     }
 
     function collectSessionQuestionCandidates(notes) {
@@ -538,21 +562,31 @@
       const wrong = Math.max(asked - correct, 0);
       const hoursSinceLastAsked = getHoursSinceLastAsked(stats.lastAskedAt);
       const difficultyWeight = {
-        difficult: 8,
+        difficult: 10,
         intermediate: 4,
-        easy: 1,
+        easy: 0.75,
       }[candidate.difficulty] || 2;
       const discoveryBoost = asked === 0 ? 18 : 0;
+      const spacingScale = {
+        difficult: 3,
+        intermediate: 4,
+        easy: 8,
+      }[candidate.difficulty] || 4;
+      const spacingCap = {
+        difficult: 12,
+        intermediate: 10,
+        easy: 8,
+      }[candidate.difficulty] || 8;
       const spacingBoost = Number.isFinite(hoursSinceLastAsked)
-        ? Math.min(hoursSinceLastAsked / 4, 8)
-        : 8;
+        ? Math.min(hoursSinceLastAsked / spacingScale, spacingCap)
+        : spacingCap;
       const practiceBalance = 6 / (asked + 1);
-      const errorBoost = wrong * 1.8;
-      const masteryPenalty = Math.min(correct * 0.35, 4);
+      const errorBoost = wrong * (candidate.difficulty === "easy" ? 1.2 : 1.8);
+      const masteryPenalty = Math.min(correct * (candidate.difficulty === "easy" ? 0.55 : 0.35), 5);
       const rawWeight =
         discoveryBoost + difficultyWeight + spacingBoost + practiceBalance + errorBoost - masteryPenalty;
 
-      return Math.max(candidate.difficulty === "easy" ? rawWeight * 0.35 : rawWeight, 0.1);
+      return Math.max(candidate.difficulty === "easy" ? rawWeight * 0.3 : rawWeight, 0.1);
     }
 
     function setQuizAnswer(index, value) {

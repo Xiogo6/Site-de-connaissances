@@ -601,6 +601,8 @@
       favoriteMarkup || tagMarkup
         ? `<span class="feed-tags">${favoriteMarkup}${tagMarkup}</span>`
         : "";
+    const pageSeparator =
+      index < total - 1 ? '<span class="feed-page-separator" aria-hidden="true"></span>' : "";
 
     return `
       <article class="feed-card" data-feed-note-id="${note.id}" aria-label="${escapeHtml(note.title)}">
@@ -645,6 +647,7 @@
               </svg>
             </button>
           </div>
+          ${pageSeparator}
         </footer>
       </article>
     `;
@@ -2034,26 +2037,29 @@
   function buildSportMassRow(entry, index, canDelete) {
     return `
       <tr>
-        <td>
-          <input class="sport-input" type="date" value="${escapeHtml(entry.date || "")}" data-sport-table="mass" data-sport-index="${index}" data-sport-field="date" />
-        </td>
-        <td>
-          <input class="sport-input" type="number" inputmode="decimal" step="0.1" value="${escapeHtml(entry.mass || "")}" data-sport-table="mass" data-sport-index="${index}" data-sport-field="mass" />
-        </td>
-        <td class="sport-check-cell">
-          <input type="checkbox" ${entry.fasted ? "checked" : ""} data-sport-table="mass" data-sport-index="${index}" data-sport-field="fasted" />
-        </td>
-        <td class="sport-action-cell">
+        <td class="sport-delete-cell">
           <button
-            class="button button-ghost sport-delete-button"
+            class="sport-delete-button"
             type="button"
             data-delete-sport-row="mass"
             data-sport-index="${index}"
             aria-label="Supprimer la ligne de masse"
+            title="Supprimer"
             ${canDelete ? "" : "disabled"}
           >
-            Supprimer
+            <span aria-hidden="true">&times;</span>
           </button>
+        </td>
+        <td class="sport-date-cell">
+          <input class="sport-input sport-date-input" type="date" value="${escapeHtml(entry.date || "")}" data-sport-table="mass" data-sport-index="${index}" data-sport-field="date" />
+        </td>
+        <td class="sport-mass-cell">
+          <input class="sport-input" type="number" inputmode="decimal" step="0.1" value="${escapeHtml(entry.mass || "")}" data-sport-table="mass" data-sport-index="${index}" data-sport-field="mass" />
+        </td>
+        <td class="sport-check-cell">
+          <div class="sport-check-wrap">
+            <input type="checkbox" ${entry.fasted ? "checked" : ""} data-sport-table="mass" data-sport-index="${index}" data-sport-field="fasted" />
+          </div>
         </td>
       </tr>
     `;
@@ -2070,8 +2076,21 @@
 
     return `
       <tr>
-        <td>
-          <input class="sport-input" type="date" value="${escapeHtml(entry.date || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="date" />
+        <td class="sport-delete-cell">
+          <button
+            class="sport-delete-button"
+            type="button"
+            data-delete-sport-row="performance"
+            data-sport-index="${index}"
+            aria-label="Supprimer la ligne de performance"
+            title="Supprimer"
+            ${canDelete ? "" : "disabled"}
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </td>
+        <td class="sport-date-cell">
+          <input class="sport-input sport-date-input" type="date" value="${escapeHtml(entry.date || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="date" />
         </td>
         <td>
           <input class="sport-input sport-exercise-input" type="text" value="${escapeHtml(entry.exercise || "")}" list="${datalistId}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="exercise" />
@@ -2090,18 +2109,6 @@
         </td>
         <td>
           <input class="sport-input" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(entry.rest || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="rest" />
-        </td>
-        <td class="sport-action-cell">
-          <button
-            class="button button-ghost sport-delete-button"
-            type="button"
-            data-delete-sport-row="performance"
-            data-sport-index="${index}"
-            aria-label="Supprimer la ligne de performance"
-            ${canDelete ? "" : "disabled"}
-          >
-            Supprimer
-          </button>
         </td>
       </tr>
     `;
@@ -2269,35 +2276,19 @@
     populateSelect(
       context.elements.parentInput,
       (() => {
-        const childCounts = new Map();
-        context.state.notes.forEach((candidate) => {
-          if (!candidate.parentId) {
-            return;
-          }
-
-          childCounts.set(candidate.parentId, (childCounts.get(candidate.parentId) || 0) + 1);
-        });
-
-        const parentCandidates = context.state.notes
-          .filter((note) => note.id !== context.state.activeNoteId)
-          .map((note) => ({
-            note,
-            childCount: childCounts.get(note.id) || 0,
-          }))
-          .filter(({ childCount }) => childCount > 0)
+        const folderOptions = context.state.notes
+          .filter((note) => note.type === "folder" && note.id !== context.state.activeNoteId)
           .sort((left, right) =>
-            left.note.title.localeCompare(right.note.title, "fr", { sensitivity: "base" })
-          );
+            left.title.localeCompare(right.title, "fr", { sensitivity: "base" })
+          )
+          .map((note) => ({
+            value: note.id,
+            label: note.title,
+          }));
 
-        return parentCandidates.length
-          ? [
-              { value: "", label: "Aucune" },
-              ...parentCandidates.map(({ note, childCount }) => ({
-                value: note.id,
-                label: `${note.title} (${childCount} sous-page${childCount > 1 ? "s" : ""})`,
-              })),
-            ]
-          : [{ value: "", label: "Aucune page avec sous-pages" }];
+        return folderOptions.length
+          ? [{ value: "", label: "Choisir un dossier" }, ...folderOptions]
+          : [{ value: "", label: "Aucun dossier disponible" }];
       })(),
       context.notes.getActiveNote()?.parentId || ""
     );
