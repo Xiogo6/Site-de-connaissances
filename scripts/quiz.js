@@ -804,6 +804,15 @@
       return Math.max(0, Math.round((finishedAt - startedAt) / 1000));
     }
 
+    function getAverageAnswerSeconds(durationSeconds, answerCount) {
+      const safeCount = Math.max(0, Math.round(Number(answerCount) || 0));
+      if (!safeCount) {
+        return 0;
+      }
+
+      return Math.max(0, Math.round((Number(durationSeconds) || 0) / safeCount));
+    }
+
     function getQuizSessions() {
       context.state.settings.quizPlayerStats = context.state.settings.quizPlayerStats || {
         sessions: [],
@@ -821,15 +830,17 @@
 
       const sessions = getQuizSessions();
       const id = `quiz-${context.state.quiz.finishedAt}`;
+      const durationSeconds = getSessionDurationSeconds(
+        context.state.quiz.startedAt,
+        context.state.quiz.finishedAt
+      );
       context.state.quiz.sessionRecordId = id;
       sessions.unshift({
         id,
         startedAt: new Date(context.state.quiz.startedAt).toISOString(),
         finishedAt: new Date(context.state.quiz.finishedAt).toISOString(),
-        durationSeconds: getSessionDurationSeconds(
-          context.state.quiz.startedAt,
-          context.state.quiz.finishedAt
-        ),
+        durationSeconds,
+        averageAnswerSeconds: getAverageAnswerSeconds(durationSeconds, score.total),
         total: score.total,
         correct: score.correct,
         scope: context.elements.quizScope?.value || "all",
@@ -860,6 +871,7 @@
         ...sessions[index],
         total: score.total,
         correct: score.correct,
+        averageAnswerSeconds: getAverageAnswerSeconds(sessions[index].durationSeconds, score.total),
       };
     }
 
@@ -935,6 +947,87 @@
       return minutes ? `${minutes}m ${rest}s` : `${rest}s`;
     }
 
+    function formatAnswerPace(seconds) {
+      return `${formatSessionDuration(seconds)} / rep.`;
+    }
+
+    function getSessionAverageAnswerSeconds(session) {
+      if (!session) {
+        return 0;
+      }
+
+      return (
+        Number(session.averageAnswerSeconds) ||
+        getAverageAnswerSeconds(session.durationSeconds, session.total)
+      );
+    }
+
+    function getLocalDateKey(value) {
+      const date = value instanceof Date ? value : new Date(value || "");
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function shiftDateKey(dateKey, offsetDays) {
+      const [year, month, day] = dateKey.split("-").map((part) => Number(part));
+      if (!year || !month || !day) {
+        return "";
+      }
+
+      const date = new Date(year, month - 1, day);
+      date.setDate(date.getDate() + offsetDays);
+      return getLocalDateKey(date);
+    }
+
+    function getQuizDayStreakStats(sessions) {
+      const dayKeys = [
+        ...new Set(
+          sessions
+            .map((session) => getLocalDateKey(session.finishedAt))
+            .filter(Boolean)
+        ),
+      ].sort((left, right) => right.localeCompare(left));
+
+      if (!dayKeys.length) {
+        return {
+          current: 0,
+          best: 0,
+        };
+      }
+
+      let current = 1;
+      let expectedPrevious = shiftDateKey(dayKeys[0], -1);
+      for (let index = 1; index < dayKeys.length; index += 1) {
+        if (dayKeys[index] !== expectedPrevious) {
+          break;
+        }
+        current += 1;
+        expectedPrevious = shiftDateKey(dayKeys[index], -1);
+      }
+
+      let best = 1;
+      let running = 1;
+      for (let index = 1; index < dayKeys.length; index += 1) {
+        if (dayKeys[index] === shiftDateKey(dayKeys[index - 1], -1)) {
+          running += 1;
+        } else {
+          running = 1;
+        }
+        best = Math.max(best, running);
+      }
+
+      return {
+        current,
+        best,
+      };
+    }
+
     function renderQuizDashboard() {
       if (!context.elements.quizDashboard) {
         return;
@@ -972,6 +1065,15 @@
         (best, session) => Math.max(best, Math.round((session.correct / session.total) * 100)),
         0
       );
+      const totalSessionAnswers = sessions.reduce((sum, session) => sum + (Number(session.total) || 0), 0);
+      const totalSessionDuration = sessions.reduce(
+        (sum, session) => sum + (Number(session.durationSeconds) || 0),
+        0
+      );
+      const averageAnswerSeconds = getAverageAnswerSeconds(totalSessionDuration, totalSessionAnswers);
+      const streakStats = getQuizDayStreakStats(sessions);
+      const streakMeterScore = Math.min(streakStats.current * 20, 100);
+      const perfectSessions = sessions.filter((session) => session.correct === session.total).length;
 
       const distribution = {
         new: allQuestions.filter((item) => item.asked === 0).length,
@@ -1021,8 +1123,8 @@
           </div>
           <div class="quiz-hero-side">
             ${renderAsterMascot("hero")}
-            <div class="quiz-hero-meter" style="--score:${sessionAverage}%;" aria-hidden="true">
-              <span>${formatPercent(sessionAverage)}</span>
+            <div class="quiz-hero-meter" style="--score:${globalSuccess}%;" aria-hidden="true">
+              <span>${formatPercent(globalSuccess)}</span>
             </div>
           </div>
         </div>
@@ -1030,8 +1132,12 @@
         <div class="quiz-stat-grid">
           ${renderQuizStatCard("Quiz joues", sessionCount, "Historique joueur")}
           ${renderQuizStatCard("Reussite", formatPercent(globalSuccess), `${totalCorrect}/${totalAsked || 0} reponses`)}
+          ${renderQuizStatCard("Temps / rep.", averageAnswerSeconds ? formatAnswerPace(averageAnswerSeconds) : "-", `${totalSessionAnswers} reponse(s) chronometree(s)`)}
+          ${renderQuizStatCard("Serie", `${streakStats.current}j`, `Record ${streakStats.best}j`)}
           ${renderQuizStatCard("Questions", allQuestions.length, `${notesWithQuestions} page(s) source`)}
           ${renderQuizStatCard("Obligatoires", priorityCount, "A revoir en priorite")}
+          ${renderQuizStatCard("Temps total", totalSessionDuration ? formatSessionDuration(totalSessionDuration) : "-", "Temps passe en quiz")}
+          ${renderQuizStatCard("Sans faute", perfectSessions, "Quiz termines a 100%")}
         </div>
 
         <div class="quiz-mastery-board">
@@ -1052,15 +1158,16 @@
             <div class="quiz-panel-title-row">
               <div class="quiz-panel-title">
                 <span class="quiz-game-kicker">Joueur</span>
-                <h3>Performance</h3>
+                <h3>Rythme</h3>
               </div>
               ${renderAsterMascot("panel")}
             </div>
-            <div class="quiz-player-score" style="--score:${sessionAverage}%;">
-              <strong>${formatPercent(sessionAverage)}</strong>
-              <span>Moyenne session</span>
+            <div class="quiz-player-score" style="--score:${streakMeterScore}%;">
+              <strong>${streakStats.current}j</strong>
+              <span>Serie actuelle</span>
             </div>
             <div class="quiz-mini-stats">
+              <span>Moy. sessions <strong>${formatPercent(sessionAverage)}</strong></span>
               <span>Record <strong>${formatPercent(bestSession)}</strong></span>
               <span>Dernier <strong>${
                 recentSession ? `${recentSession.correct}/${recentSession.total}` : "-"
@@ -1068,6 +1175,10 @@
               <span>Temps <strong>${
                 recentSession ? formatSessionDuration(recentSession.durationSeconds) : "-"
               }</strong></span>
+              <span>Temps / rep. <strong>${
+                recentSession ? formatAnswerPace(getSessionAverageAnswerSeconds(recentSession)) : "-"
+              }</strong></span>
+              <span>Serie <strong>${streakStats.current}j</strong></span>
             </div>
           </article>
         </div>
@@ -1221,6 +1332,10 @@
       const percent = scoredTotal ? Math.round((correctCount / scoredTotal) * 100) : 0;
       const completed = validatedCount >= total;
       const duration = getSessionDuration(context.state.quiz.startedAt, context.state.quiz.finishedAt);
+      const durationSeconds = context.state.quiz.finishedAt
+        ? getSessionDurationSeconds(context.state.quiz.startedAt, context.state.quiz.finishedAt)
+        : 0;
+      const answerPace = getAverageAnswerSeconds(durationSeconds, scoredTotal);
 
       context.elements.quizTitle.textContent = "Quiz";
       context.elements.quizProgress.textContent = `${validatedCount} / ${total}`;
@@ -1261,6 +1376,11 @@
           <span class="quiz-score-pill">Fausses <strong>${wrongCount}</strong></span>
           <span class="quiz-score-pill">Contestees <strong>${contestedCount}</strong></span>
           <span class="quiz-score-pill">Temps <strong data-quiz-duration>${duration}</strong></span>
+          ${
+            completed
+              ? `<span class="quiz-score-pill">Temps / rep. <strong>${formatAnswerPace(answerPace)}</strong></span>`
+              : ""
+          }
         </div>
         <div class="quiz-session-shell">
           <div class="quiz-session-list">
@@ -1375,11 +1495,20 @@
       const intermediate = countedQuestions.filter((item) => item.difficulty === "intermediate").length;
       const easy = countedQuestions.filter((item) => item.difficulty === "easy").length;
       const contested = questions.filter((item) => item.contested).length;
+      const durationSeconds = getSessionDurationSeconds(
+        context.state.quiz.startedAt,
+        context.state.quiz.finishedAt
+      );
+      const answerPace = getAverageAnswerSeconds(durationSeconds, total);
       const wrongRows = questions.filter((item) => item.validated && !item.isCorrect && !item.contested);
 
       return `
         <p class="quiz-summary-line">
-          Score final : <strong>${correctCount}/${total}</strong>. Repartition : ${hard} difficiles, ${intermediate} intermediaires, ${easy} faciles${contested ? `, ${contested} contestee(s)` : ""}.
+          Score final : <strong>${correctCount}/${total}</strong>. Temps : <strong>${formatSessionDuration(
+            durationSeconds
+          )}</strong>. Moyenne : <strong>${formatAnswerPace(
+            answerPace
+          )}</strong>. Repartition : ${hard} difficiles, ${intermediate} intermediaires, ${easy} faciles${contested ? `, ${contested} contestee(s)` : ""}.
         </p>
         ${
           wrongRows.length
