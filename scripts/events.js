@@ -263,7 +263,7 @@
       context.state.activeTab = "knowledge";
       context.state.noteViewMode = "edit";
       context.state.utilityDrawerOpen = false;
-      context.state.sidebarDrawerOpen = false;
+      closeSidebarDrawer();
       context.data.saveNotes({ skipRemote: true });
       context.renderers.renderEverything();
       context.elements.titleInput.focus();
@@ -475,9 +475,8 @@
     context.elements.organizationRootDrop.addEventListener("drop", handleRootDrop);
 
     context.elements.utilityDrawerOpen.addEventListener("click", () => {
-      context.state.sidebarDrawerOpen = false;
+      closeSidebarDrawer();
       context.state.utilityDrawerOpen = true;
-      context.renderers.renderSidebarDrawer();
       context.renderers.renderTabs();
     });
     context.elements.utilityDrawerClose.addEventListener("click", closeUtilityDrawer);
@@ -499,9 +498,8 @@
           context.state.quizView = "play";
           context.state.quizStatsDrilldown = null;
         }
-        context.state.sidebarDrawerOpen = false;
+        closeSidebarDrawer();
         context.state.utilityDrawerOpen = false;
-        context.renderers.renderSidebarDrawer();
         context.renderers.renderTabs();
         renderActiveTabContent();
         scrollToTop();
@@ -889,6 +887,9 @@
     const nextOpen = shouldToggle ? !sidebarSwipe.wasOpen : sidebarSwipe.wasOpen;
 
     context.elements.sidebarDrawer.classList.remove("is-swiping");
+    if (sidebarSwipe.wasOpen && !nextOpen) {
+      context.notes.collapseSidebarFolders();
+    }
     context.state.sidebarDrawerOpen = nextOpen;
     context.renderers.renderSidebarDrawer();
     context.elements.sidebarDrawer.style.removeProperty("transform");
@@ -1054,7 +1055,7 @@
     context.state.activeNoteId = noteId;
     context.state.activeTab = "knowledge";
     context.state.noteViewMode = "read";
-    context.state.sidebarDrawerOpen = false;
+    closeSidebarDrawer();
     context.state.utilityDrawerOpen = false;
     context.renderers.renderEverything();
     scrollToTop();
@@ -1109,6 +1110,9 @@
   }
 
   function closeSidebarDrawer() {
+    if (context.state.sidebarDrawerOpen) {
+      context.notes.collapseSidebarFolders();
+    }
     context.state.sidebarDrawerOpen = false;
     context.renderers.renderSidebarDrawer();
   }

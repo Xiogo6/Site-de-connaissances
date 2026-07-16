@@ -129,6 +129,7 @@
       quizCount: document.querySelector("#quiz-count"),
       visualizationModeButtons: [...document.querySelectorAll("[data-visualization-mode]")],
       graphCanvas: document.querySelector("#graph-canvas"),
+      graphSidebar: document.querySelector(".graph-sidebar"),
       graphFocus: document.querySelector("#graph-focus"),
       graphFilterToggle: document.querySelector("#graph-filter-toggle"),
       graphShowTags: document.querySelector("#graph-show-tags"),
