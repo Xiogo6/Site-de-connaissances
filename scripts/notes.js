@@ -604,6 +604,38 @@
     context.renderers.renderOrganization();
   }
 
+  function collapseSidebarFolders() {
+    const noteIds = new Set(context.state.notes.map((note) => note.id));
+    const collapsibleIds = new Set();
+    const currentCollapsedFolders = Array.isArray(context.state.settings.collapsedFolders)
+      ? context.state.settings.collapsedFolders
+      : [];
+
+    context.state.notes.forEach((note) => {
+      if (note.type === "folder") {
+        collapsibleIds.add(note.id);
+      }
+      if (note.parentId && noteIds.has(note.parentId)) {
+        collapsibleIds.add(note.parentId);
+      }
+    });
+
+    const nextCollapsedFolders = unique([...currentCollapsedFolders, ...collapsibleIds])
+      .filter((id) => noteIds.has(id));
+    const didChange =
+      nextCollapsedFolders.length !== currentCollapsedFolders.length ||
+      nextCollapsedFolders.some((id, index) => id !== currentCollapsedFolders[index]);
+
+    if (!didChange) {
+      return;
+    }
+
+    context.state.settings.collapsedFolders = nextCollapsedFolders;
+    context.data.saveNotes({ skipRemote: true });
+    context.renderers.renderSidebarRecap();
+    context.renderers.renderOrganization();
+  }
+
   function getMostConnectedNotes() {
     return [...context.state.notes]
       .sort((left, right) => getConnectionCount(right) - getConnectionCount(left))
@@ -1385,6 +1417,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     cancelEditingNote,
     canMoveNote,
     clearOrganizationDropHighlights,
+    collapseSidebarFolders,
     closeQuickCapture,
     createEmptyNote,
     createFolderFromOrganization,
