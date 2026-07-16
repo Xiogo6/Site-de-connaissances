@@ -518,6 +518,10 @@
               durationSeconds: Math.max(0, Math.round(Number(session?.durationSeconds) || 0)),
               total: Math.max(0, Math.round(Number(session?.total) || 0)),
               correct: Math.max(0, Math.round(Number(session?.correct) || 0)),
+              averageAnswerSeconds: Math.max(
+                0,
+                Number(session?.averageAnswerSeconds) || 0
+              ),
               scope: typeof session?.scope === "string" ? session.scope : "all",
               focus: typeof session?.focus === "string" ? session.focus : "mixed",
             }))
