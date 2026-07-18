@@ -22,6 +22,21 @@
   --theme-quiz-background:
     linear-gradient(120deg, rgba(37, 118, 108, 0.1), transparent 34%),
     linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(246, 239, 224, 0.66) 52%, rgba(230, 239, 235, 0.7));
+  --theme-secondary-accent: #5d7461;
+  --theme-tertiary-accent: #496a8f;
+  --theme-sidebar-surface: color-mix(in srgb, var(--surface) 92%, var(--accent) 8%);
+  --theme-page-surface: color-mix(in srgb, var(--surface) 96%, var(--accent) 4%);
+  --theme-side-panel-surface: color-mix(in srgb, var(--surface) 90%, var(--theme-secondary-accent) 10%);
+  --theme-section-surface: color-mix(in srgb, var(--theme-item-background) 92%, var(--accent) 8%);
+  --theme-toolbar-surface: color-mix(in srgb, var(--theme-field-background) 88%, var(--accent) 12%);
+  --theme-button-surface: color-mix(in srgb, var(--theme-item-background) 92%, var(--text) 8%);
+  --theme-button-hover: color-mix(in srgb, var(--theme-item-active) 84%, var(--accent) 16%);
+  --theme-table-head: color-mix(in srgb, var(--theme-item-active) 82%, var(--accent) 18%);
+  --theme-table-cell: color-mix(in srgb, var(--theme-item-background) 96%, var(--accent) 4%);
+  --theme-table-cell-alt: color-mix(in srgb, var(--theme-item-background) 88%, var(--theme-secondary-accent) 12%);
+  --theme-overlay: color-mix(in srgb, var(--text) 32%, transparent);
+  --theme-scroll-track: color-mix(in srgb, var(--surface) 82%, transparent);
+  --theme-scroll-thumb: color-mix(in srgb, var(--accent) 72%, var(--text-soft) 28%);
 }
 
 :root[data-theme-preset="classic-dark"] {
@@ -48,6 +63,8 @@
   --theme-accent-wash: rgba(208, 122, 76, 0.15);
   --theme-accent-line: rgba(208, 122, 76, 0.4);
   --theme-primary-text: #fff9f1;
+  --theme-secondary-accent: #6f917f;
+  --theme-tertiary-accent: #7089aa;
   --theme-quiz-background:
     radial-gradient(circle at 14% 8%, rgba(208, 122, 76, 0.12), transparent 32%),
     linear-gradient(145deg, #181c21, #111519 58%, #18201e);
@@ -63,6 +80,8 @@
   --accent: #bf5b2c;
   --accent-strong: #8f3914;
   --shadow: 0 24px 60px rgba(81, 55, 30, 0.12);
+  --theme-secondary-accent: #5d7461;
+  --theme-tertiary-accent: #496a8f;
 }
 
 :root[data-theme-preset="forest"] {
@@ -88,6 +107,8 @@
   --theme-accent-wash: rgba(142, 174, 102, 0.16);
   --theme-accent-line: rgba(184, 212, 134, 0.38);
   --theme-primary-text: #10170d;
+  --theme-secondary-accent: #5f8c72;
+  --theme-tertiary-accent: #b39b62;
   --theme-graph-base: #060b07;
   --theme-graph-background:
     radial-gradient(circle at 20% 18%, rgba(119, 150, 89, 0.17), transparent 27%),
@@ -122,6 +143,8 @@
   --theme-accent-wash: rgba(72, 174, 168, 0.15);
   --theme-accent-line: rgba(121, 209, 199, 0.4);
   --theme-primary-text: #041615;
+  --theme-secondary-accent: #4d78a5;
+  --theme-tertiary-accent: #7798a8;
   --theme-graph-base: #02080d;
   --theme-graph-background:
     radial-gradient(circle at 16% 18%, rgba(55, 148, 153, 0.18), transparent 28%),
@@ -156,6 +179,8 @@
   --theme-accent-wash: rgba(196, 104, 67, 0.12);
   --theme-accent-line: rgba(196, 104, 67, 0.37);
   --theme-primary-text: #fffaf5;
+  --theme-secondary-accent: #a97d68;
+  --theme-tertiary-accent: #7b718e;
   --theme-graph-background:
     radial-gradient(circle at 18% 17%, rgba(169, 98, 69, 0.17), transparent 27%),
     radial-gradient(circle at 80% 25%, rgba(109, 77, 89, 0.15), transparent 28%),
@@ -189,6 +214,8 @@
   --theme-accent-wash: rgba(79, 119, 132, 0.12);
   --theme-accent-line: rgba(79, 119, 132, 0.36);
   --theme-primary-text: #f8fbfa;
+  --theme-secondary-accent: #6f927b;
+  --theme-tertiary-accent: #7c7896;
   --theme-graph-background:
     radial-gradient(circle at 18% 17%, rgba(80, 126, 135, 0.17), transparent 27%),
     radial-gradient(circle at 80% 25%, rgba(74, 102, 123, 0.15), transparent 28%),
@@ -357,6 +384,426 @@ body.graph-view-active .graph-mode-button.is-active,
 body.graph-view-active .graph-filter-toggle.is-active {
   border-color: var(--theme-accent-line);
   color: #f7fbff;
+}
+
+/* Apply the selected palette to every interface layer, including legacy components. */
+body[data-theme-preset] * {
+  scrollbar-color: var(--theme-scroll-thumb) var(--theme-scroll-track);
+}
+
+body[data-theme-preset] ::selection {
+  background: var(--theme-accent-line);
+  color: var(--text);
+}
+
+body[data-theme-preset] .sidebar {
+  background:
+    linear-gradient(160deg, var(--theme-accent-wash), transparent 34%),
+    var(--theme-sidebar-surface);
+  border-color: var(--line);
+  box-shadow: var(--theme-panel-shadow);
+}
+
+body[data-theme-preset] .panel:not(.graph-panel),
+body[data-theme-preset] .hero {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.025), transparent 44%),
+    var(--theme-panel-background);
+  border-color: var(--line);
+  box-shadow: var(--theme-panel-shadow);
+}
+
+body[data-theme-preset] .panel-links {
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--theme-secondary-accent) 10%, transparent), transparent 38%),
+    var(--theme-side-panel-surface);
+}
+
+body[data-theme-preset] .preview-note-card {
+  background:
+    radial-gradient(circle at 8% 4%, var(--theme-accent-wash), transparent 28%),
+    linear-gradient(180deg, color-mix(in srgb, var(--theme-page-surface) 98%, white 2%), var(--theme-page-surface));
+  border-color: var(--theme-accent-line);
+  box-shadow:
+    0 24px 54px color-mix(in srgb, var(--text) 12%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+body[data-theme-preset] .rendered-note h1,
+body[data-theme-preset] .rendered-note h2,
+body[data-theme-preset] .rendered-note h3,
+body[data-theme-preset] .preview-note-title {
+  color: color-mix(in srgb, var(--text) 86%, var(--accent-strong) 14%);
+}
+
+body[data-theme-preset] .rendered-note a,
+body[data-theme-preset] .note-link {
+  border-color: var(--theme-accent-line);
+  color: var(--accent-strong);
+}
+
+body[data-theme-preset] .rendered-note code {
+  background: var(--theme-toolbar-surface);
+  color: var(--text);
+}
+
+body[data-theme-preset] .panel-links .link-section,
+body[data-theme-preset] .organization-layout .link-section,
+body[data-theme-preset] #settings-tab .link-section,
+body[data-theme-preset] .panel-preview > .link-section:last-of-type {
+  background: var(--theme-section-surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  padding: 14px;
+}
+
+body[data-theme-preset] .panel-links .link-section + .link-section,
+body[data-theme-preset] .organization-layout .link-section + .link-section,
+body[data-theme-preset] #settings-tab .link-section + .link-section {
+  margin-top: 12px;
+}
+
+body[data-theme-preset] .tabs,
+body[data-theme-preset] .utility-launcher,
+body[data-theme-preset] .sidebar-launcher {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+    var(--theme-nav-background);
+  border-color: var(--line);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--text) 13%, transparent);
+}
+
+body[data-theme-preset] .tab {
+  color: var(--text-soft);
+}
+
+body[data-theme-preset] .tab-icon {
+  background: var(--theme-soft-background);
+  color: var(--text-soft);
+}
+
+body[data-theme-preset] .tab.is-active {
+  background: var(--theme-item-active);
+  box-shadow: inset 0 0 0 1px var(--theme-accent-line);
+  color: var(--accent-strong);
+}
+
+body[data-theme-preset] .tab.is-active .tab-icon {
+  background: var(--theme-accent-wash);
+  color: var(--accent-strong);
+}
+
+body[data-theme-preset] .sidebar-tab,
+body[data-theme-preset] .button:not(.button-primary):not(.button-danger):not(.button-flat),
+body[data-theme-preset] .revision-choice-card,
+body[data-theme-preset] .quiz-view-button {
+  background: var(--theme-button-surface);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+body[data-theme-preset] .sidebar-tab:hover,
+body[data-theme-preset] .button:not(.button-primary):not(.button-danger):not(.button-flat):hover,
+body[data-theme-preset] .revision-choice-card:hover,
+body[data-theme-preset] .quiz-view-button:hover {
+  background: var(--theme-button-hover);
+  border-color: var(--theme-accent-line);
+}
+
+body[data-theme-preset] .sidebar-tab.is-active,
+body[data-theme-preset] .revision-choice-card.is-active,
+body[data-theme-preset] .quiz-view-button.is-active {
+  background: var(--theme-item-active);
+  border-color: var(--theme-accent-line);
+  color: var(--accent-strong);
+}
+
+body[data-theme-preset] .button-primary,
+body[data-theme-preset] .quick-capture-toggle {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.13), transparent 42%),
+    linear-gradient(135deg, var(--accent), var(--accent-strong));
+  border-color: transparent;
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--theme-primary-text);
+}
+
+body[data-theme-preset] .button-ghost {
+  background: var(--theme-soft-background);
+  border-color: color-mix(in srgb, var(--theme-secondary-accent) 30%, transparent);
+  color: var(--text);
+}
+
+body[data-theme-preset] .editor-toolbar,
+body[data-theme-preset] .editor-mini-actions,
+body[data-theme-preset] .editor-classify-toggle,
+body[data-theme-preset] .toggle-row-editor {
+  background: var(--theme-toolbar-surface);
+  border-color: var(--line);
+}
+
+body[data-theme-preset] .text-input,
+body[data-theme-preset] .select-input,
+body[data-theme-preset] .editor,
+body[data-theme-preset] .sport-input,
+body[data-theme-preset] .quiz-session-answer {
+  background: var(--theme-field-background) !important;
+  border-color: var(--line) !important;
+  color: var(--text) !important;
+}
+
+body[data-theme-preset] .knowledge-list {
+  background: color-mix(in srgb, var(--theme-sidebar-surface) 76%, transparent);
+  border-radius: 16px;
+  padding: 6px;
+}
+
+body[data-theme-preset] .knowledge-item,
+body[data-theme-preset] .insight-card,
+body[data-theme-preset] .due-item,
+body[data-theme-preset] .hierarchy-node,
+body[data-theme-preset] .snapshot-item,
+body[data-theme-preset] .stat-card,
+body[data-theme-preset] .helper-card,
+body[data-theme-preset] .focus-card {
+  background: var(--theme-item-background);
+  border-color: var(--line);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+body[data-theme-preset] .knowledge-item:hover,
+body[data-theme-preset] .knowledge-item.is-active,
+body[data-theme-preset] .knowledge-item-shell.is-active,
+body[data-theme-preset] .hierarchy-node:hover {
+  background: var(--theme-item-active);
+  border-color: var(--theme-accent-line);
+}
+
+body[data-theme-preset] .knowledge-item-menu {
+  background: var(--theme-side-panel-surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+body[data-theme-preset] .organization-dropzone {
+  background: var(--theme-soft-background);
+  border-color: var(--theme-accent-line);
+  color: var(--text-soft);
+}
+
+body[data-theme-preset] .chip {
+  background: var(--theme-accent-wash);
+  border-color: var(--theme-accent-line);
+  color: var(--accent-strong);
+}
+
+body[data-theme-preset] .tag:not(.tag-type):not(.tag-favorite):nth-child(3n + 1) {
+  background: color-mix(in srgb, var(--theme-secondary-accent) 18%, transparent);
+  color: color-mix(in srgb, var(--theme-secondary-accent) 72%, var(--text) 28%);
+}
+
+body[data-theme-preset] .tag:not(.tag-type):not(.tag-favorite):nth-child(3n + 2) {
+  background: color-mix(in srgb, var(--theme-tertiary-accent) 18%, transparent);
+  color: color-mix(in srgb, var(--theme-tertiary-accent) 72%, var(--text) 28%);
+}
+
+body[data-theme-preset] .tag:not(.tag-type):not(.tag-favorite):nth-child(3n) {
+  background: var(--theme-accent-wash);
+  color: var(--accent-strong);
+}
+
+body[data-theme-preset] .tag.tag-type,
+body[data-theme-preset] .pill,
+body[data-theme-preset] .pill-soft,
+body[data-theme-preset] .pill-due {
+  background: var(--theme-soft-background);
+  color: var(--text-soft);
+}
+
+body[data-theme-preset] .tag.tag-favorite {
+  background: color-mix(in srgb, #d8ad54 20%, transparent);
+  color: color-mix(in srgb, #d8ad54 68%, var(--text) 32%);
+}
+
+body[data-theme-preset] .table-shell,
+body[data-theme-preset] .sport-table-shell {
+  background: var(--theme-table-cell);
+  border-color: var(--line);
+}
+
+body[data-theme-preset] .data-table th,
+body[data-theme-preset] .sport-table th {
+  background: var(--theme-table-head);
+  border-color: var(--line);
+  color: var(--text-soft);
+}
+
+body[data-theme-preset] .data-table td,
+body[data-theme-preset] .sport-table td {
+  background: var(--theme-table-cell);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+body[data-theme-preset] .sport-table tr:nth-child(even) td {
+  background: var(--theme-table-cell-alt);
+}
+
+body[data-theme-preset] .data-table td:focus-within,
+body[data-theme-preset] .sport-table td:focus-within {
+  background: var(--theme-item-active);
+  box-shadow: inset 0 0 0 1px var(--theme-accent-line);
+}
+
+body[data-theme-preset] .utility-drawer-backdrop,
+body[data-theme-preset] .sidebar-drawer-backdrop {
+  background: var(--theme-overlay);
+}
+
+body[data-theme-preset] .utility-drawer-panel,
+body[data-theme-preset] .quick-capture-panel {
+  background:
+    linear-gradient(145deg, var(--theme-accent-wash), transparent 35%),
+    var(--theme-sidebar-surface);
+  border-color: var(--line);
+  box-shadow: 0 28px 72px color-mix(in srgb, var(--text) 24%, transparent);
+}
+
+body[data-theme-preset] .utility-link,
+body[data-theme-preset] .utility-link[data-utility-tab="settings"],
+body[data-theme-preset] .utility-link[data-utility-tab="sport"],
+body[data-theme-preset] #theme-toggle-button.utility-link {
+  background: var(--theme-button-surface);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+body[data-theme-preset] .utility-link:hover,
+body[data-theme-preset] .utility-link.is-active {
+  background: var(--theme-button-hover);
+  border-color: var(--theme-accent-line);
+  color: var(--accent-strong);
+}
+
+body[data-theme-preset].quiz-view-active .quiz-universe {
+  --quiz-ink: var(--text);
+  --quiz-panel: var(--theme-item-background);
+  --quiz-panel-strong: var(--theme-item-active);
+  --quiz-line: var(--line);
+  background: var(--theme-quiz-background);
+  color: var(--text);
+}
+
+body[data-theme-preset].quiz-view-active .quiz-command-hero,
+body[data-theme-preset].quiz-view-active .quiz-game-card,
+body[data-theme-preset].quiz-view-active .quiz-session-card {
+  background:
+    radial-gradient(circle at 84% 8%, var(--theme-accent-wash), transparent 34%),
+    linear-gradient(145deg, var(--theme-side-panel-surface), var(--theme-panel-background));
+  border-color: var(--line);
+  color: var(--text);
+}
+
+body[data-theme-preset].quiz-view-active .quiz-stat-card,
+body[data-theme-preset].quiz-view-active .quiz-mastery-panel,
+body[data-theme-preset].quiz-view-active .quiz-player-panel,
+body[data-theme-preset].quiz-view-active .quiz-lane,
+body[data-theme-preset].quiz-view-active .quiz-rank-item,
+body[data-theme-preset].quiz-view-active .quiz-drilldown-head,
+body[data-theme-preset].quiz-view-active .quiz-question-stage,
+body[data-theme-preset].quiz-view-active .quiz-session-score,
+body[data-theme-preset].quiz-view-active .quiz-game-rules span,
+body[data-theme-preset].quiz-view-active .quiz-score-pill,
+body[data-theme-preset].quiz-view-active .quiz-question-meta span {
+  background: var(--theme-item-background);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+body[data-theme-preset].quiz-view-active .quiz-recall-zone,
+body[data-theme-preset].quiz-view-active .quiz-answer-reveal,
+body[data-theme-preset].quiz-view-active .quiz-mini-stats span,
+body[data-theme-preset].quiz-view-active .quiz-rank-track {
+  background: var(--theme-soft-background);
+  border-color: var(--theme-accent-line);
+}
+
+body[data-theme-preset] .timeline-summary-card,
+body[data-theme-preset] .timeline-focus-card,
+body[data-theme-preset] .timeline-card,
+body[data-theme-preset] .timeline-range-bar,
+body[data-theme-preset] .timeline-moment {
+  background: var(--theme-item-background);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+body[data-theme-preset] .timeline-stage {
+  background:
+    linear-gradient(180deg, var(--theme-accent-wash), transparent 42%),
+    var(--theme-page-surface);
+  border-color: var(--line);
+}
+
+body[data-theme-preset] .timeline-axis {
+  background: linear-gradient(90deg, transparent, var(--accent), var(--accent-strong), transparent);
+}
+
+body[data-theme-preset] .timeline-band {
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+body[data-theme-preset] .timeline-band.is-alt {
+  background: color-mix(in srgb, var(--theme-secondary-accent) 9%, transparent);
+}
+
+body[data-theme-preset] .timeline-entry.is-selected .timeline-card,
+body[data-theme-preset] .timeline-range.is-selected .timeline-range-bar {
+  border-color: var(--theme-accent-line);
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+body[data-theme-preset].graph-view-active .graph-mode-switcher,
+body[data-theme-preset].graph-view-active .graph-filter-toggle,
+body[data-theme-preset].graph-view-active .graph-zoom-stack .button,
+body[data-theme-preset].graph-view-active .graph-panel .graph-controls {
+  background: color-mix(in srgb, var(--theme-graph-base) 84%, var(--accent) 16%);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+body[data-theme-preset].graph-view-active .graph-edge.is-focus-edge {
+  stroke: color-mix(in srgb, var(--accent-strong) 62%, #dce7f4 38%);
+}
+
+body[data-theme-preset].graph-view-active .graph-node.is-current {
+  filter: drop-shadow(0 0 13px color-mix(in srgb, var(--accent) 54%, transparent));
+}
+
+@media (max-width: 780px) {
+  body[data-theme-preset] #knowledge-tab.is-active,
+  body[data-theme-preset] .workspace {
+    background: var(--theme-page-surface);
+  }
+
+  body[data-theme-preset] .workspace > .panel {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
+
+  body[data-theme-preset] .preview-note-card {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  body[data-theme-preset] .panel-links .link-section,
+  body[data-theme-preset] .organization-layout .link-section,
+  body[data-theme-preset] #settings-tab .link-section {
+    border-radius: 14px;
+  }
 }
 
 .theme-settings-panel {

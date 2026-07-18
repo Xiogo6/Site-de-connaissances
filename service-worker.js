@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-connaissance-v43";
+const CACHE_NAME = "atlas-connaissance-v44";
 const ASSETS = [
   "./",
   "./index.html",
