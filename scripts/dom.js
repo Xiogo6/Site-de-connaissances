@@ -160,7 +160,7 @@
       quizControls: document.querySelector("#quiz-controls"),
       asterRoamer: document.querySelector("#aster-roamer"),
       asterRoamerSpeech: document.querySelector("#aster-roamer-speech"),
-      asterRoamerImage: document.querySelector("#aster-roamer-image"),
+      asterRoamerCharacter: document.querySelector("#aster-roamer-character"),
       noteQuizQuestionsBody: document.querySelector("#note-quiz-questions-body"),
       previewQuizQuestionsBody: document.querySelector("#preview-quiz-questions-body"),
       addQuizQuestionButton: document.querySelector("#add-quiz-question-button"),

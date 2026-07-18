@@ -243,14 +243,17 @@ body.quiz-view-active .sidebar-launcher {
     scale(var(--aster-scale))
     rotate(var(--aster-rotate));
   transition:
-    transform 1500ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 240ms ease;
+    transform 2600ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 420ms ease;
+  transform-origin: 50% 58%;
   will-change: transform, opacity;
   z-index: 70;
 }
 
 .aster-roamer.is-hidden {
-  display: none;
+  display: block;
+  opacity: 0;
+  visibility: hidden;
 }
 
 .aster-roamer.is-offscreen {
@@ -271,6 +274,33 @@ body.quiz-view-active .sidebar-launcher {
 .aster-roamer.has-speech .quiz-aster-speech {
   opacity: 1;
   transform: translateY(0) scale(1);
+}
+
+.aster-roamer .quiz-aster-drift {
+  animation: quizAsterAliveFloat 6.8s ease-in-out infinite;
+}
+
+.aster-roamer .quiz-aster-core {
+  animation: quizAsterAliveBreath 5.6s ease-in-out infinite;
+  transform-origin: 50% 60%;
+}
+
+.aster-roamer .aster-character {
+  animation: quizAsterAliveIdle 7.4s ease-in-out infinite;
+  transform-origin: 50% 62%;
+}
+
+.aster-roamer.is-thinking .aster-character {
+  animation-name: quizAsterAliveThink;
+}
+
+.aster-roamer.is-encouraging .aster-character {
+  animation-name: quizAsterAliveEncourage;
+  animation-duration: 6.2s;
+}
+
+.aster-roamer.is-peeking .aster-character {
+  animation-name: quizAsterAlivePeek;
 }
 
 .quiz-aster-setup {
@@ -456,6 +486,134 @@ body.quiz-view-active .sidebar-launcher {
   stroke-width: 3.6;
 }
 
+.aster-character {
+  display: block;
+  overflow: visible;
+  transform-box: fill-box;
+  width: 100%;
+}
+
+.aster-ground-shadow {
+  animation: quizAsterShadowPulse 5.6s ease-in-out infinite;
+  fill: rgba(83, 57, 26, 0.18);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.aster-body-group,
+.aster-face-svg,
+.aster-sparkles-svg,
+.aster-eye-svg,
+.aster-forehead-dot-svg {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.aster-body {
+  stroke-width: 4.2;
+}
+
+.aster-forehead-dot-svg {
+  animation: quizAsterDotPulse 4.8s ease-in-out infinite;
+  fill: #ffe8a2;
+  filter: drop-shadow(0 0 7px rgba(255, 220, 126, 0.62));
+  stroke: rgba(151, 96, 30, 0.38);
+  stroke-width: 1.2;
+}
+
+.aster-face-svg {
+  animation: quizAsterFaceBob 6.2s ease-in-out infinite;
+}
+
+.aster-brow {
+  fill: none;
+  opacity: 0.74;
+  stroke: #9b682d;
+  stroke-linecap: round;
+  stroke-width: 3.2;
+  transition: opacity 260ms ease, transform 420ms ease;
+}
+
+.aster-eye-svg {
+  animation: quizAsterEyeBlinkSvg 6.4s ease-in-out infinite;
+  fill: #3a2c24;
+  filter: drop-shadow(0 2px 1px rgba(255, 247, 206, 0.3));
+  transform-origin: center;
+}
+
+.aster-eye-right {
+  animation-delay: 0.12s;
+}
+
+.aster-eye-shine {
+  fill: rgba(255, 253, 242, 0.95);
+  pointer-events: none;
+}
+
+.aster-cheek-svg {
+  fill: rgba(239, 136, 110, 0.42);
+  filter: blur(0.7px);
+}
+
+.aster-mouth-svg {
+  fill: none;
+  opacity: 0;
+  stroke: #905330;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+  transition: opacity 220ms ease, transform 360ms ease;
+}
+
+.aster-mouth-happy {
+  fill: #c76b45;
+  stroke-width: 2.4;
+}
+
+.aster-roamer.mood-neutral .aster-mouth-smile,
+.aster-roamer.mood-curious .aster-mouth-smile {
+  opacity: 1;
+}
+
+.aster-roamer.mood-happy .aster-mouth-happy {
+  opacity: 1;
+}
+
+.aster-roamer.mood-thinking .aster-mouth-thinking {
+  opacity: 1;
+  transform: translateY(1px) rotate(1deg);
+}
+
+.aster-roamer.mood-thinking .aster-brow-left {
+  transform: translate(-2px, 2px) rotate(-8deg);
+}
+
+.aster-roamer.mood-thinking .aster-brow-right {
+  transform: translate(2px, 0) rotate(7deg);
+}
+
+.aster-roamer.mood-curious .aster-brow-left {
+  transform: translateY(-2px) rotate(-5deg);
+}
+
+.aster-roamer.mood-curious .aster-brow-right {
+  transform: translateY(2px) rotate(5deg);
+}
+
+.aster-roamer.mood-happy .aster-face-svg {
+  animation-name: quizAsterFaceHappy;
+}
+
+.aster-roamer.is-thinking .aster-face-svg {
+  animation-name: quizAsterFaceThink;
+}
+
+.aster-sparkles-svg {
+  animation: quizAsterSparklePulse 4.9s ease-in-out infinite;
+  fill: rgba(255, 239, 166, 0.88);
+  filter: drop-shadow(0 0 6px rgba(255, 218, 111, 0.46));
+}
+
 .quiz-aster-forehead-dot {
   background:
     radial-gradient(circle at 38% 34%, rgba(255, 255, 255, 0.94) 0 16%, transparent 19%),
@@ -631,12 +789,6 @@ body[data-theme="dark"] .aster-roamer .quiz-aster-speech {
 
 body:not(.quiz-view-active) .aster-roamer {
   display: none;
-}
-
-body.quiz-view-active .quiz-aster,
-body.quiz-view-active .quiz-aster * {
-  animation: none !important;
-  transition-duration: 0ms !important;
 }
 
 .quiz-aster-result .quiz-aster-orbit {
@@ -2201,6 +2353,181 @@ body[data-theme="dark"] .quiz-universe .quiz-session-table th {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes quizAsterAliveFloat {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-1deg);
+  }
+  35% {
+    transform: translate3d(-2px, -7px, 0) rotate(1.5deg);
+  }
+  68% {
+    transform: translate3d(2px, -3px, 0) rotate(-0.5deg);
+  }
+}
+
+@keyframes quizAsterAliveBreath {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  48% {
+    transform: scale(1.035, 0.985);
+  }
+  72% {
+    transform: scale(0.99, 1.018);
+  }
+}
+
+@keyframes quizAsterAliveIdle {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  28% {
+    transform: rotate(-1.6deg) scale(1.01);
+  }
+  58% {
+    transform: rotate(1.2deg) scale(0.995);
+  }
+}
+
+@keyframes quizAsterAliveThink {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  34% {
+    transform: translateY(2px) rotate(3deg) scale(0.985);
+  }
+  62% {
+    transform: translateY(-1px) rotate(-1deg) scale(1.01);
+  }
+}
+
+@keyframes quizAsterAliveEncourage {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  22% {
+    transform: translateY(-5px) rotate(-4deg) scale(1.035);
+  }
+  44% {
+    transform: translateY(1px) rotate(3deg) scale(0.99);
+  }
+  68% {
+    transform: translateY(-3px) rotate(-2deg) scale(1.018);
+  }
+}
+
+@keyframes quizAsterAlivePeek {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+  38% {
+    transform: translateX(-6px) rotate(4deg) scale(0.985);
+  }
+  70% {
+    transform: translateX(2px) rotate(-2deg) scale(1.005);
+  }
+}
+
+@keyframes quizAsterFaceBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  42% {
+    transform: translateY(-1.5px);
+  }
+  70% {
+    transform: translateY(1px);
+  }
+}
+
+@keyframes quizAsterFaceHappy {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  34% {
+    transform: translateY(-2px) scale(1.02);
+  }
+  68% {
+    transform: translateY(1px) scale(0.995);
+  }
+}
+
+@keyframes quizAsterFaceThink {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  40% {
+    transform: translate(1px, 1.5px) rotate(1.4deg);
+  }
+  72% {
+    transform: translate(-1px, -0.5px) rotate(-0.8deg);
+  }
+}
+
+@keyframes quizAsterEyeBlinkSvg {
+  0%,
+  38%,
+  43%,
+  63%,
+  100% {
+    transform: scaleY(1);
+  }
+  40%,
+  41% {
+    transform: scaleY(0.14);
+  }
+  55% {
+    transform: scaleY(1.08);
+  }
+}
+
+@keyframes quizAsterShadowPulse {
+  0%,
+  100% {
+    opacity: 0.18;
+    transform: scaleX(0.95);
+  }
+  48% {
+    opacity: 0.12;
+    transform: scaleX(0.82);
+  }
+}
+
+@keyframes quizAsterDotPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.22);
+  }
+}
+
+@keyframes quizAsterSparklePulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: rotate(0deg) scale(0.94);
+  }
+  42% {
+    opacity: 1;
+    transform: rotate(4deg) scale(1.08);
+  }
+  72% {
+    opacity: 0.72;
+    transform: rotate(-3deg) scale(1);
   }
 }
 

@@ -60,7 +60,7 @@
       })();
     </script>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=43" />
+    <link rel="stylesheet" href="./styles.css?v=44" />
   </head>
   <body>
     <div class="shell">
@@ -1383,28 +1383,87 @@
       <div class="quiz-aster-drift">
         <span class="quiz-aster-glow"></span>
         <div class="quiz-aster-core">
-          <img
-            id="aster-roamer-image"
-            class="quiz-aster-image"
-            src="./assets/mascot/aster-neutral.png"
-            alt=""
-            loading="lazy"
-          />
+          <svg
+            id="aster-roamer-character"
+            class="quiz-aster-star aster-character"
+            viewBox="0 0 180 180"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <defs>
+              <radialGradient id="asterBodyGradient" cx="38%" cy="29%" r="74%">
+                <stop offset="0%" stop-color="#fff7bd" />
+                <stop offset="44%" stop-color="#ffd96e" />
+                <stop offset="100%" stop-color="#e59d35" />
+              </radialGradient>
+              <linearGradient id="asterEdgeGradient" x1="28%" y1="13%" x2="77%" y2="91%">
+                <stop offset="0%" stop-color="#fff2aa" />
+                <stop offset="48%" stop-color="#d9942e" />
+                <stop offset="100%" stop-color="#96642a" />
+              </linearGradient>
+              <filter id="asterSoftDepth" x="-18%" y="-16%" width="136%" height="142%">
+                <feDropShadow dx="0" dy="12" stdDeviation="7" flood-color="#6b471c" flood-opacity="0.23" />
+                <feDropShadow dx="-2" dy="-2" stdDeviation="1.6" flood-color="#fff6c6" flood-opacity="0.58" />
+              </filter>
+            </defs>
+            <ellipse class="aster-ground-shadow" cx="91" cy="147" rx="48" ry="12" />
+            <g class="aster-body-group" filter="url(#asterSoftDepth)">
+              <path
+                class="quiz-aster-star-depth"
+                d="M90 15 C98 39 105 53 118 60 C132 67 154 58 162 70 C169 82 147 95 140 106 C132 119 144 139 132 151 C121 162 102 146 90 143 C78 146 59 162 48 151 C36 139 48 119 40 106 C33 95 11 82 18 70 C26 58 48 67 62 60 C75 53 82 39 90 15 Z"
+              />
+              <path
+                class="quiz-aster-star-shape aster-body"
+                d="M90 15 C98 39 105 53 118 60 C132 67 154 58 162 70 C169 82 147 95 140 106 C132 119 144 139 132 151 C121 162 102 146 90 143 C78 146 59 162 48 151 C36 139 48 119 40 106 C33 95 11 82 18 70 C26 58 48 67 62 60 C75 53 82 39 90 15 Z"
+                fill="url(#asterBodyGradient)"
+                stroke="url(#asterEdgeGradient)"
+              />
+              <path
+                class="quiz-aster-star-shine"
+                d="M54 69 C68 59 76 45 84 26"
+              />
+              <path
+                class="quiz-aster-star-shine quiz-aster-star-shine-soft"
+                d="M111 66 C124 70 137 68 150 72"
+              />
+            </g>
+            <circle class="aster-forehead-dot-svg" cx="90" cy="58" r="4.7" />
+            <g class="aster-face-svg">
+              <path class="aster-brow aster-brow-left" d="M65 77 C70 73 75 73 80 76" />
+              <path class="aster-brow aster-brow-right" d="M100 76 C105 73 111 74 116 78" />
+              <g class="aster-eyes-svg">
+                <ellipse class="aster-eye-svg aster-eye-left" cx="72" cy="91" rx="7.4" ry="10.8" />
+                <ellipse class="aster-eye-svg aster-eye-right" cx="109" cy="91" rx="7.4" ry="10.8" />
+                <circle class="aster-eye-shine" cx="69" cy="87" r="2.5" />
+                <circle class="aster-eye-shine" cx="106" cy="87" r="2.5" />
+              </g>
+              <ellipse class="aster-cheek-svg aster-cheek-left-svg" cx="56" cy="105" rx="10" ry="6" />
+              <ellipse class="aster-cheek-svg aster-cheek-right-svg" cx="125" cy="105" rx="10" ry="6" />
+              <path class="aster-mouth-svg aster-mouth-smile" d="M80 111 C86 120 96 120 102 111" />
+              <path class="aster-mouth-svg aster-mouth-happy" d="M78 109 C84 124 99 124 105 109 C99 114 84 114 78 109 Z" />
+              <path class="aster-mouth-svg aster-mouth-thinking" d="M82 114 C89 111 96 112 101 116" />
+            </g>
+            <g class="aster-sparkles-svg">
+              <path d="M36 44 L39 52 L47 55 L39 58 L36 66 L33 58 L25 55 L33 52 Z" />
+              <path d="M137 42 L140 49 L147 52 L140 55 L137 62 L134 55 L127 52 L134 49 Z" />
+              <circle cx="146" cy="122" r="3" />
+            </g>
+          </svg>
         </div>
       </div>
     </div>
 
-    <script src="./scripts/config.js?v=43"></script>
-    <script src="./scripts/dom.js?v=43"></script>
-    <script src="./scripts/helpers.js?v=43"></script>
-    <script src="./scripts/data.js?v=43"></script>
-    <script src="./scripts/ai.js?v=43"></script>
-    <script src="./scripts/notes.js?v=43"></script>
-    <script src="./scripts/graph.js?v=43"></script>
-    <script src="./scripts/quiz.js?v=43"></script>
-    <script src="./scripts/mascot.js?v=43"></script>
-    <script src="./scripts/renderers.js?v=43"></script>
-    <script src="./scripts/events.js?v=43"></script>
-    <script src="./app.js?v=43"></script>
+    <script src="./scripts/config.js?v=44"></script>
+    <script src="./scripts/dom.js?v=44"></script>
+    <script src="./scripts/helpers.js?v=44"></script>
+    <script src="./scripts/data.js?v=44"></script>
+    <script src="./scripts/ai.js?v=44"></script>
+    <script src="./scripts/notes.js?v=44"></script>
+    <script src="./scripts/graph.js?v=44"></script>
+    <script src="./scripts/quiz.js?v=44"></script>
+    <script src="./scripts/mascot.js?v=44"></script>
+    <script src="./scripts/renderers.js?v=44"></script>
+    <script src="./scripts/events.js?v=44"></script>
+    <script src="./app.js?v=44"></script>
   </body>
 </html>
