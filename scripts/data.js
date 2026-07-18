@@ -13,6 +13,7 @@
       snapshotStorageKey,
       storageKey,
       supabase,
+      themePresets,
     } = AtlasApp.config;
 
     const remoteConfig = {
@@ -409,6 +410,7 @@
         publishedUrl: "",
         lastPublishAt: null,
         theme: "dark",
+        themePreset: "classic-dark",
         typeLabels: {},
         customNoteTypes: [],
         deletedNoteTypes: [],
@@ -421,8 +423,17 @@
         sport: {
           massEntries: [],
           performanceEntries: [],
+          lastSavedAt: null,
         },
       };
+    }
+
+    function normalizeThemePreset(rawPreset, rawTheme) {
+      if (typeof rawPreset === "string" && themePresets?.[rawPreset]) {
+        return rawPreset;
+      }
+
+      return rawTheme === "light" ? "classic-light" : "classic-dark";
     }
 
     function normalizeSportEntry(entry = {}, fields = []) {
@@ -452,6 +463,7 @@
               ])
             )
           : [],
+        lastSavedAt: typeof rawSport?.lastSavedAt === "string" ? rawSport.lastSavedAt : null,
       };
     }
 
@@ -535,13 +547,17 @@
     }
 
     function normalizeSettings(rawSettings = {}) {
+      const themePreset = normalizeThemePreset(rawSettings?.themePreset, rawSettings?.theme);
+      const theme = themePresets?.[themePreset]?.mode === "light" ? "light" : "dark";
+
       return {
         ...getDefaultSettings(),
         publishedUrl:
           typeof rawSettings?.publishedUrl === "string" ? rawSettings.publishedUrl : "",
         lastPublishAt:
           typeof rawSettings?.lastPublishAt === "string" ? rawSettings.lastPublishAt : null,
-        theme: rawSettings?.theme === "light" ? "light" : "dark",
+        theme,
+        themePreset,
         typeLabels: normalizeTypeLabels(rawSettings?.typeLabels),
         customNoteTypes: normalizeCustomNoteTypes(rawSettings?.customNoteTypes),
         deletedNoteTypes: Array.isArray(rawSettings?.deletedNoteTypes)
@@ -593,6 +609,7 @@
           publishedUrl: context.state.settings.publishedUrl,
           lastPublishAt: context.state.settings.lastPublishAt,
           theme: context.state.settings.theme || "light",
+          themePreset: context.state.settings.themePreset || "classic-dark",
           typeLabels: context.state.settings.typeLabels || {},
           customNoteTypes: context.state.settings.customNoteTypes || [],
           deletedNoteTypes: context.state.settings.deletedNoteTypes || [],

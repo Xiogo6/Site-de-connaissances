@@ -9,22 +9,52 @@
       (function applyStoredTheme() {
         try {
           const themeKey = "atlas-connaissance-theme";
+          const presetKey = "atlas-connaissance-theme-preset";
+          const presetModes = {
+            "classic-dark": "dark",
+            "classic-light": "light",
+            forest: "dark",
+            ocean: "dark",
+            terracotta: "light",
+            atelier: "light",
+          };
+          const presetColors = {
+            "classic-dark": "#181b1f",
+            "classic-light": "#f8f3ea",
+            forest: "#111914",
+            ocean: "#07131c",
+            terracotta: "#f4e6d8",
+            atelier: "#edf0eb",
+          };
           const storedTheme = window.localStorage.getItem(themeKey);
+          let preset = window.localStorage.getItem(presetKey);
           let theme = storedTheme;
 
-          if (!theme) {
+          if (!preset || !theme) {
             const raw = window.localStorage.getItem("atlas-connaissance-app");
             if (raw) {
               const parsed = JSON.parse(raw);
-              theme = parsed?.settings?.theme;
+              preset = preset || parsed?.settings?.themePreset;
+              theme = theme || parsed?.settings?.theme;
             }
           }
 
-          const isDark = theme !== "light";
+          if (!presetModes[preset]) {
+            preset = theme === "light" ? "classic-light" : "classic-dark";
+          }
+
+          theme = presetModes[preset];
+          const isDark = theme === "dark";
           document.documentElement.dataset.theme = isDark ? "dark" : "light";
+          document.documentElement.dataset.themePreset = preset;
           document.documentElement.classList.toggle("theme-dark", isDark);
+          document.querySelector('meta[name="theme-color"]')?.setAttribute(
+            "content",
+            presetColors[preset]
+          );
         } catch (error) {
           document.documentElement.dataset.theme = "dark";
+          document.documentElement.dataset.themePreset = "classic-dark";
           document.documentElement.classList.add("theme-dark");
         }
       })();
@@ -789,6 +819,53 @@
 
         <section id="settings-tab" class="tab-panel">
           <div class="templates-layout">
+            <section id="theme-settings-panel" class="panel theme-settings-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Ambiance visuelle</p>
+                  <h3>Choisir un theme</h3>
+                </div>
+                <span id="theme-preference-status" class="pill pill-soft">Enregistre automatiquement</span>
+              </div>
+
+              <p class="theme-settings-copy">
+                Chaque univers adapte les fonds, les surfaces, les contrastes et les couleurs d'accent.
+              </p>
+
+              <div class="theme-preset-grid" role="group" aria-label="Themes de l'application">
+                <button class="theme-preset-card" data-theme-preset="classic-dark" type="button" aria-pressed="false">
+                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="theme-preset-copy"><strong>Classique nuit</strong><small>Le style sombre actuel, chaleureux et concentre.</small></span>
+                  <span class="theme-preset-active">Actif</span>
+                </button>
+                <button class="theme-preset-card" data-theme-preset="classic-light" type="button" aria-pressed="false">
+                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="theme-preset-copy"><strong>Classique clair</strong><small>Le style actuel dans sa version lumineuse et douce.</small></span>
+                  <span class="theme-preset-active">Actif</span>
+                </button>
+                <button class="theme-preset-card" data-theme-preset="forest" type="button" aria-pressed="false">
+                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="theme-preset-copy"><strong>Herbier</strong><small>Vert profond, mousse et papier ancien.</small></span>
+                  <span class="theme-preset-active">Actif</span>
+                </button>
+                <button class="theme-preset-card" data-theme-preset="ocean" type="button" aria-pressed="false">
+                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="theme-preset-copy"><strong>Abysses</strong><small>Bleu encre et turquoise, calme et precis.</small></span>
+                  <span class="theme-preset-active">Actif</span>
+                </button>
+                <button class="theme-preset-card" data-theme-preset="terracotta" type="button" aria-pressed="false">
+                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="theme-preset-copy"><strong>Terre douce</strong><small>Creme, argile et rose poudre pour une lecture chaleureuse.</small></span>
+                  <span class="theme-preset-active">Actif</span>
+                </button>
+                <button class="theme-preset-card" data-theme-preset="atelier" type="button" aria-pressed="false">
+                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="theme-preset-copy"><strong>Atelier</strong><small>Sauge, bleu mineral et blanc casse, plus editorial.</small></span>
+                  <span class="theme-preset-active">Actif</span>
+                </button>
+              </div>
+            </section>
+
             <section class="panel">
               <div class="panel-header">
                 <div>
@@ -1008,12 +1085,70 @@
               </div>
 
               <div id="sport-mass-panel" class="sport-table-panel">
+                <form id="sport-mass-entry-form" class="sport-mass-entry-card" autocomplete="off">
+                  <div class="sport-mass-entry-copy">
+                    <p class="eyebrow">Nouvelle mesure</p>
+                    <h4>Ajouter ma masse du jour</h4>
+                    <p>La mesure est ajoutee a l'historique et sauvegardee des la validation.</p>
+                  </div>
+
+                  <div class="sport-mass-entry-fields">
+                    <label class="sport-mass-date-field">
+                      <span class="field-label">Date</span>
+                      <input id="sport-mass-date" class="text-input" type="date" required />
+                    </label>
+
+                    <label class="sport-mass-value-field">
+                      <span class="field-label">Masse</span>
+                      <span class="sport-mass-value-control">
+                        <input
+                          id="sport-mass-value"
+                          class="sport-mass-value-input"
+                          type="number"
+                          inputmode="decimal"
+                          min="20"
+                          max="500"
+                          step="0.1"
+                          placeholder="75,0"
+                          aria-label="Masse en kilogrammes"
+                          required
+                        />
+                        <span class="sport-mass-unit">kg</span>
+                      </span>
+                    </label>
+
+                    <label class="sport-mass-fasted-toggle">
+                      <input id="sport-mass-fasted" type="checkbox" />
+                      <span>
+                        <strong>A jeun</strong>
+                        <small>Avant de manger ou boire</small>
+                      </span>
+                    </label>
+
+                    <button class="button button-primary sport-mass-submit" type="submit">
+                      Enregistrer la mesure
+                    </button>
+                  </div>
+                </form>
+
+                <div id="sport-mass-summary" class="sport-mass-summary" aria-live="polite"></div>
+
+                <div class="sport-history-heading">
+                  <div>
+                    <p class="eyebrow">Historique</p>
+                    <h4>Mesures enregistrees</h4>
+                  </div>
+                  <p id="sport-mass-save-status" class="sport-save-status" role="status" aria-live="polite">
+                    Sauvegarde automatique active sur cet appareil.
+                  </p>
+                </div>
+
                 <div class="sport-table-shell">
-                  <table class="sport-table">
+                  <table class="sport-table sport-mass-table">
                     <thead>
                       <tr>
                         <th>Jour</th>
-                        <th>Masse</th>
+                        <th>Masse (kg)</th>
                         <th>A jeun</th>
                         <th class="sport-action-header">Action</th>
                       </tr>
@@ -1021,9 +1156,6 @@
                     <tbody id="sport-mass-body"></tbody>
                   </table>
                 </div>
-                <button id="add-sport-mass-row" class="button button-primary" type="button">
-                  Ajouter une ligne
-                </button>
               </div>
 
               <div id="sport-performance-panel" class="sport-table-panel is-hidden">
@@ -1140,7 +1272,7 @@
             <strong>Sport</strong>
           </button>
           <button id="theme-toggle-button" class="utility-link" type="button">
-            <strong>Mode nuit</strong>
+            <strong>Themes</strong>
           </button>
         </div>
       </aside>

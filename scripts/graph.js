@@ -9,6 +9,8 @@
     const MAX_GRAPH_ZOOM = 4.4;
     const GRAPH_LABEL_BREAKPOINT = "(max-width: 780px)";
     let zoomAnimationFrame = null;
+    let lastLayoutHeight = CANVAS_HEIGHT;
+    let graphLayoutNeedsSettling = false;
 
   function getGraphNotes() {
     const base =
@@ -86,6 +88,49 @@
 
   function isCompactGraphViewport() {
     return global.matchMedia?.(GRAPH_LABEL_BREAKPOINT)?.matches ?? false;
+  }
+
+  function getGraphDimensions() {
+    const rect = context.elements.graphCanvas?.getBoundingClientRect();
+    if (!isCompactGraphViewport() || !rect?.width || !rect?.height) {
+      return { width: CANVAS_WIDTH, height: CANVAS_HEIGHT };
+    }
+
+    return {
+      width: CANVAS_WIDTH,
+      height: clamp(CANVAS_WIDTH * (rect.height / rect.width), 960, 2100),
+    };
+  }
+
+  function initializeOrganicPositions(graph, width, height, degreeByNode) {
+    const activeId = context.notes.getActiveNote()?.id;
+    const nodes = [...graph.nodes].sort((left, right) => {
+      if (left.id === activeId) return -1;
+      if (right.id === activeId) return 1;
+      return (degreeByNode.get(right.id) || 0) - (degreeByNode.get(left.id) || 0);
+    });
+    const positions = new Map();
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radiusX = width * 0.41;
+    const radiusY = Math.max(240, (height - 300) * 0.43);
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+
+    nodes.forEach((node, index) => {
+      const progress = nodes.length <= 1 ? 0 : Math.sqrt(index / (nodes.length - 1));
+      let hash = 0;
+      for (let characterIndex = 0; characterIndex < node.id.length; characterIndex += 1) {
+        hash = (hash * 31 + node.id.charCodeAt(characterIndex)) >>> 0;
+      }
+      const angle = index * goldenAngle + ((hash % 37) / 37) * 0.48;
+      positions.set(node.id, {
+        x: centerX + Math.cos(angle) * radiusX * progress,
+        y: centerY + Math.sin(angle) * radiusY * progress,
+        locked: false,
+      });
+    });
+
+    return positions;
   }
 
   function getGraphLabelMode(node, degree, zoom, isCurrent, isSelected) {
@@ -310,6 +355,11 @@
     const degreeByNode = new Map(
       graph.nodes.map((node) => [node.id, (adjacency.get(node.id) || new Set()).size])
     );
+
+    if (isCompactGraphViewport()) {
+      return initializeOrganicPositions(graph, width, height, degreeByNode);
+    }
+
     const activeId = context.notes.getActiveNote()?.id;
     const remaining = [...graph.nodes].sort((left, right) => {
       if (left.id === activeId) {
@@ -436,24 +486,27 @@
 
   function recenterGraphLayout() {
     const graph = buildGraphModel();
-    const width = CANVAS_WIDTH;
-    const height = CANVAS_HEIGHT;
+    const { width, height } = getGraphDimensions();
     context.state.graphPositions = initializeGraphPositions(graph, width, height);
+    context.state.graphZoom = 1;
     context.state.graphViewport.panX = 0;
     context.state.graphViewport.panY = 0;
+    lastLayoutHeight = height;
+    graphLayoutNeedsSettling = true;
     drawGraph();
   }
 
-  function getGraphViewBox() {
+  function getGraphViewBox(dimensions = getGraphDimensions()) {
+    const { width: canvasWidth, height: canvasHeight } = dimensions;
     const zoom = clamp(context.state.graphZoom || 1, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
-    const width = CANVAS_WIDTH / zoom;
-    const height = CANVAS_HEIGHT / zoom;
-    const centeredX = (CANVAS_WIDTH - width) / 2;
-    const centeredY = (CANVAS_HEIGHT - height) / 2;
-    const minX = Math.min(0, CANVAS_WIDTH - width);
-    const maxX = Math.max(0, CANVAS_WIDTH - width);
-    const minY = Math.min(0, CANVAS_HEIGHT - height);
-    const maxY = Math.max(0, CANVAS_HEIGHT - height);
+    const width = canvasWidth / zoom;
+    const height = canvasHeight / zoom;
+    const centeredX = (canvasWidth - width) / 2;
+    const centeredY = (canvasHeight - height) / 2;
+    const minX = Math.min(0, canvasWidth - width);
+    const maxX = Math.max(0, canvasWidth - width);
+    const minY = Math.min(0, canvasHeight - height);
+    const maxY = Math.max(0, canvasHeight - height);
     return {
       x: clamp(centeredX + (context.state.graphViewport.panX || 0), minX, maxX),
       y: clamp(centeredY + (context.state.graphViewport.panY || 0), minY, maxY),
@@ -464,15 +517,22 @@
 
   function drawGraph() {
     const graph = buildGraphModel();
-    const width = CANVAS_WIDTH;
-    const height = CANVAS_HEIGHT;
+    const dimensions = getGraphDimensions();
+    const { width, height } = dimensions;
     const centerX = width / 2;
     const centerY = height / 2;
     const zoom = clamp(context.state.graphZoom || 1, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
-    const viewBox = getGraphViewBox();
-    const focusNodeId = context.state.graphSelection?.id || context.state.activeNoteId || null;
+    const viewBox = getGraphViewBox(dimensions);
+    const focusNodeId = context.state.graphSelection?.id || null;
     const adjacency = buildAdjacency(graph);
     const focusNeighbors = focusNodeId ? adjacency.get(focusNodeId) || new Set() : new Set();
+
+    if (Math.abs(lastLayoutHeight - height) > 80) {
+      context.state.graphPositions = new Map();
+      context.state.graphViewport.panX = 0;
+      context.state.graphViewport.panY = 0;
+      lastLayoutHeight = height;
+    }
 
     context.elements.graphCanvas.setAttribute(
       "viewBox",
@@ -484,7 +544,15 @@
       context.state.graphPositions = initializeGraphPositions(graph, width, height);
     }
 
-    for (let pass = 0; pass < 180; pass += 1) {
+    const simulationPasses =
+      !hasAllPositions || graphLayoutNeedsSettling
+        ? 180
+        : context.state.graphDrag.mode
+          ? 2
+          : 10;
+    graphLayoutNeedsSettling = false;
+
+    for (let pass = 0; pass < simulationPasses; pass += 1) {
       const forces = new Map(graph.nodes.map((node) => [node.id, { x: 0, y: 0 }]));
 
       for (let i = 0; i < graph.nodes.length; i += 1) {
@@ -532,8 +600,9 @@
         const force = forces.get(node.id);
         position.x += force.x + (centerX - position.x) * 0.002;
         position.y += force.y + (centerY - position.y) * 0.002;
-        position.x = context.helpers.clamp(position.x, 28, width - 28);
-        position.y = context.helpers.clamp(position.y, -90, height + 90);
+        position.x = context.helpers.clamp(position.x, 38, width - 38);
+        const verticalInset = height > 900 ? 118 : -90;
+        position.y = context.helpers.clamp(position.y, verticalInset, height - verticalInset);
       });
     }
 
@@ -549,6 +618,7 @@
       const to = context.state.graphPositions.get(edge.to);
       const isFocusEdge =
         Boolean(focusNodeId) && (edge.from === focusNodeId || edge.to === focusNodeId);
+      const isMutedEdge = Boolean(focusNodeId) && !isFocusEdge;
       const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
       line.setAttribute("x1", from.x);
       line.setAttribute("y1", from.y);
@@ -556,7 +626,9 @@
       line.setAttribute("y2", to.y);
       line.setAttribute(
         "class",
-        `graph-edge${edge.kind === "tag" ? " is-tag-edge" : ""}${isFocusEdge ? " is-focus-edge" : ""}`
+        `graph-edge${edge.kind === "tag" ? " is-tag-edge" : ""}${
+          isFocusEdge ? " is-focus-edge" : ""
+        }${isMutedEdge ? " is-muted" : ""}`
       );
       context.elements.graphCanvas.appendChild(line);
     });
@@ -582,6 +654,9 @@
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
       group.dataset.graphNodeId = node.id;
       group.dataset.graphNodeKind = node.kind;
+      group.setAttribute("role", "button");
+      group.setAttribute("tabindex", "0");
+      group.setAttribute("aria-label", node.kind === "tag" ? `Tag ${node.label}` : node.label);
       group.style.cursor = "pointer";
 
       const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -589,26 +664,40 @@
       circle.setAttribute("cy", position.y);
       const nodeRadius =
         node.kind === "tag"
-          ? 7 + Math.min(degree * 1.4, 8)
+          ? 8 + Math.min(degree * 1.35, 9)
           : isCurrent
-            ? 17 + Math.min(degree * 1.4, 11)
-            : 8 + Math.min(degree * 1.7, 14);
+            ? 18 + Math.min(degree * 1.35, 11)
+            : 9 + Math.min(degree * 1.6, 15);
+
+      const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      hitArea.setAttribute("cx", position.x);
+      hitArea.setAttribute("cy", position.y);
+      hitArea.setAttribute("r", String(Math.max(24, nodeRadius + 11)));
+      hitArea.setAttribute("class", "graph-node-hitbox");
+      group.appendChild(hitArea);
+
       circle.setAttribute("r", String(nodeRadius));
       circle.setAttribute(
         "class",
-        `graph-node${isCurrent || isSelected ? " is-current" : ""}${
-          !isRelatedToFocus ? " is-muted" : ""
-        }`
+        `graph-node${isCurrent ? " is-current" : ""}${isSelected ? " is-selected" : ""}${
+          focusNeighbors.has(node.id) ? " is-neighbor" : ""
+        }${!isRelatedToFocus ? " is-muted" : ""}`
       );
-      circle.style.fill = nodeFill;
-      circle.style.stroke = nodeStroke;
+      circle.style.fill = isSelected ? "#8b6cf6" : nodeFill;
+      circle.style.stroke = isSelected ? "#c4b5fd" : nodeStroke;
       circle.style.strokeWidth = isCurrent || isSelected ? "3" : "2";
 
       group.appendChild(circle);
       if (shouldShowLabel) {
         const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        label.setAttribute("x", position.x + nodeRadius + (labelMode === "compact" ? 5 : 7));
-        label.setAttribute("y", position.y + 3);
+        label.setAttribute(
+          "x",
+          isSelected ? position.x : position.x + nodeRadius + (labelMode === "compact" ? 5 : 7)
+        );
+        label.setAttribute("y", isSelected ? position.y + nodeRadius + 16 : position.y + 3);
+        if (isSelected) {
+          label.setAttribute("text-anchor", "middle");
+        }
         label.setAttribute(
           "class",
           [
@@ -638,6 +727,10 @@
 
     const group = event.target.closest("[data-graph-node-id]");
     if (!group) {
+      if (context.state.graphSelection) {
+        context.state.graphSelection = null;
+        drawGraph();
+      }
       return;
     }
 
@@ -793,12 +886,12 @@
     position.x = context.helpers.clamp(
       point.x - context.state.graphDrag.offsetX,
       28,
-      CANVAS_WIDTH - 28
+      getGraphDimensions().width - 28
     );
     position.y = context.helpers.clamp(
       point.y - context.state.graphDrag.offsetY,
-      -90,
-      CANVAS_HEIGHT + 90
+      28,
+      getGraphDimensions().height - 28
     );
     context.state.graphDrag.moved = true;
     drawGraph();
@@ -980,12 +1073,13 @@
 
   function setZoomAtPoint(nextZoom, clientX, clientY, focalGraphX = null, focalGraphY = null) {
     const rect = context.elements.graphCanvas.getBoundingClientRect();
-    const currentViewBox = getGraphViewBox();
+    const dimensions = getGraphDimensions();
+    const currentViewBox = getGraphViewBox(dimensions);
     const safeZoom = clamp(nextZoom, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
-    const nextWidth = CANVAS_WIDTH / safeZoom;
-    const nextHeight = CANVAS_HEIGHT / safeZoom;
-    const centeredX = (CANVAS_WIDTH - nextWidth) / 2;
-    const centeredY = (CANVAS_HEIGHT - nextHeight) / 2;
+    const nextWidth = dimensions.width / safeZoom;
+    const nextHeight = dimensions.height / safeZoom;
+    const centeredX = (dimensions.width - nextWidth) / 2;
+    const centeredY = (dimensions.height - nextHeight) / 2;
     const ratioX = clamp((clientX - rect.left) / rect.width, 0, 1);
     const ratioY = clamp((clientY - rect.top) / rect.height, 0, 1);
     const focusX =
