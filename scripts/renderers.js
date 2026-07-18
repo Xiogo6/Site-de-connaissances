@@ -163,17 +163,53 @@
   }
 
   function renderTheme() {
-    const isDark = context.state.settings.theme === "dark";
-    window.localStorage.setItem("atlas-connaissance-theme", isDark ? "dark" : "light");
-    document.documentElement.dataset.theme = isDark ? "dark" : "light";
-    document.body.dataset.theme = isDark ? "dark" : "light";
+    const presets = AtlasApp.config.themePresets || {};
+    const fallbackPreset = context.state.settings.theme === "light"
+      ? "classic-light"
+      : "classic-dark";
+    const presetId = presets[context.state.settings.themePreset]
+      ? context.state.settings.themePreset
+      : fallbackPreset;
+    const preset = presets[presetId] || {
+      label: "Classique nuit",
+      mode: "dark",
+      themeColor: "#181b1f",
+    };
+    const isDark = preset.mode === "dark";
+
+    context.state.settings.themePreset = presetId;
+    context.state.settings.theme = preset.mode;
+    window.localStorage.setItem("atlas-connaissance-theme", preset.mode);
+    window.localStorage.setItem("atlas-connaissance-theme-preset", presetId);
+    document.documentElement.dataset.theme = preset.mode;
+    document.documentElement.dataset.themePreset = presetId;
+    document.body.dataset.theme = preset.mode;
+    document.body.dataset.themePreset = presetId;
     document.documentElement.classList.toggle("theme-dark", isDark);
     document.body.classList.toggle("theme-dark", isDark);
+
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", preset.themeColor || "#181b1f");
+
+    context.elements.themePresetButtons?.forEach((button) => {
+      const isActive = button.dataset.themePreset === presetId;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+
+    if (context.elements.themePreferenceStatus) {
+      context.elements.themePreferenceStatus.textContent = `${preset.label} - enregistre`;
+    }
+
     if (context.elements.themeToggleButton) {
-      context.elements.themeToggleButton.classList.toggle("is-active", isDark);
+      context.elements.themeToggleButton.classList.toggle(
+        "is-active",
+        context.state.activeTab === "settings"
+      );
       const themeTitle = context.elements.themeToggleButton.querySelector("strong");
       if (themeTitle) {
-        themeTitle.textContent = isDark ? "Mode clair" : "Mode nuit";
+        themeTitle.textContent = `Theme : ${preset.label}`;
       }
     }
   }
@@ -1702,6 +1738,7 @@
     context.state.settings.sport = context.state.settings.sport || {
       massEntries: [],
       performanceEntries: [],
+      lastSavedAt: null,
     };
     context.state.settings.sport.massEntries = context.state.settings.sport.massEntries || [];
     context.state.settings.sport.performanceEntries =
@@ -1715,7 +1752,9 @@
     }
 
     const sport = getSportSettings();
-    const massEntries = sport.massEntries.length ? sport.massEntries : [createEmptySportMassEntry()];
+    const massEntries = sport.massEntries
+      .map((entry, index) => ({ entry, index }))
+      .sort((left, right) => getMassEntryTimestamp(right) - getMassEntryTimestamp(left));
     const performanceEntries = sport.performanceEntries.length
       ? sport.performanceEntries
       : [createEmptySportPerformanceEntry()];
@@ -1729,9 +1768,15 @@
       context.state.sportMode !== "performance"
     );
 
-    context.elements.sportMassBody.innerHTML = massEntries
-      .map((entry, index) => buildSportMassRow(entry, index, index < sport.massEntries.length))
-      .join("");
+    if (context.elements.sportMassDate && !context.elements.sportMassDate.value) {
+      context.elements.sportMassDate.value = getTodayInputDate();
+    }
+
+    renderSportMassSummary(massEntries);
+    renderSportSaveStatus();
+    context.elements.sportMassBody.innerHTML = massEntries.length
+      ? massEntries.map(({ entry, index }) => buildSportMassRow(entry, index)).join("")
+      : buildEmptySportMassRow();
     context.elements.sportPerformanceBody.innerHTML = performanceEntries
       .map((entry, index) =>
         buildSportPerformanceRow(entry, index, performanceEntries, index < sport.performanceEntries.length)
@@ -1747,26 +1792,122 @@
     return { date: "", exercise: "", sets: "", reps: "", weight: "", rest: "" };
   }
 
-  function buildSportMassRow(entry, index, canDelete) {
+  function getMassEntryTimestamp({ entry, index }) {
+    const timestamp = Date.parse(`${entry.date || ""}T12:00:00`);
+    return Number.isNaN(timestamp) ? index : timestamp + index / 1000;
+  }
+
+  function renderSportMassSummary(entries) {
+    if (!context.elements.sportMassSummary) {
+      return;
+    }
+
+    const measuredEntries = entries
+      .map(({ entry }) => ({
+        ...entry,
+        numericMass: Number(entry.mass),
+      }))
+      .filter((entry) => Number.isFinite(entry.numericMass) && entry.numericMass > 0);
+    const latest = measuredEntries[0] || null;
+    const previous = measuredEntries[1] || null;
+    const recent = measuredEntries.slice(0, 7);
+    const average = recent.length
+      ? recent.reduce((total, entry) => total + entry.numericMass, 0) / recent.length
+      : null;
+    const difference = latest && previous ? latest.numericMass - previous.numericMass : null;
+
+    context.elements.sportMassSummary.innerHTML = `
+      <article class="sport-mass-metric sport-mass-metric-primary">
+        <span>Derniere mesure</span>
+        <strong>${latest ? `${formatSportMass(latest.numericMass)} kg` : "--"}</strong>
+        <small>${latest?.date ? formatSportMassDate(latest.date) : "Ajoutez votre premiere mesure"}</small>
+      </article>
+      <article class="sport-mass-metric">
+        <span>Evolution</span>
+        <strong>${difference == null ? "--" : `${difference > 0 ? "+" : ""}${formatSportMass(difference)} kg`}</strong>
+        <small>${difference == null ? "Deux mesures necessaires" : "Par rapport a la mesure precedente"}</small>
+      </article>
+      <article class="sport-mass-metric">
+        <span>Moyenne recente</span>
+        <strong>${average == null ? "--" : `${formatSportMass(average)} kg`}</strong>
+        <small>${recent.length ? `${recent.length} derniere${recent.length > 1 ? "s" : ""} mesure${recent.length > 1 ? "s" : ""}` : "Aucune mesure"}</small>
+      </article>
+    `;
+  }
+
+  function renderSportSaveStatus() {
+    if (!context.elements.sportMassSaveStatus) {
+      return;
+    }
+
+    const savedAt = getSportSettings().lastSavedAt;
+    const timestamp = Date.parse(savedAt || "");
+    context.elements.sportMassSaveStatus.dataset.state = Number.isNaN(timestamp)
+      ? "ready"
+      : "saved";
+    context.elements.sportMassSaveStatus.textContent = Number.isNaN(timestamp)
+      ? "Sauvegarde automatique active sur cet appareil."
+      : `Sauvegarde locale effectuee a ${new Intl.DateTimeFormat("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }).format(new Date(timestamp))}`;
+  }
+
+  function formatSportMass(value) {
+    return new Intl.NumberFormat("fr-FR", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(value);
+  }
+
+  function formatSportMassDate(value) {
+    const date = new Date(`${value}T12:00:00`);
+    return Number.isNaN(date.getTime())
+      ? value
+      : new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(date);
+  }
+
+  function getTodayInputDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function buildEmptySportMassRow() {
     return `
       <tr>
-        <td>
-          <input class="sport-input" type="date" value="${escapeHtml(entry.date || "")}" data-sport-table="mass" data-sport-index="${index}" data-sport-field="date" />
+        <td class="sport-table-empty" colspan="4">
+          Votre historique est vide. Utilisez le formulaire ci-dessus pour ajouter une premiere mesure.
         </td>
-        <td>
-          <input class="sport-input" type="number" inputmode="decimal" step="0.1" value="${escapeHtml(entry.mass || "")}" data-sport-table="mass" data-sport-index="${index}" data-sport-field="mass" />
+      </tr>
+    `;
+  }
+
+  function buildSportMassRow(entry, index) {
+    return `
+      <tr>
+        <td data-label="Jour">
+          <input class="sport-input" aria-label="Date de la mesure" type="date" value="${escapeHtml(entry.date || "")}" data-sport-table="mass" data-sport-index="${index}" data-sport-field="date" />
         </td>
-        <td class="sport-check-cell">
-          <input type="checkbox" ${entry.fasted ? "checked" : ""} data-sport-table="mass" data-sport-index="${index}" data-sport-field="fasted" />
+        <td data-label="Masse">
+          <span class="sport-history-mass-control">
+            <input class="sport-input" aria-label="Masse en kilogrammes" type="number" inputmode="decimal" min="20" max="500" step="0.1" value="${escapeHtml(entry.mass || "")}" data-sport-table="mass" data-sport-index="${index}" data-sport-field="mass" />
+            <span>kg</span>
+          </span>
         </td>
-        <td class="sport-action-cell">
+        <td class="sport-check-cell" data-label="A jeun">
+          <input type="checkbox" aria-label="Mesure a jeun" ${entry.fasted ? "checked" : ""} data-sport-table="mass" data-sport-index="${index}" data-sport-field="fasted" />
+        </td>
+        <td class="sport-action-cell" data-label="Action">
           <button
             class="button button-ghost sport-delete-button"
             type="button"
             data-delete-sport-row="mass"
             data-sport-index="${index}"
             aria-label="Supprimer la ligne de masse"
-            ${canDelete ? "" : "disabled"}
           >
             Supprimer
           </button>
@@ -2053,6 +2194,7 @@
     renderSidebarRecap,
     renderSidebarTabs,
     renderStats,
+    renderSportSaveStatus,
     renderSportTracker,
     renderStructuredFields,
     renderTagSuggestions,

@@ -71,11 +71,29 @@
     });
     context.elements.sidebarDrawerClose.addEventListener("click", closeSidebarDrawer);
     context.elements.sidebarDrawerBackdrop.addEventListener("click", closeSidebarDrawer);
-    context.elements.themeToggleButton.addEventListener("click", () => {
-      context.state.settings.theme =
-        context.state.settings.theme === "dark" ? "light" : "dark";
-      context.data.saveNotes({ skipRemote: true });
+    context.elements.themeToggleButton?.addEventListener("click", () => {
+      context.state.activeTab = "settings";
+      context.state.utilityDrawerOpen = false;
       context.renderers.renderEverything();
+      scrollToTop();
+      window.requestAnimationFrame(() => {
+        context.elements.themeSettingsPanel?.scrollIntoView({ block: "start" });
+      });
+    });
+
+    context.elements.themePresetButtons?.forEach((button) => {
+      button.addEventListener("click", () => {
+        const presetId = button.dataset.themePreset;
+        const preset = AtlasApp.config.themePresets?.[presetId];
+        if (!preset) {
+          return;
+        }
+
+        context.state.settings.themePreset = presetId;
+        context.state.settings.theme = preset.mode;
+        context.data.saveNotes({ skipRemote: true });
+        context.renderers.renderEverything();
+      });
     });
 
     context.elements.searchInput.addEventListener("input", (event) => {
@@ -412,9 +430,30 @@
     context.elements.graphZoomOutButton.addEventListener("click", context.graph.zoomOut);
 
     context.elements.graphCanvas.addEventListener("click", context.graph.handleGraphClick);
+    context.elements.graphCanvas.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+      if (!event.target.closest("[data-graph-node-id]")) {
+        return;
+      }
+      event.preventDefault();
+      context.graph.handleGraphClick(event);
+    });
     context.elements.graphCanvas.addEventListener("pointerdown", context.graph.handleGraphPointerDown);
     context.elements.graphCanvas.addEventListener("wheel", context.graph.handleGraphWheel, {
       passive: false,
+    });
+    let graphResizeTimer = null;
+    window.addEventListener("resize", () => {
+      if (
+        context.state.activeTab !== "graph" &&
+        !(context.state.activeTab === "visualization" && context.state.visualizationMode === "graph")
+      ) {
+        return;
+      }
+      window.clearTimeout(graphResizeTimer);
+      graphResizeTimer = window.setTimeout(() => context.graph.drawGraph(), 120);
     });
     window.addEventListener("pointermove", context.graph.handleGraphPointerMove);
     window.addEventListener("pointerup", context.graph.handleGraphPointerUp);
@@ -498,7 +537,7 @@
         context.renderers.renderSportTracker();
       });
     });
-    context.elements.addSportMassRowButton?.addEventListener("click", () => addSportRow("mass"));
+    context.elements.sportMassEntryForm?.addEventListener("submit", handleSportMassSubmit);
     context.elements.addSportPerformanceRowButton?.addEventListener("click", () =>
       addSportRow("performance")
     );
@@ -1438,6 +1477,7 @@
     context.state.settings.sport = context.state.settings.sport || {
       massEntries: [],
       performanceEntries: [],
+      lastSavedAt: null,
     };
     context.state.settings.sport.massEntries = context.state.settings.sport.massEntries || [];
     context.state.settings.sport.performanceEntries =
@@ -1457,13 +1497,38 @@
         rest: "",
       });
       context.state.sportMode = "performance";
-    } else {
-      sport.massEntries.push({ date: getTodayInputDate(), mass: "", fasted: false });
-      context.state.sportMode = "mass";
     }
 
-    context.data.saveNotes();
+    saveSportChanges();
     context.renderers.renderSportTracker();
+  }
+
+  function handleSportMassSubmit(event) {
+    event.preventDefault();
+    const massInput = context.elements.sportMassValue;
+    const mass = massInput?.valueAsNumber;
+    if (!massInput || !Number.isFinite(mass)) {
+      massInput?.setCustomValidity("Indiquez une masse valide.");
+      massInput?.reportValidity();
+      return;
+    }
+
+    massInput.setCustomValidity("");
+    const sport = getSportSettings();
+    sport.massEntries.push({
+      date: context.elements.sportMassDate?.value || getTodayInputDate(),
+      mass: String(Math.round(mass * 10) / 10),
+      fasted: Boolean(context.elements.sportMassFasted?.checked),
+    });
+    context.state.sportMode = "mass";
+    saveSportChanges();
+    context.renderers.renderSportTracker();
+
+    massInput.value = "";
+    if (context.elements.sportMassFasted) {
+      context.elements.sportMassFasted.checked = false;
+    }
+    massInput.focus();
   }
 
   function handleSportInput(event) {
@@ -1491,7 +1556,10 @@
       }
     }
 
-    context.data.saveNotes();
+    saveSportChanges();
+    if (table === "mass" && event.type === "change") {
+      context.renderers.renderSportTracker();
+    }
   }
 
   function handleSportDelete(event) {
@@ -1509,8 +1577,15 @@
     }
 
     entries.splice(index, 1);
-    context.data.saveNotes();
+    saveSportChanges();
     context.renderers.renderSportTracker();
+  }
+
+  function saveSportChanges() {
+    const sport = getSportSettings();
+    sport.lastSavedAt = new Date().toISOString();
+    context.data.saveNotes();
+    context.renderers.renderSportSaveStatus();
   }
 
   function ensureSportEntry(entries, table, index) {

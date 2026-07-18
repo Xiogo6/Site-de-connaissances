@@ -89,12 +89,17 @@
 }
 
 .workspace.is-editing {
-  grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.9fr) 320px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.75fr);
   min-width: 0;
 }
 
 .workspace.is-editing .panel-editor {
   display: block;
+  grid-column: 1;
+}
+
+.workspace.is-editing .panel-links {
+  grid-column: 2;
 }
 
 .graph-layout {

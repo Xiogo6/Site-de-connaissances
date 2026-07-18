@@ -2,6 +2,38 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.config = {
+    themePresets: {
+      "classic-dark": {
+        label: "Classique nuit",
+        mode: "dark",
+        themeColor: "#181b1f",
+      },
+      "classic-light": {
+        label: "Classique clair",
+        mode: "light",
+        themeColor: "#f8f3ea",
+      },
+      forest: {
+        label: "Herbier",
+        mode: "dark",
+        themeColor: "#111914",
+      },
+      ocean: {
+        label: "Abysses",
+        mode: "dark",
+        themeColor: "#07131c",
+      },
+      terracotta: {
+        label: "Terre douce",
+        mode: "light",
+        themeColor: "#f4e6d8",
+      },
+      atelier: {
+        label: "Atelier",
+        mode: "light",
+        themeColor: "#edf0eb",
+      },
+    },
     defaultKnowledge: [
       {
         id: "memoire-active",
