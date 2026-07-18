@@ -720,6 +720,18 @@
     renderGraphFocus();
   }
 
+  function setGraphSelectionFromNode(group) {
+    if (!group) {
+      context.state.graphSelection = null;
+      return;
+    }
+
+    context.state.graphSelection = {
+      kind: group.dataset.graphNodeKind,
+      id: group.dataset.graphNodeId,
+    };
+  }
+
   function handleGraphClick(event) {
     if ((context.state.graphDrag.suppressClickUntil || 0) > Date.now()) {
       return;
@@ -728,18 +740,16 @@
     const group = event.target.closest("[data-graph-node-id]");
     if (!group) {
       if (context.state.graphSelection) {
-        context.state.graphSelection = null;
+        setGraphSelectionFromNode(null);
         drawGraph();
       }
       return;
     }
 
-    const nodeId = group.dataset.graphNodeId;
-    const nodeKind = group.dataset.graphNodeKind;
-    context.state.graphSelection = { kind: nodeKind, id: nodeId };
+    setGraphSelectionFromNode(group);
 
-    if (nodeKind === "note") {
-      context.state.activeNoteId = nodeId;
+    if (context.state.graphSelection.kind === "note") {
+      context.state.activeNoteId = context.state.graphSelection.id;
       context.renderers.renderEverything();
       return;
     }
@@ -766,23 +776,30 @@
       return;
     }
 
-    const note = context.notes.getActiveNote();
-    if (!note) {
-      context.elements.graphFocus.innerHTML = "<p>Aucune page selectionnee.</p>";
+    if (selection?.kind === "note") {
+      const note = context.state.notes.find((item) => item.id === selection.id);
+      if (!note) {
+        context.elements.graphFocus.innerHTML = "<p>Aucune page selectionnee.</p>";
+        return;
+      }
+
+      const outgoing = unique(extractLinks(note.content));
+      const backlinks = context.notes.getBacklinks(note.title, note.id);
+
+      context.elements.graphFocus.innerHTML = `
+        <p><strong>${escapeHtml(note.title)}</strong></p>
+        <p>${escapeHtml(extractSummary(note.content))}</p>
+        <p><strong>Type :</strong> ${escapeHtml(
+          context.data.getNoteTypeLabels()[note.type] || "Concept"
+        )}</p>
+        <p><strong>Liens sortants :</strong> ${escapeHtml(outgoing.join(", ") || "Aucun")}</p>
+        <p><strong>Backlinks :</strong> ${escapeHtml(backlinks.join(", ") || "Aucun")}</p>
+        <button type="button" class="button" data-open-active-note>Ouvrir cette page</button>
+      `;
       return;
     }
 
-    const outgoing = unique(extractLinks(note.content));
-    const backlinks = context.notes.getBacklinks(note.title, note.id);
-
-    context.elements.graphFocus.innerHTML = `
-      <p><strong>${escapeHtml(note.title)}</strong></p>
-      <p>${escapeHtml(extractSummary(note.content))}</p>
-      <p><strong>Type :</strong> ${escapeHtml(context.data.getNoteTypeLabels()[note.type] || "Concept")}</p>
-      <p><strong>Liens sortants :</strong> ${escapeHtml(outgoing.join(", ") || "Aucun")}</p>
-      <p><strong>Backlinks :</strong> ${escapeHtml(backlinks.join(", ") || "Aucun")}</p>
-      <button type="button" class="button" data-open-active-note>Ouvrir cette page</button>
-    `;
+    context.elements.graphFocus.innerHTML = "<p>Aucune page selectionnee.</p>";
   }
 
   function handleGraphFocusClick(event) {
@@ -914,6 +931,9 @@
       return;
     }
 
+    const group = event.target.closest("[data-graph-node-id]");
+    const isTap = event.pointerType === "touch" && !context.state.graphDrag.moved;
+
     if (context.state.graphDrag.moved) {
       context.state.graphDrag.suppressClickUntil = Date.now() + 280;
     }
@@ -922,6 +942,22 @@
     context.state.graphDrag.nodeId = null;
     context.state.graphDrag.pointerId = null;
     context.state.graphDrag.moved = false;
+
+    if (!isTap) {
+      return;
+    }
+
+    setGraphSelectionFromNode(group);
+    context.state.graphDrag.suppressClickUntil = Date.now() + 280;
+
+    if (context.state.graphSelection?.kind === "note") {
+      context.state.activeNoteId = context.state.graphSelection.id;
+      context.renderers.renderEverything();
+      return;
+    }
+
+    renderGraphFocus();
+    drawGraph();
   }
 
   function getSvgPoint(event) {

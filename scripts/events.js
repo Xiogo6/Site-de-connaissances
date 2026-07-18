@@ -3,6 +3,34 @@
 
   AtlasApp.createEventsModule = function createEventsModule(context) {
   let readingPointer = null;
+  let lastScrollY = window.scrollY || 0;
+  let navScrollTicking = false;
+  let feedPull = {
+    active: false,
+    startX: 0,
+    startY: 0,
+    distance: 0,
+    ready: false,
+  };
+  let feedShuffleLocked = false;
+  let sidebarSwipe = {
+    active: false,
+    horizontal: false,
+    startX: 0,
+    startY: 0,
+    startedAt: 0,
+    wasOpen: false,
+  };
+
+  function handleBeforeUnload(event) {
+    if (context.state.remote?.status !== "syncing") {
+      return;
+    }
+
+    event.preventDefault();
+    event.returnValue = "";
+    return "";
+  }
 
   function handleAiRewriteClick() {
     if (context.data.isReadOnlyMode()) {
@@ -57,7 +85,29 @@
     }
   }
 
+  function handleTagRenameClick() {
+    if (context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    const source = context.elements.tagRenameSource?.value?.trim() || "";
+    const target = context.elements.tagRenameTarget?.value?.trim() || "";
+    if (!source || !target) {
+      return;
+    }
+
+    const didRename = context.notes.renameTag(source, target);
+    if (didRename) {
+      context.elements.tagRenameTarget.value = "";
+      return;
+    }
+
+    context.elements.tagRenameTarget.focus();
+  }
+
   function bindEvents() {
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     context.elements.sidebarTabs.forEach((tab) => {
       tab.addEventListener("click", () => {
         context.state.sidebarTab = tab.dataset.sidebarTab;
@@ -108,6 +158,56 @@
 
     context.elements.knowledgeList.addEventListener("click", handleKnowledgeListClick);
     context.elements.organizationTree.addEventListener("click", handleOrganizationListClick);
+    context.elements.feedList?.addEventListener("click", handleFeedClick);
+    context.elements.feedModeButtons?.forEach((button) => {
+      button.addEventListener("click", () => {
+        context.state.feedMode = button.dataset.feedMode || "random";
+        context.renderers.renderFeed();
+      });
+    });
+    context.elements.feedSearchInput?.addEventListener("input", (event) => {
+      context.state.filter = event.target.value.trim().toLowerCase();
+      if (context.elements.searchInput) {
+        context.elements.searchInput.value = context.state.filter;
+      }
+      context.renderers.renderEverything();
+    });
+    context.elements.feedTypeFilter?.addEventListener("change", (event) => {
+      context.state.typeFilter = event.target.value;
+      if (context.elements.typeFilter) {
+        context.elements.typeFilter.value = context.state.typeFilter;
+      }
+      context.renderers.renderEverything();
+    });
+    context.elements.feedFavoritesFilter?.addEventListener("change", (event) => {
+      context.state.favoritesOnly = event.target.checked;
+      if (context.elements.favoritesFilter) {
+        context.elements.favoritesFilter.checked = context.state.favoritesOnly;
+      }
+      context.renderers.renderEverything();
+    });
+    context.elements.feedTagFilterButton?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      context.state.feedTagFilterOpen = !context.state.feedTagFilterOpen;
+      context.renderers.renderFeed();
+    });
+    context.elements.feedTagFilterPopover?.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+    context.elements.feedTagFilterPopover?.addEventListener("pointerdown", stopFeedFilterEvent);
+    context.elements.feedTagFilterPopover?.addEventListener("mousedown", stopFeedFilterEvent);
+    context.elements.feedTagFilterPopover?.addEventListener("touchstart", stopFeedFilterEvent, { passive: true });
+    context.elements.feedTagFilterPopover?.addEventListener("touchmove", stopFeedFilterEvent, { passive: true });
+    context.elements.feedExcludedTags?.addEventListener("click", handleFeedExcludedTagClick);
+    context.elements.feedClearFilters?.addEventListener("click", clearFeedFilters);
+    window.addEventListener("touchstart", handleSidebarSwipeStart, { passive: true });
+    window.addEventListener("touchmove", handleSidebarSwipeMove, { passive: false });
+    window.addEventListener("touchend", handleSidebarSwipeEnd, { passive: true });
+    window.addEventListener("touchcancel", resetSidebarSwipe, { passive: true });
+    window.addEventListener("touchstart", handleFeedTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleFeedTouchMove, { passive: false });
+    window.addEventListener("touchend", handleFeedTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", handleFeedTouchCancel, { passive: true });
 
     context.elements.typeFilter.addEventListener("change", (event) => {
       context.state.typeFilter = event.target.value;
@@ -129,6 +229,8 @@
       context.state.typeFilter = "all";
       context.state.tagFilter = "all";
       context.state.favoritesOnly = false;
+      context.state.feedExcludedTags = [];
+      context.state.feedTagFilterOpen = false;
       context.elements.searchInput.value = "";
       context.elements.typeFilter.value = "all";
       context.elements.tagFilter.value = "all";
@@ -179,7 +281,7 @@
       context.state.activeTab = "knowledge";
       context.state.noteViewMode = "edit";
       context.state.utilityDrawerOpen = false;
-      context.state.sidebarDrawerOpen = false;
+      closeSidebarDrawer();
       context.data.saveNotes({ skipRemote: true });
       context.renderers.renderEverything();
       context.elements.titleInput.focus();
@@ -261,6 +363,20 @@
     context.elements.saveTemplateButton?.addEventListener("click", context.notes.saveTemplate);
     context.elements.resetTemplateButton?.addEventListener("click", context.notes.resetTemplate);
     context.elements.addTypeButton?.addEventListener("click", context.notes.addCustomType);
+    context.elements.tagRenameSource?.addEventListener("change", () => {
+      if (!context.elements.tagRenameTarget || context.elements.tagRenameTarget.value.trim()) {
+        return;
+      }
+
+      context.elements.tagRenameTarget.value = context.elements.tagRenameSource.value;
+    });
+    context.elements.tagRenameTarget?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleTagRenameClick();
+      }
+    });
+    context.elements.renameTagButton?.addEventListener("click", handleTagRenameClick);
     context.elements.newTypeLabelInput?.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
@@ -377,9 +493,8 @@
     context.elements.organizationRootDrop.addEventListener("drop", handleRootDrop);
 
     context.elements.utilityDrawerOpen.addEventListener("click", () => {
-      context.state.sidebarDrawerOpen = false;
+      closeSidebarDrawer();
       context.state.utilityDrawerOpen = true;
-      context.renderers.renderSidebarDrawer();
       context.renderers.renderTabs();
     });
     context.elements.utilityDrawerClose.addEventListener("click", closeUtilityDrawer);
@@ -401,9 +516,8 @@
           context.state.quizView = "play";
           context.state.quizStatsDrilldown = null;
         }
-        context.state.sidebarDrawerOpen = false;
+        closeSidebarDrawer();
         context.state.utilityDrawerOpen = false;
-        context.renderers.renderSidebarDrawer();
         context.renderers.renderTabs();
         renderActiveTabContent();
         scrollToTop();
@@ -641,7 +755,392 @@
       }
     });
 
-    bindSidebarSwipe();
+    window.addEventListener("scroll", handleBottomNavScroll, { passive: true });
+    window.addEventListener("wheel", handleFeedWheelRefresh, { passive: false });
+  }
+
+  function handleFeedTouchStart(event) {
+    if (!canPullRefreshFeed() || isFeedRefreshIgnoredTarget(event.target) || event.touches.length !== 1) {
+      resetFeedPull();
+      return;
+    }
+
+    feedPull = {
+      active: true,
+      startX: event.touches[0].clientX,
+      startY: event.touches[0].clientY,
+      distance: 0,
+      ready: false,
+    };
+    updateFeedPullVisual(0);
+  }
+
+  function handleFeedTouchMove(event) {
+    if (!feedPull.active || event.touches.length !== 1) {
+      return;
+    }
+
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - feedPull.startX;
+    const distance = touch.clientY - feedPull.startY;
+    if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(distance) * 1.15) {
+      resetFeedPull();
+      return;
+    }
+
+    if (distance <= 0) {
+      updateFeedPullVisual(0);
+      return;
+    }
+
+    feedPull.distance = Math.min(110, distance * 0.55);
+    feedPull.ready = feedPull.distance >= 72;
+    updateFeedPullVisual(feedPull.distance);
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+  }
+
+  function handleFeedTouchEnd() {
+    if (!feedPull.active) {
+      return;
+    }
+
+    if (feedPull.ready) {
+      shuffleFeedFromGesture();
+      return;
+    }
+
+    resetFeedPull();
+  }
+
+  function handleFeedTouchCancel() {
+    resetFeedPull();
+  }
+
+  function handleFeedWheelRefresh(event) {
+    if (
+      !canPullRefreshFeed() ||
+      isFeedRefreshIgnoredTarget(event.target) ||
+      feedShuffleLocked ||
+      Math.abs(event.deltaY) < 70 ||
+      event.deltaY >= 0
+    ) {
+      return;
+    }
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+    shuffleFeedFromGesture();
+  }
+
+  function handleSidebarSwipeStart(event) {
+    if (
+      event.touches.length !== 1 ||
+      !window.matchMedia("(max-width: 780px)").matches ||
+      context.state.utilityDrawerOpen ||
+      context.state.quickCaptureOpen
+    ) {
+      resetSidebarSwipe();
+      return;
+    }
+
+    const touch = event.touches[0];
+    const wasOpen = Boolean(context.state.sidebarDrawerOpen);
+    const edgeWidth = Math.min(88, window.innerWidth * 0.24);
+    const startsAtEdge = touch.clientX <= edgeWidth;
+    const startsInDrawer = Boolean(event.target.closest?.("#mobile-sidebar"));
+    if ((!wasOpen && !startsAtEdge) || (wasOpen && !startsInDrawer)) {
+      resetSidebarSwipe();
+      return;
+    }
+
+    sidebarSwipe = {
+      active: true,
+      horizontal: false,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startedAt: Date.now(),
+      wasOpen,
+    };
+  }
+
+  function handleSidebarSwipeMove(event) {
+    if (!sidebarSwipe.active || event.touches.length !== 1) {
+      return;
+    }
+
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - sidebarSwipe.startX;
+    const deltaY = touch.clientY - sidebarSwipe.startY;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    if (!sidebarSwipe.horizontal) {
+      if (absX < 8 && absY < 8) {
+        return;
+      }
+      if (absY >= absX * 1.1) {
+        resetSidebarSwipe();
+        return;
+      }
+      if ((!sidebarSwipe.wasOpen && deltaX <= 0) || (sidebarSwipe.wasOpen && deltaX >= 0)) {
+        resetSidebarSwipe();
+        return;
+      }
+
+      sidebarSwipe.horizontal = true;
+      resetFeedPull();
+      context.elements.sidebarDrawer.classList.add("is-swiping");
+      context.elements.sidebarDrawerBackdrop.classList.remove("is-hidden");
+    }
+
+    const drawerWidth = context.elements.sidebarDrawer.getBoundingClientRect().width || 320;
+    const travel = Math.min(drawerWidth + 16, Math.max(0, Math.abs(deltaX)));
+    const progress = Math.min(1, travel / drawerWidth);
+    const translateX = sidebarSwipe.wasOpen ? -travel : `calc(-100% - 16px + ${travel}px)`;
+    context.elements.sidebarDrawer.style.transform =
+      typeof translateX === "number" ? `translateX(${translateX}px)` : `translateX(${translateX})`;
+    context.elements.sidebarDrawerBackdrop.style.opacity = String(
+      sidebarSwipe.wasOpen ? 1 - progress : progress
+    );
+
+    if (event.cancelable) {
+      event.preventDefault();
+    }
+  }
+
+  function handleSidebarSwipeEnd(event) {
+    if (!sidebarSwipe.active) {
+      return;
+    }
+
+    const touch = event.changedTouches?.[0];
+    const deltaX = touch ? touch.clientX - sidebarSwipe.startX : 0;
+    const elapsed = Math.max(1, Date.now() - sidebarSwipe.startedAt);
+    const fastSwipe = Math.abs(deltaX) >= 30 && elapsed <= 260;
+    const crossedThreshold = Math.abs(deltaX) >= 64;
+    const shouldToggle = sidebarSwipe.horizontal && (crossedThreshold || fastSwipe);
+    const nextOpen = shouldToggle ? !sidebarSwipe.wasOpen : sidebarSwipe.wasOpen;
+
+    context.elements.sidebarDrawer.classList.remove("is-swiping");
+    if (sidebarSwipe.wasOpen && !nextOpen) {
+      context.notes.collapseSidebarFolders();
+    }
+    context.state.sidebarDrawerOpen = nextOpen;
+    context.renderers.renderSidebarDrawer();
+    context.elements.sidebarDrawer.style.removeProperty("transform");
+    context.elements.sidebarDrawerBackdrop.style.removeProperty("opacity");
+    resetSidebarSwipeState();
+  }
+
+  function resetSidebarSwipe() {
+    if (sidebarSwipe.horizontal) {
+      context.elements.sidebarDrawer.classList.remove("is-swiping");
+      context.elements.sidebarDrawer.style.removeProperty("transform");
+      context.elements.sidebarDrawerBackdrop.style.removeProperty("opacity");
+      context.renderers.renderSidebarDrawer();
+    }
+    resetSidebarSwipeState();
+  }
+
+  function resetSidebarSwipeState() {
+    sidebarSwipe = {
+      active: false,
+      horizontal: false,
+      startX: 0,
+      startY: 0,
+      startedAt: 0,
+      wasOpen: false,
+    };
+  }
+
+  function handleFeedExcludedTagClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const button = event.target.closest("[data-feed-exclude-tag]");
+    if (!button) {
+      return;
+    }
+
+    const tag = button.dataset.feedExcludeTag;
+    const excluded = new Set(context.state.feedExcludedTags || []);
+    if (excluded.has(tag)) {
+      excluded.delete(tag);
+    } else {
+      excluded.add(tag);
+    }
+
+    context.state.feedExcludedTags = [...excluded];
+    context.renderers.renderFeed();
+  }
+
+  function stopFeedFilterEvent(event) {
+    event.stopPropagation();
+  }
+
+  function clearFeedFilters() {
+    context.state.filter = "";
+    context.state.typeFilter = "all";
+    context.state.tagFilter = "all";
+    context.state.favoritesOnly = false;
+    context.state.feedExcludedTags = [];
+    context.state.feedTagFilterOpen = false;
+
+    if (context.elements.searchInput) {
+      context.elements.searchInput.value = "";
+    }
+    if (context.elements.feedSearchInput) {
+      context.elements.feedSearchInput.value = "";
+    }
+    if (context.elements.typeFilter) {
+      context.elements.typeFilter.value = "all";
+    }
+    if (context.elements.feedTypeFilter) {
+      context.elements.feedTypeFilter.value = "all";
+    }
+    if (context.elements.tagFilter) {
+      context.elements.tagFilter.value = "all";
+    }
+    if (context.elements.favoritesFilter) {
+      context.elements.favoritesFilter.checked = false;
+    }
+    if (context.elements.feedFavoritesFilter) {
+      context.elements.feedFavoritesFilter.checked = false;
+    }
+
+    context.renderers.renderEverything();
+  }
+
+  function canPullRefreshFeed() {
+    return context.state.activeTab === "feed" && window.scrollY <= 6;
+  }
+
+  function isFeedRefreshIgnoredTarget(target) {
+    return Boolean(
+      target?.closest?.(
+        ".feed-filter-bar, .feed-toolbar-actions, .feed-action, .mobile-tab-bar, .mobile-action-bar, [data-tab], input, select, textarea, a"
+      )
+    );
+  }
+
+  function shuffleFeedFromGesture() {
+    if (feedShuffleLocked) {
+      resetFeedPull();
+      return;
+    }
+
+    feedShuffleLocked = true;
+    context.state.feedMode = "random";
+    context.state.feedSeed = Date.now();
+    context.renderers.renderFeed();
+    context.renderers.renderTabs();
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    showFeedRefreshComplete();
+    window.setTimeout(() => {
+      feedShuffleLocked = false;
+    }, 700);
+  }
+
+  function updateFeedPullVisual(distance) {
+    document.body.style.setProperty("--feed-pull-offset", `${Math.round(distance)}px`);
+    document.body.classList.toggle("feed-pulling", distance > 4);
+    document.body.classList.toggle("feed-refresh-ready", distance >= 72);
+  }
+
+  function showFeedRefreshComplete() {
+    document.body.style.setProperty("--feed-pull-offset", "56px");
+    document.body.classList.add("feed-pulling", "feed-refresh-complete");
+    document.body.classList.remove("feed-refresh-ready");
+    window.setTimeout(resetFeedPull, 520);
+  }
+
+  function resetFeedPull() {
+    feedPull = {
+      active: false,
+      startX: 0,
+      startY: 0,
+      distance: 0,
+      ready: false,
+    };
+    document.body.style.removeProperty("--feed-pull-offset");
+    document.body.classList.remove("feed-pulling", "feed-refresh-ready", "feed-refresh-complete");
+  }
+
+  function handleFeedClick(event) {
+    const shareButton = event.target.closest("[data-feed-share-note]");
+    if (shareButton) {
+      event.stopPropagation();
+      announceNoteAction(shareButton.dataset.feedShareNote, "Partage pret a configurer.");
+      return;
+    }
+
+    const commentButton = event.target.closest("[data-feed-comment-note]");
+    if (commentButton) {
+      event.stopPropagation();
+      announceNoteAction(commentButton.dataset.feedCommentNote, "Commentaires bientot disponibles.");
+      return;
+    }
+
+    const openButton = event.target.closest("[data-feed-open-note]");
+    const card = event.target.closest("[data-feed-note-id]");
+    const noteId = openButton?.dataset.feedOpenNote || card?.dataset.feedNoteId;
+    if (!noteId) {
+      return;
+    }
+
+    context.state.activeNoteId = noteId;
+    context.state.activeTab = "knowledge";
+    context.state.noteViewMode = "read";
+    closeSidebarDrawer();
+    context.state.utilityDrawerOpen = false;
+    context.renderers.renderEverything();
+    scrollToTop();
+  }
+
+  function announceNoteAction(noteId, message) {
+    const note = context.state.notes.find((candidate) => candidate.id === noteId);
+    let toast = document.querySelector("#feed-toast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "feed-toast";
+      toast.className = "feed-toast";
+      toast.setAttribute("role", "status");
+      document.body.appendChild(toast);
+    }
+
+    toast.textContent = note ? `${message} ${note.title}` : message;
+    toast.classList.add("is-visible");
+    window.setTimeout(() => {
+      toast.classList.remove("is-visible");
+    }, 1800);
+  }
+
+  function handleBottomNavScroll() {
+    if (navScrollTicking) {
+      return;
+    }
+
+    navScrollTicking = true;
+    window.requestAnimationFrame(() => {
+      const currentY = window.scrollY || 0;
+      const delta = currentY - lastScrollY;
+      const shouldCompact = currentY > 80 && delta > 5;
+      const shouldExpand = delta < -5 || currentY < 40;
+
+      if (shouldCompact !== context.state.feedNavCompact && shouldCompact) {
+        context.state.feedNavCompact = true;
+        document.body.classList.add("feed-nav-compact");
+      } else if (shouldExpand && context.state.feedNavCompact) {
+        context.state.feedNavCompact = false;
+        document.body.classList.remove("feed-nav-compact");
+      }
+
+      lastScrollY = currentY;
+      navScrollTicking = false;
+    });
   }
 
   function closeUtilityDrawer() {
@@ -650,6 +1149,9 @@
   }
 
   function closeSidebarDrawer() {
+    if (context.state.sidebarDrawerOpen) {
+      context.notes.collapseSidebarFolders();
+    }
     context.state.sidebarDrawerOpen = false;
     context.renderers.renderSidebarDrawer();
   }
@@ -746,6 +1248,11 @@
 
   function renderActiveTabContent() {
     context.renderers.renderKnowledgeMode();
+
+    if (context.state.activeTab === "feed") {
+      context.renderers.renderFeed();
+      return;
+    }
 
     if (context.state.activeTab === "organisation") {
       context.renderers.renderOrganization();
@@ -1018,109 +1525,13 @@
     window.setTimeout(applyFocus, 260);
   }
 
-  function bindSidebarSwipe() {
-    let swipe = null;
-
-    window.addEventListener(
-      "touchstart",
-      (event) => {
-        const touch = event.changedTouches?.[0];
-        if (!touch || window.innerWidth > 780) {
-          swipe = null;
-          return;
-        }
-
-        const target = event.target;
-        if (
-          target instanceof HTMLElement &&
-          target.closest(
-            "input, textarea, select, button, .graph-canvas, .quick-capture-panel, .rendered-note, .timeline-canvas, .timeline-stage-shell"
-          )
-        ) {
-          swipe = null;
-          return;
-        }
-
-        swipe = {
-          startedAt: Date.now(),
-          x: touch.clientX,
-          y: touch.clientY,
-          side: touch.clientX < window.innerWidth / 2 ? "left" : "right",
-        };
-      },
-      { passive: true }
-    );
-
-    window.addEventListener(
-      "touchmove",
-      (event) => {
-        if (!swipe || context.state.quickCaptureOpen) {
-          return;
-        }
-
-        const touch = event.changedTouches?.[0];
-        if (!touch) {
-          return;
-        }
-
-        const deltaX = touch.clientX - swipe.x;
-        const deltaY = Math.abs(touch.clientY - swipe.y);
-        const absX = Math.abs(deltaX);
-        const isDeliberateSwipe =
-          Date.now() - swipe.startedAt > 90 && absX > 126 && absX > deltaY * 1.7 && deltaY < 56;
-
-        if (context.state.sidebarDrawerOpen && deltaX < 0 && isDeliberateSwipe) {
-          context.state.sidebarDrawerOpen = false;
-          context.renderers.renderSidebarDrawer();
-          swipe = null;
-          return;
-        }
-
-        if (context.state.utilityDrawerOpen && deltaX > 0 && isDeliberateSwipe) {
-          context.state.utilityDrawerOpen = false;
-          context.renderers.renderTabs();
-          swipe = null;
-          return;
-        }
-
-        if (context.state.sidebarDrawerOpen || context.state.utilityDrawerOpen) {
-          return;
-        }
-
-        if (swipe.side === "left" && deltaX > 0 && isDeliberateSwipe) {
-          context.state.sidebarDrawerOpen = true;
-          context.state.utilityDrawerOpen = false;
-          context.renderers.renderSidebarDrawer();
-          context.renderers.renderTabs();
-          swipe = null;
-          return;
-        }
-
-        if (swipe.side === "right" && deltaX < 0 && isDeliberateSwipe) {
-          context.state.utilityDrawerOpen = true;
-          context.state.sidebarDrawerOpen = false;
-          context.renderers.renderSidebarDrawer();
-          context.renderers.renderTabs();
-          swipe = null;
-        }
-      },
-      { passive: true }
-    );
-
-    window.addEventListener(
-      "touchend",
-      () => {
-        swipe = null;
-      },
-      { passive: true }
-    );
-  }
-
   function handleKnowledgeListClick(event) {
     const toggleFolderButton = event.target.closest("[data-toggle-folder]");
     if (toggleFolderButton) {
       event.stopPropagation();
-      context.notes.toggleFolderCollapse(toggleFolderButton.dataset.toggleFolder);
+      animateFolderToggle(toggleFolderButton, () =>
+        context.notes.toggleFolderCollapse(toggleFolderButton.dataset.toggleFolder)
+      );
       return;
     }
 
@@ -1143,7 +1554,9 @@
     const toggleFolderButton = event.target.closest("[data-toggle-folder]");
     if (toggleFolderButton) {
       event.stopPropagation();
-      context.notes.toggleFolderCollapse(toggleFolderButton.dataset.toggleFolder);
+      animateFolderToggle(toggleFolderButton, () =>
+        context.notes.toggleFolderCollapse(toggleFolderButton.dataset.toggleFolder)
+      );
       return;
     }
 
@@ -1228,6 +1641,107 @@
       context.notes.deleteNoteById(deleteButton.dataset[datasetKeys.remove]);
       return;
     }
+  }
+
+  function animateFolderToggle(toggleButton, applyToggle) {
+    const entry = toggleButton.closest(".tree-entry-flat, .hierarchy-node");
+    const container = entry?.parentElement;
+
+    if (!entry || !container) {
+      applyToggle();
+      return;
+    }
+
+    const isOpening = context.notes.isFolderCollapsed(toggleButton.dataset.toggleFolder);
+    const beforeRects = getHierarchyMotionRects(container);
+    applyToggle();
+
+    animateHierarchySurface(container, isOpening);
+    animateHierarchyLayout(container, beforeRects);
+  }
+
+  function getHierarchyMotionRects(container) {
+    return [...container.children].reduce((rects, child) => {
+      if (!child.dataset?.noteId) {
+        return rects;
+      }
+
+      const rect = child.getBoundingClientRect();
+      rects.set(child.dataset.noteId, {
+        left: rect.left,
+        top: rect.top,
+      });
+      return rects;
+    }, new Map());
+  }
+
+  function animateHierarchyLayout(container, beforeRects) {
+    const entries = [...container.children].filter((child) => child.dataset?.noteId);
+    entries.forEach((entry, index) => {
+      const beforeRect = beforeRects.get(entry.dataset.noteId);
+      const afterRect = entry.getBoundingClientRect();
+
+      if (!beforeRect) {
+        animateHierarchyEntry(entry, {
+          delay: Math.min(index * 7, 42),
+          duration: 210,
+          opacity: 0,
+          transform: "translateY(-5px)",
+        });
+        return;
+      }
+
+      const deltaX = beforeRect.left - afterRect.left;
+      const deltaY = beforeRect.top - afterRect.top;
+      if (Math.abs(deltaX) < 0.5 && Math.abs(deltaY) < 0.5) {
+        return;
+      }
+
+      animateHierarchyEntry(entry, {
+        duration: 220,
+        transform: `translate(${deltaX}px, ${deltaY}px)`,
+      });
+    });
+  }
+
+  function animateHierarchySurface(container, isOpening) {
+    const fromY = isOpening ? -3 : 3;
+    container.style.transition = "none";
+    container.style.transform = `translateY(${fromY}px)`;
+    container.style.opacity = "0.985";
+    container.getBoundingClientRect();
+
+    container.style.transition = "transform 210ms cubic-bezier(0.22, 0.72, 0.22, 1), opacity 210ms ease";
+    window.requestAnimationFrame(() => {
+      container.style.transform = "translateY(0)";
+      container.style.opacity = "1";
+    });
+    window.setTimeout(() => {
+      container.style.transition = "";
+      container.style.transform = "";
+      container.style.opacity = "";
+    }, 270);
+  }
+
+  function animateHierarchyEntry(entry, { delay = 0, duration = 220, opacity = 1, transform }) {
+    entry.style.transition = "none";
+    entry.style.transitionDelay = "";
+    entry.style.transform = transform;
+    entry.style.opacity = String(opacity);
+    entry.getBoundingClientRect();
+
+    entry.style.transition = `transform ${duration}ms cubic-bezier(0.22, 0.72, 0.22, 1), opacity ${duration}ms ease`;
+    entry.style.transitionDelay = delay ? `${delay}ms` : "";
+    window.requestAnimationFrame(() => {
+      entry.style.transform = "translate(0, 0)";
+      entry.style.opacity = "1";
+    });
+    window.setTimeout(() => {
+      entry.style.transition = "";
+      entry.style.transitionDelay = "";
+      entry.style.transform = "";
+      entry.style.opacity = "";
+    }, duration + delay + 60);
   }
 
   function handleTagSuggestionClick(event) {

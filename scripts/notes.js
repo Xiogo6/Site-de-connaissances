@@ -6,6 +6,7 @@
       extractLinks,
       normalizeFlexibleDateInput,
       normalizeLinkTitle,
+      normalizeTag,
       parseTags,
       unique,
     } = AtlasApp.helpers;
@@ -599,6 +600,38 @@
 
     context.data.saveNotes();
     context.renderers.renderKnowledgeList();
+    context.renderers.renderSidebarRecap();
+    context.renderers.renderOrganization();
+  }
+
+  function collapseSidebarFolders() {
+    const noteIds = new Set(context.state.notes.map((note) => note.id));
+    const collapsibleIds = new Set();
+    const currentCollapsedFolders = Array.isArray(context.state.settings.collapsedFolders)
+      ? context.state.settings.collapsedFolders
+      : [];
+
+    context.state.notes.forEach((note) => {
+      if (note.type === "folder") {
+        collapsibleIds.add(note.id);
+      }
+      if (note.parentId && noteIds.has(note.parentId)) {
+        collapsibleIds.add(note.parentId);
+      }
+    });
+
+    const nextCollapsedFolders = unique([...currentCollapsedFolders, ...collapsibleIds])
+      .filter((id) => noteIds.has(id));
+    const didChange =
+      nextCollapsedFolders.length !== currentCollapsedFolders.length ||
+      nextCollapsedFolders.some((id, index) => id !== currentCollapsedFolders[index]);
+
+    if (!didChange) {
+      return;
+    }
+
+    context.state.settings.collapsedFolders = nextCollapsedFolders;
+    context.data.saveNotes({ skipRemote: true });
     context.renderers.renderSidebarRecap();
     context.renderers.renderOrganization();
   }
@@ -1296,6 +1329,77 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     );
   }
 
+  function renameTag(oldTag, nextTag) {
+    if (context.data.isReadOnlyMode()) {
+      return false;
+    }
+
+    const sourceLabel = String(oldTag || "").trim();
+    const targetLabel = String(nextTag || "").trim();
+    const source = normalizeTag(sourceLabel);
+    const target = normalizeTag(targetLabel);
+    if (!source || !targetLabel) {
+      return false;
+    }
+
+    if (source === target && sourceLabel === targetLabel) {
+      return false;
+    }
+
+    let didChange = false;
+    const updatedAt = new Date().toISOString();
+
+    context.state.notes.forEach((note) => {
+      if (!Array.isArray(note.tags) || !note.tags.length) {
+        return;
+      }
+
+      const hasSource = note.tags.some((tag) => normalizeTag(tag) === source);
+      if (!hasSource) {
+        return;
+      }
+
+      note.tags = unique(
+        note.tags
+          .map((tag) => (normalizeTag(tag) === source ? targetLabel : tag))
+          .filter(Boolean)
+      );
+      note.updatedAt = updatedAt;
+      didChange = true;
+    });
+
+    if (!didChange) {
+      return false;
+    }
+
+    if (context.state.tagFilter && normalizeTag(context.state.tagFilter) === source) {
+      context.state.tagFilter = targetLabel;
+    }
+
+    if (context.state.graphTagFilter && normalizeTag(context.state.graphTagFilter) === source) {
+      context.state.graphTagFilter = targetLabel;
+    }
+
+    if (context.state.timeline?.tag && normalizeTag(context.state.timeline.tag) === source) {
+      context.state.timeline.tag = targetLabel;
+    }
+
+    if (context.elements.quizTag && normalizeTag(context.elements.quizTag.value) === source) {
+      context.elements.quizTag.value = targetLabel;
+    }
+
+    if (
+      context.state.graphSelection?.kind === "tag" &&
+      normalizeTag(context.state.graphSelection.id.replace("tag::", "")) === source
+    ) {
+      context.state.graphSelection = { kind: "tag", id: `tag::${targetLabel}` };
+    }
+
+    context.data.saveNotes();
+    context.renderers.renderEverything();
+    return true;
+  }
+
   function isOrphanNote(note, sourceNotes = context.state.notes) {
     const outgoing = unique(extractLinks(note.content));
     const backlinks = sourceNotes.filter((candidate) => {
@@ -1313,6 +1417,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     cancelEditingNote,
     canMoveNote,
     clearOrganizationDropHighlights,
+    collapseSidebarFolders,
     closeQuickCapture,
     createEmptyNote,
     createFolderFromOrganization,
@@ -1347,6 +1452,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     isFolderCollapsed,
     isNoteDue,
     isOrphanNote,
+    renameTag,
     moveActiveNoteToRoot,
     moveNoteToParent,
     moveNoteToRoot,

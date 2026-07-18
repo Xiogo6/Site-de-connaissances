@@ -9,58 +9,28 @@
       (function applyStoredTheme() {
         try {
           const themeKey = "atlas-connaissance-theme";
-          const presetKey = "atlas-connaissance-theme-preset";
-          const presetModes = {
-            "classic-dark": "dark",
-            "classic-light": "light",
-            forest: "dark",
-            ocean: "dark",
-            terracotta: "light",
-            atelier: "light",
-          };
-          const presetColors = {
-            "classic-dark": "#181b1f",
-            "classic-light": "#f8f3ea",
-            forest: "#111914",
-            ocean: "#07131c",
-            terracotta: "#f4e6d8",
-            atelier: "#edf0eb",
-          };
           const storedTheme = window.localStorage.getItem(themeKey);
-          let preset = window.localStorage.getItem(presetKey);
           let theme = storedTheme;
 
-          if (!preset || !theme) {
+          if (!theme) {
             const raw = window.localStorage.getItem("atlas-connaissance-app");
             if (raw) {
               const parsed = JSON.parse(raw);
-              preset = preset || parsed?.settings?.themePreset;
-              theme = theme || parsed?.settings?.theme;
+              theme = parsed?.settings?.theme;
             }
           }
 
-          if (!presetModes[preset]) {
-            preset = theme === "light" ? "classic-light" : "classic-dark";
-          }
-
-          theme = presetModes[preset];
-          const isDark = theme === "dark";
+          const isDark = theme !== "light";
           document.documentElement.dataset.theme = isDark ? "dark" : "light";
-          document.documentElement.dataset.themePreset = preset;
           document.documentElement.classList.toggle("theme-dark", isDark);
-          document.querySelector('meta[name="theme-color"]')?.setAttribute(
-            "content",
-            presetColors[preset]
-          );
         } catch (error) {
           document.documentElement.dataset.theme = "dark";
-          document.documentElement.dataset.themePreset = "classic-dark";
           document.documentElement.classList.add("theme-dark");
         }
       })();
     </script>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=43" />
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div class="shell">
@@ -158,17 +128,7 @@
           </button>
 
           <nav class="tabs" aria-label="Sections principales">
-            <button class="tab is-active" data-tab="feed" type="button">
-              <span class="tab-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" role="presentation">
-                  <path d="M5 18c2.8-3.2 5.1-4.8 7-4.8s4.2 1.6 7 4.8" />
-                  <path d="M7 8.5c1.8-1.5 3.5-2.2 5-2.2s3.2.7 5 2.2" />
-                  <path d="M10 12h4" />
-                </svg>
-              </span>
-              <span class="tab-label">Feed</span>
-            </button>
-            <button class="tab" data-tab="knowledge" type="button">
+            <button class="tab is-active" data-tab="knowledge" type="button">
               <span class="tab-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" role="presentation">
                   <path d="M6 4h9l3 3v13H6z" />
@@ -176,6 +136,14 @@
                 </svg>
               </span>
               <span class="tab-label">Pages</span>
+            </button>
+            <button class="tab" data-tab="organisation" type="button">
+              <span class="tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                  <path d="M5 5h14v4H5zM5 11h6v8H5zM13 11h6v8h-6z" />
+                </svg>
+              </span>
+              <span class="tab-label">Organisation</span>
             </button>
             <button class="tab" data-tab="visualization" type="button">
               <span class="tab-icon" aria-hidden="true">
@@ -237,56 +205,7 @@
           </button>
         </div>
 
-        <section id="feed-tab" class="tab-panel is-active">
-          <div class="feed-layout" aria-label="Feed des pages">
-            <div id="feed-refresh-indicator" class="feed-refresh-indicator" aria-hidden="true"></div>
-            <header class="feed-toolbar">
-              <div>
-                <p class="eyebrow">Feed</p>
-                <h2>Atlas de pages</h2>
-              </div>
-              <div class="feed-toolbar-actions">
-                <div class="segmented-control" aria-label="Mode du feed">
-                  <button class="is-active" data-feed-mode="random" type="button">Aleatoire</button>
-                  <button data-feed-mode="foryou" type="button">Pour toi</button>
-                </div>
-                <span id="feed-count" class="pill"></span>
-              </div>
-            </header>
-            <section class="feed-filter-bar" aria-label="Filtres du feed">
-              <input
-                id="feed-search-input"
-                class="feed-filter-input"
-                type="search"
-                placeholder="Filtrer le feed"
-              />
-              <select id="feed-type-filter" class="feed-filter-select" aria-label="Type de page"></select>
-              <label class="feed-filter-toggle" for="feed-favorites-filter">
-                <input id="feed-favorites-filter" type="checkbox" />
-                <span>Favoris</span>
-              </label>
-              <div class="feed-tag-filter-control">
-                <button
-                  id="feed-tag-filter-button"
-                  class="feed-tag-filter-button"
-                  type="button"
-                  aria-expanded="false"
-                  aria-controls="feed-tag-filter-popover"
-                >
-                  Tags masques
-                  <span id="feed-excluded-count" class="feed-excluded-count" aria-hidden="true"></span>
-                </button>
-                <div id="feed-tag-filter-popover" class="feed-tag-filter-popover is-hidden">
-                  <div id="feed-excluded-tags" class="feed-excluded-tags" aria-label="Tags masques"></div>
-                </div>
-              </div>
-              <button id="feed-clear-filters" class="feed-filter-clear" type="button">Effacer</button>
-            </section>
-            <div id="feed-list" class="feed-list"></div>
-          </div>
-        </section>
-
-        <section id="knowledge-tab" class="tab-panel">
+        <section id="knowledge-tab" class="tab-panel is-active">
           <div id="knowledge-workspace" class="workspace">
             <section class="panel panel-editor">
               <div class="panel-header">
@@ -379,7 +298,7 @@
                 <label class="editor-parent-field is-hidden">
                   <span class="field-label">Emplacement</span>
                   <select id="note-parent" class="select-input">
-                    <option value="">Choisir un dossier</option>
+                    <option value="">Aucune</option>
                   </select>
                 </label>
               </div>
@@ -662,6 +581,7 @@
               <div class="panel-header">
                 <div>
                   <p class="eyebrow">Carte vivante</p>
+                  <h3>Reseau des connaissances</h3>
                 </div>
                 <div id="graph-controls" class="inline-actions graph-controls">
                   <label class="toggle-row" for="graph-show-tags">
@@ -869,53 +789,6 @@
 
         <section id="settings-tab" class="tab-panel">
           <div class="templates-layout">
-            <section id="theme-settings-panel" class="panel theme-settings-panel">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Ambiance visuelle</p>
-                  <h3>Choisir un theme</h3>
-                </div>
-                <span id="theme-preference-status" class="pill pill-soft">Enregistre automatiquement</span>
-              </div>
-
-              <p class="theme-settings-copy">
-                Chaque univers adapte les fonds, les surfaces, les contrastes et les couleurs d'accent.
-              </p>
-
-              <div class="theme-preset-grid" role="group" aria-label="Themes de l'application">
-                <button class="theme-preset-card" data-theme-preset="classic-dark" type="button" aria-pressed="false">
-                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
-                  <span class="theme-preset-copy"><strong>Classique nuit</strong><small>Le style sombre actuel, chaleureux et concentre.</small></span>
-                  <span class="theme-preset-active">Actif</span>
-                </button>
-                <button class="theme-preset-card" data-theme-preset="classic-light" type="button" aria-pressed="false">
-                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
-                  <span class="theme-preset-copy"><strong>Classique clair</strong><small>Le style actuel dans sa version lumineuse et douce.</small></span>
-                  <span class="theme-preset-active">Actif</span>
-                </button>
-                <button class="theme-preset-card" data-theme-preset="forest" type="button" aria-pressed="false">
-                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
-                  <span class="theme-preset-copy"><strong>Herbier</strong><small>Vert profond, mousse et papier ancien.</small></span>
-                  <span class="theme-preset-active">Actif</span>
-                </button>
-                <button class="theme-preset-card" data-theme-preset="ocean" type="button" aria-pressed="false">
-                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
-                  <span class="theme-preset-copy"><strong>Abysses</strong><small>Bleu encre et turquoise, calme et precis.</small></span>
-                  <span class="theme-preset-active">Actif</span>
-                </button>
-                <button class="theme-preset-card" data-theme-preset="terracotta" type="button" aria-pressed="false">
-                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
-                  <span class="theme-preset-copy"><strong>Terre douce</strong><small>Creme, argile et rose poudre pour une lecture chaleureuse.</small></span>
-                  <span class="theme-preset-active">Actif</span>
-                </button>
-                <button class="theme-preset-card" data-theme-preset="atelier" type="button" aria-pressed="false">
-                  <span class="theme-preset-preview" aria-hidden="true"><i></i><i></i><i></i></span>
-                  <span class="theme-preset-copy"><strong>Atelier</strong><small>Sauge, bleu mineral et blanc casse, plus editorial.</small></span>
-                  <span class="theme-preset-active">Actif</span>
-                </button>
-              </div>
-            </section>
-
             <section class="panel">
               <div class="panel-header">
                 <div>
@@ -996,47 +869,6 @@
                   </div>
                 </div>
                 <div id="type-settings-list" class="settings-type-list"></div>
-              </div>
-            </section>
-
-            <section class="panel">
-              <div class="panel-header">
-                <div>
-                  <p class="eyebrow">Parametres</p>
-                  <h3>Tags</h3>
-                </div>
-              </div>
-
-              <div class="link-section">
-                <p class="helper-copy">
-                  Renomme un tag ici pour le mettre a jour partout dans les filtres, la frise et les
-                  pages qui l'utilisent.
-                </p>
-
-                <div class="form-grid">
-                  <label>
-                    <span class="field-label">Tag a renommer</span>
-                    <select id="tag-rename-source" class="select-input">
-                      <option value="">Choisir un tag</option>
-                    </select>
-                  </label>
-
-                  <label>
-                    <span class="field-label">Nouveau nom</span>
-                    <input
-                      id="tag-rename-target"
-                      class="text-input"
-                      type="text"
-                      placeholder="ex: memoire"
-                    />
-                  </label>
-                </div>
-
-                <div class="stack-actions compact-actions">
-                  <button id="rename-tag-button" class="button button-primary" type="button">
-                    Renommer le tag
-                  </button>
-                </div>
               </div>
             </section>
 
@@ -1176,70 +1008,12 @@
               </div>
 
               <div id="sport-mass-panel" class="sport-table-panel">
-                <form id="sport-mass-entry-form" class="sport-mass-entry-card" autocomplete="off">
-                  <div class="sport-mass-entry-copy">
-                    <p class="eyebrow">Nouvelle mesure</p>
-                    <h4>Ajouter ma masse du jour</h4>
-                    <p>La mesure est ajoutee a l'historique et sauvegardee des la validation.</p>
-                  </div>
-
-                  <div class="sport-mass-entry-fields">
-                    <label class="sport-mass-date-field">
-                      <span class="field-label">Date</span>
-                      <input id="sport-mass-date" class="text-input" type="date" required />
-                    </label>
-
-                    <label class="sport-mass-value-field">
-                      <span class="field-label">Masse</span>
-                      <span class="sport-mass-value-control">
-                        <input
-                          id="sport-mass-value"
-                          class="sport-mass-value-input"
-                          type="number"
-                          inputmode="decimal"
-                          min="20"
-                          max="500"
-                          step="0.1"
-                          placeholder="75,0"
-                          aria-label="Masse en kilogrammes"
-                          required
-                        />
-                        <span class="sport-mass-unit">kg</span>
-                      </span>
-                    </label>
-
-                    <label class="sport-mass-fasted-toggle">
-                      <input id="sport-mass-fasted" type="checkbox" />
-                      <span>
-                        <strong>A jeun</strong>
-                        <small>Avant de manger ou boire</small>
-                      </span>
-                    </label>
-
-                    <button class="button button-primary sport-mass-submit" type="submit">
-                      Enregistrer la mesure
-                    </button>
-                  </div>
-                </form>
-
-                <div id="sport-mass-summary" class="sport-mass-summary" aria-live="polite"></div>
-
-                <div class="sport-history-heading">
-                  <div>
-                    <p class="eyebrow">Historique</p>
-                    <h4>Mesures enregistrees</h4>
-                  </div>
-                  <p id="sport-mass-save-status" class="sport-save-status" role="status" aria-live="polite">
-                    Sauvegarde automatique active sur cet appareil.
-                  </p>
-                </div>
-
                 <div class="sport-table-shell">
-                  <table class="sport-table sport-mass-table">
+                  <table class="sport-table">
                     <thead>
                       <tr>
                         <th>Jour</th>
-                        <th>Masse (kg)</th>
+                        <th>Masse</th>
                         <th>A jeun</th>
                         <th class="sport-action-header">Action</th>
                       </tr>
@@ -1247,29 +1021,23 @@
                     <tbody id="sport-mass-body"></tbody>
                   </table>
                 </div>
+                <button id="add-sport-mass-row" class="button button-primary" type="button">
+                  Ajouter une ligne
+                </button>
               </div>
 
               <div id="sport-performance-panel" class="sport-table-panel is-hidden">
                 <div class="sport-table-shell">
                   <table class="sport-table sport-performance-table">
-                    <colgroup>
-                      <col class="sport-delete-column" />
-                      <col class="sport-date-column" />
-                      <col class="sport-exercise-column" />
-                      <col class="sport-sets-column" />
-                      <col class="sport-reps-column" />
-                      <col class="sport-weight-column" />
-                      <col class="sport-rest-column" />
-                    </colgroup>
                     <thead>
                       <tr>
-                        <th class="sport-delete-header" aria-hidden="true"></th>
-                        <th class="sport-date-header">Jour</th>
+                        <th>Jour</th>
                         <th>Exercice</th>
                         <th>Series</th>
                         <th>Repetitions</th>
                         <th>Poids</th>
                         <th>Repos</th>
+                        <th class="sport-action-header">Action</th>
                       </tr>
                     </thead>
                     <tbody id="sport-performance-body"></tbody>
@@ -1372,7 +1140,7 @@
             <strong>Sport</strong>
           </button>
           <button id="theme-toggle-button" class="utility-link" type="button">
-            <strong>Themes</strong>
+            <strong>Mode nuit</strong>
           </button>
         </div>
       </aside>
@@ -1394,17 +1162,17 @@
       </div>
     </div>
 
-    <script src="./scripts/config.js?v=43"></script>
-    <script src="./scripts/dom.js?v=43"></script>
-    <script src="./scripts/helpers.js?v=43"></script>
-    <script src="./scripts/data.js?v=43"></script>
-    <script src="./scripts/ai.js?v=43"></script>
-    <script src="./scripts/notes.js?v=43"></script>
-    <script src="./scripts/graph.js?v=43"></script>
-    <script src="./scripts/quiz.js?v=43"></script>
-    <script src="./scripts/mascot.js?v=43"></script>
-    <script src="./scripts/renderers.js?v=43"></script>
-    <script src="./scripts/events.js?v=43"></script>
-    <script src="./app.js?v=43"></script>
+    <script src="./scripts/config.js"></script>
+    <script src="./scripts/dom.js"></script>
+    <script src="./scripts/helpers.js"></script>
+    <script src="./scripts/data.js"></script>
+    <script src="./scripts/ai.js"></script>
+    <script src="./scripts/notes.js"></script>
+    <script src="./scripts/graph.js"></script>
+    <script src="./scripts/quiz.js"></script>
+    <script src="./scripts/mascot.js"></script>
+    <script src="./scripts/renderers.js"></script>
+    <script src="./scripts/events.js"></script>
+    <script src="./app.js"></script>
   </body>
 </html>
