@@ -88,3 +88,34 @@ La version actuelle est excellente pour un usage local et pour une consultation 
 ## Donnees
 
 Les donnees sont stockees dans le `localStorage` du navigateur sous la cle `atlas-connaissance-notes`.
+
+## Sauvegarde robuste
+
+Le point fragile du projet est que l'espace de travail editable vit d'abord dans le navigateur.
+Si le `localStorage` est vide, corrompu, ou si vous changez de navigateur/appareil, vos pages peuvent sembler disparaitre.
+
+Pour une vraie sauvegarde hors navigateur :
+
+1. gardez Supabase comme source distante
+2. exportez regulierement un backup JSON complet
+3. conservez aussi des fichiers dates dans le repo ou dans un dossier externe
+
+Un script est fourni pour cela :
+
+```bash
+zsh ./scripts/backup-supabase.sh
+```
+
+Il cree dans `backups/` :
+
+- un export complet du payload Supabase
+- un export `notes` seul
+- un resume des snapshots distants
+- une copie `latest` facile a reutiliser
+
+Workflow conseille :
+
+1. avant une grosse session, lancez `zsh ./scripts/backup-supabase.sh`
+2. apres une session importante, relancez-le
+3. gardez au moins une copie locale hors du navigateur
+4. si vous voulez une version publiee, remplacez aussi `knowledge-base.json`

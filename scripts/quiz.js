@@ -3,6 +3,14 @@
 
   AtlasApp.createQuizModule = function createQuizModule(context) {
     const { escapeHtml, shuffle } = AtlasApp.helpers;
+    const EASY_POOL_MINIMUM_FOR_MIXED_ROTATION = 3;
+    const EARLY_ROTATION_AVERAGE_ASKED_LIMIT = 2;
+    const EARLY_ROTATION_SEEN_RATIO_LIMIT = 0.65;
+    const ROTATION_REST_HOURS = {
+      difficult: 6,
+      intermediate: 24,
+      easy: 96,
+    };
     let quizTimerHandle = null;
 
     function getScopedNotes(scope, tagValue, folderId = "") {
@@ -170,21 +178,34 @@
       context.state.quiz.revealPending = false;
     }
 
+    /*
+      Politique de rotation des quiz
+
+      Le but n'est pas de respecter aveuglement les categories, mais d'eviter
+      les boucles de questions tout en gardant une vraie logique pedagogique.
+
+      1. On ne prend qu'une question par page/note dans une session.
+      2. Une question vue recemment peut etre mise au repos selon sa difficulte:
+         les difficiles reviennent plus vite, les intermediaires a un rythme
+         moyen, et les faciles beaucoup plus tard.
+      3. En mode mixte/priorite, les questions faciles ne recoivent un quota
+         que si leur bassin est assez large. Une unique question facile peut
+         revenir comme appoint rare, mais elle n'est jamais forcee juste pour
+         remplir le quota.
+      4. Au debut, quand beaucoup de questions sont nouvelles ou peu vues, la
+         repartition favorise l'exploration: nouvelles/difficiles d'abord,
+         intermediaires ensuite, faciles au compte-gouttes.
+      5. Les categories restent utiles pour lire le tableau de bord, mais la
+         selection utilise un score de priorite: anciennete depuis la derniere
+         apparition, nombre de passages, erreurs, difficulte, et une part de
+         hasard pour eviter des sequences trop previsibles.
+    */
     function pickQuizQuestionsForSession(notes, requestedAmount) {
       if (!notes.length || requestedAmount <= 0) {
         return [];
       }
 
-      const noteCandidates = notes
-        .map((note) => {
-          const question = pickQuestionForNote(note.quizQuestions || []);
-          if (!question) {
-            return null;
-          }
-
-          return buildSessionQuestion(note, question);
-        })
-        .filter(Boolean);
+      const noteCandidates = collectSessionQuestionCandidates(notes);
 
       if (!noteCandidates.length) {
         return [];
@@ -192,19 +213,20 @@
 
       const focus = normalizeQuizFocus(context.elements.quizMode?.value);
       const focusedCandidates = noteCandidates.filter((candidate) => matchesQuizFocus(candidate, focus));
+      const rotationCandidates = pickOneQuestionPerNote(focusedCandidates);
 
-      if (!focusedCandidates.length) {
+      if (!rotationCandidates.length) {
         return [];
       }
 
-      const quotas = computeDifficultyQuotas(requestedAmount);
+      const quotas = computeDifficultyQuotas(requestedAmount, rotationCandidates, focus);
       const pools = {
         difficult: [],
         intermediate: [],
         easy: [],
       };
 
-      focusedCandidates.forEach((candidate) => {
+      rotationCandidates.forEach((candidate) => {
         pools[candidate.difficulty].push(candidate);
       });
 
@@ -220,7 +242,7 @@
       });
 
       if (selected.length < requestedAmount) {
-        const remainder = focusedCandidates.filter((item) => !usedKeys.has(item.sessionKey));
+        const remainder = rotationCandidates.filter((item) => !usedKeys.has(item.sessionKey));
         pickFromPool(remainder, requestedAmount - selected.length, usedKeys).forEach((item) =>
           selected.push(item)
         );
@@ -229,16 +251,38 @@
       return shuffle(selected).slice(0, requestedAmount);
     }
 
-    function pickQuestionForNote(questions) {
-      const pool = (questions || [])
-        .map((question, index) => normalizeQuizQuestion(question, index))
+    function pickOneQuestionPerNote(candidates) {
+      const byNote = new Map();
+
+      candidates.forEach((candidate) => {
+        const bucket = byNote.get(candidate.noteId);
+        if (bucket) {
+          bucket.push(candidate);
+          return;
+        }
+
+        byNote.set(candidate.noteId, [candidate]);
+      });
+
+      return [...byNote.values()]
+        .map((group) => {
+          const eligibleGroup = group.filter((candidate) => isRotationEligible(candidate));
+          if (!eligibleGroup.length) {
+            return null;
+          }
+
+          return weightedPick(eligibleGroup, (candidate) => rotationWeight(candidate));
+        })
         .filter(Boolean);
+    }
 
-      if (!pool.length) {
-        return null;
-      }
-
-      return weightedPick(pool, (item) => questionWeight(item));
+    function collectSessionQuestionCandidates(notes) {
+      return notes.flatMap((note) =>
+        (note.quizQuestions || [])
+          .map((question, index) => normalizeQuizQuestion(question, index))
+          .filter(Boolean)
+          .map((question) => buildSessionQuestion(note, question))
+      );
     }
 
     function normalizeQuizQuestion(question, index = 0) {
@@ -392,9 +436,26 @@
       return candidate.difficulty === normalizedFocus;
     }
 
-    function computeDifficultyQuotas(amount) {
-      const easy = Math.round(amount * 0.2);
-      const intermediate = Math.round(amount * 0.4);
+    function computeDifficultyQuotas(amount, candidates = [], focus = "mixed") {
+      const normalizedFocus = normalizeQuizFocus(focus);
+      if (["difficult", "intermediate", "easy"].includes(normalizedFocus)) {
+        return {
+          difficult: normalizedFocus === "difficult" ? amount : 0,
+          intermediate: normalizedFocus === "intermediate" ? amount : 0,
+          easy: normalizedFocus === "easy" ? amount : 0,
+        };
+      }
+
+      const profile = getRotationProfile(candidates);
+      const earlyRotation = profile.averageAsked < EARLY_ROTATION_AVERAGE_ASKED_LIMIT ||
+        profile.seenRatio < EARLY_ROTATION_SEEN_RATIO_LIMIT;
+      const easyPoolSize = candidates.filter((candidate) => candidate.difficulty === "easy").length;
+      const easyRatio = earlyRotation ? 0.1 : 0.15;
+      const intermediateRatio = earlyRotation ? 0.3 : 0.35;
+      const easy = easyPoolSize >= EASY_POOL_MINIMUM_FOR_MIXED_ROTATION
+        ? Math.min(Math.floor(amount * easyRatio), easyPoolSize)
+        : 0;
+      const intermediate = Math.round(amount * intermediateRatio);
       const difficult = Math.max(amount - easy - intermediate, 0);
 
       return {
@@ -404,11 +465,52 @@
       };
     }
 
-    function questionWeight(question) {
-      const asked = Number(question.stats?.asked) || 0;
-      const baseWeight = 1 / (asked + 1);
-      const freshness = question.stats?.lastAskedAt ? 0.15 : 0.35;
-      return baseWeight + freshness;
+    function getRotationProfile(candidates) {
+      if (!candidates.length) {
+        return {
+          averageAsked: 0,
+          seenRatio: 0,
+        };
+      }
+
+      const totals = candidates.reduce(
+        (summary, candidate) => {
+          const asked = Number(candidate.statsBefore?.asked) || 0;
+          return {
+            asked: summary.asked + asked,
+            seen: summary.seen + (asked > 0 ? 1 : 0),
+          };
+        },
+        { asked: 0, seen: 0 }
+      );
+
+      return {
+        averageAsked: totals.asked / candidates.length,
+        seenRatio: totals.seen / candidates.length,
+      };
+    }
+
+    function isRotationEligible(candidate) {
+      return !isQuestionCoolingDown(candidate);
+    }
+
+    function isQuestionCoolingDown(candidate) {
+      const restHours = ROTATION_REST_HOURS[candidate.difficulty] || 0;
+      const asked = Number(candidate.statsBefore?.asked) || 0;
+      if (!asked || restHours <= 0) {
+        return false;
+      }
+
+      return getHoursSinceLastAsked(candidate.statsBefore?.lastAskedAt) < restHours;
+    }
+
+    function getHoursSinceLastAsked(lastAskedAt) {
+      const timestamp = Date.parse(lastAskedAt || "");
+      if (!Number.isFinite(timestamp)) {
+        return Infinity;
+      }
+
+      return Math.max((Date.now() - timestamp) / 36e5, 0);
     }
 
     function weightedPick(items, weightGetter) {
@@ -437,7 +539,7 @@
       const chosen = [];
 
       while (available.length && chosen.length < count) {
-        const selected = weightedPick(available, (item) => 1 / ((item.statsBefore?.asked || 0) + 1));
+        const selected = weightedPick(available, (item) => rotationWeight(item));
         if (!selected) {
           break;
         }
@@ -451,6 +553,40 @@
       }
 
       return chosen;
+    }
+
+    function rotationWeight(candidate) {
+      const stats = candidate.statsBefore || {};
+      const asked = Number(stats.asked) || 0;
+      const correct = Number(stats.correct) || 0;
+      const wrong = Math.max(asked - correct, 0);
+      const hoursSinceLastAsked = getHoursSinceLastAsked(stats.lastAskedAt);
+      const difficultyWeight = {
+        difficult: 10,
+        intermediate: 4,
+        easy: 0.75,
+      }[candidate.difficulty] || 2;
+      const discoveryBoost = asked === 0 ? 18 : 0;
+      const spacingScale = {
+        difficult: 3,
+        intermediate: 4,
+        easy: 8,
+      }[candidate.difficulty] || 4;
+      const spacingCap = {
+        difficult: 12,
+        intermediate: 10,
+        easy: 8,
+      }[candidate.difficulty] || 8;
+      const spacingBoost = Number.isFinite(hoursSinceLastAsked)
+        ? Math.min(hoursSinceLastAsked / spacingScale, spacingCap)
+        : spacingCap;
+      const practiceBalance = 6 / (asked + 1);
+      const errorBoost = wrong * (candidate.difficulty === "easy" ? 1.2 : 1.8);
+      const masteryPenalty = Math.min(correct * (candidate.difficulty === "easy" ? 0.55 : 0.35), 5);
+      const rawWeight =
+        discoveryBoost + difficultyWeight + spacingBoost + practiceBalance + errorBoost - masteryPenalty;
+
+      return Math.max(candidate.difficulty === "easy" ? rawWeight * 0.3 : rawWeight, 0.1);
     }
 
     function setQuizAnswer(index, value) {
@@ -668,6 +804,15 @@
       return Math.max(0, Math.round((finishedAt - startedAt) / 1000));
     }
 
+    function getAverageAnswerSeconds(durationSeconds, answerCount) {
+      const safeCount = Math.max(0, Math.round(Number(answerCount) || 0));
+      if (!safeCount) {
+        return 0;
+      }
+
+      return Math.max(0, Math.round((Number(durationSeconds) || 0) / safeCount));
+    }
+
     function getQuizSessions() {
       context.state.settings.quizPlayerStats = context.state.settings.quizPlayerStats || {
         sessions: [],
@@ -685,15 +830,17 @@
 
       const sessions = getQuizSessions();
       const id = `quiz-${context.state.quiz.finishedAt}`;
+      const durationSeconds = getSessionDurationSeconds(
+        context.state.quiz.startedAt,
+        context.state.quiz.finishedAt
+      );
       context.state.quiz.sessionRecordId = id;
       sessions.unshift({
         id,
         startedAt: new Date(context.state.quiz.startedAt).toISOString(),
         finishedAt: new Date(context.state.quiz.finishedAt).toISOString(),
-        durationSeconds: getSessionDurationSeconds(
-          context.state.quiz.startedAt,
-          context.state.quiz.finishedAt
-        ),
+        durationSeconds,
+        averageAnswerSeconds: getAverageAnswerSeconds(durationSeconds, score.total),
         total: score.total,
         correct: score.correct,
         scope: context.elements.quizScope?.value || "all",
@@ -724,6 +871,7 @@
         ...sessions[index],
         total: score.total,
         correct: score.correct,
+        averageAnswerSeconds: getAverageAnswerSeconds(sessions[index].durationSeconds, score.total),
       };
     }
 
@@ -799,6 +947,87 @@
       return minutes ? `${minutes}m ${rest}s` : `${rest}s`;
     }
 
+    function formatAnswerPace(seconds) {
+      return `${formatSessionDuration(seconds)} / rep.`;
+    }
+
+    function getSessionAverageAnswerSeconds(session) {
+      if (!session) {
+        return 0;
+      }
+
+      return (
+        Number(session.averageAnswerSeconds) ||
+        getAverageAnswerSeconds(session.durationSeconds, session.total)
+      );
+    }
+
+    function getLocalDateKey(value) {
+      const date = value instanceof Date ? value : new Date(value || "");
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function shiftDateKey(dateKey, offsetDays) {
+      const [year, month, day] = dateKey.split("-").map((part) => Number(part));
+      if (!year || !month || !day) {
+        return "";
+      }
+
+      const date = new Date(year, month - 1, day);
+      date.setDate(date.getDate() + offsetDays);
+      return getLocalDateKey(date);
+    }
+
+    function getQuizDayStreakStats(sessions) {
+      const dayKeys = [
+        ...new Set(
+          sessions
+            .map((session) => getLocalDateKey(session.finishedAt))
+            .filter(Boolean)
+        ),
+      ].sort((left, right) => right.localeCompare(left));
+
+      if (!dayKeys.length) {
+        return {
+          current: 0,
+          best: 0,
+        };
+      }
+
+      let current = 1;
+      let expectedPrevious = shiftDateKey(dayKeys[0], -1);
+      for (let index = 1; index < dayKeys.length; index += 1) {
+        if (dayKeys[index] !== expectedPrevious) {
+          break;
+        }
+        current += 1;
+        expectedPrevious = shiftDateKey(dayKeys[index], -1);
+      }
+
+      let best = 1;
+      let running = 1;
+      for (let index = 1; index < dayKeys.length; index += 1) {
+        if (dayKeys[index] === shiftDateKey(dayKeys[index - 1], -1)) {
+          running += 1;
+        } else {
+          running = 1;
+        }
+        best = Math.max(best, running);
+      }
+
+      return {
+        current,
+        best,
+      };
+    }
+
     function renderQuizDashboard() {
       if (!context.elements.quizDashboard) {
         return;
@@ -836,6 +1065,15 @@
         (best, session) => Math.max(best, Math.round((session.correct / session.total) * 100)),
         0
       );
+      const totalSessionAnswers = sessions.reduce((sum, session) => sum + (Number(session.total) || 0), 0);
+      const totalSessionDuration = sessions.reduce(
+        (sum, session) => sum + (Number(session.durationSeconds) || 0),
+        0
+      );
+      const averageAnswerSeconds = getAverageAnswerSeconds(totalSessionDuration, totalSessionAnswers);
+      const streakStats = getQuizDayStreakStats(sessions);
+      const streakMeterScore = Math.min(streakStats.current * 20, 100);
+      const perfectSessions = sessions.filter((session) => session.correct === session.total).length;
 
       const distribution = {
         new: allQuestions.filter((item) => item.asked === 0).length,
@@ -885,8 +1123,8 @@
           </div>
           <div class="quiz-hero-side">
             ${renderAsterMascot("hero")}
-            <div class="quiz-hero-meter" style="--score:${sessionAverage}%;" aria-hidden="true">
-              <span>${formatPercent(sessionAverage)}</span>
+            <div class="quiz-hero-meter" style="--score:${globalSuccess}%;" aria-hidden="true">
+              <span>${formatPercent(globalSuccess)}</span>
             </div>
           </div>
         </div>
@@ -894,8 +1132,12 @@
         <div class="quiz-stat-grid">
           ${renderQuizStatCard("Quiz joues", sessionCount, "Historique joueur")}
           ${renderQuizStatCard("Reussite", formatPercent(globalSuccess), `${totalCorrect}/${totalAsked || 0} reponses`)}
+          ${renderQuizStatCard("Temps / rep.", averageAnswerSeconds ? formatAnswerPace(averageAnswerSeconds) : "-", `${totalSessionAnswers} reponse(s) chronometree(s)`)}
+          ${renderQuizStatCard("Serie", `${streakStats.current}j`, `Record ${streakStats.best}j`)}
           ${renderQuizStatCard("Questions", allQuestions.length, `${notesWithQuestions} page(s) source`)}
           ${renderQuizStatCard("Obligatoires", priorityCount, "A revoir en priorite")}
+          ${renderQuizStatCard("Temps total", totalSessionDuration ? formatSessionDuration(totalSessionDuration) : "-", "Temps passe en quiz")}
+          ${renderQuizStatCard("Sans faute", perfectSessions, "Quiz termines a 100%")}
         </div>
 
         <div class="quiz-mastery-board">
@@ -916,15 +1158,16 @@
             <div class="quiz-panel-title-row">
               <div class="quiz-panel-title">
                 <span class="quiz-game-kicker">Joueur</span>
-                <h3>Performance</h3>
+                <h3>Rythme</h3>
               </div>
               ${renderAsterMascot("panel")}
             </div>
-            <div class="quiz-player-score" style="--score:${sessionAverage}%;">
-              <strong>${formatPercent(sessionAverage)}</strong>
-              <span>Moyenne session</span>
+            <div class="quiz-player-score" style="--score:${streakMeterScore}%;">
+              <strong>${streakStats.current}j</strong>
+              <span>Serie actuelle</span>
             </div>
             <div class="quiz-mini-stats">
+              <span>Moy. sessions <strong>${formatPercent(sessionAverage)}</strong></span>
               <span>Record <strong>${formatPercent(bestSession)}</strong></span>
               <span>Dernier <strong>${
                 recentSession ? `${recentSession.correct}/${recentSession.total}` : "-"
@@ -932,6 +1175,10 @@
               <span>Temps <strong>${
                 recentSession ? formatSessionDuration(recentSession.durationSeconds) : "-"
               }</strong></span>
+              <span>Temps / rep. <strong>${
+                recentSession ? formatAnswerPace(getSessionAverageAnswerSeconds(recentSession)) : "-"
+              }</strong></span>
+              <span>Serie <strong>${streakStats.current}j</strong></span>
             </div>
           </article>
         </div>
@@ -1085,6 +1332,10 @@
       const percent = scoredTotal ? Math.round((correctCount / scoredTotal) * 100) : 0;
       const completed = validatedCount >= total;
       const duration = getSessionDuration(context.state.quiz.startedAt, context.state.quiz.finishedAt);
+      const durationSeconds = context.state.quiz.finishedAt
+        ? getSessionDurationSeconds(context.state.quiz.startedAt, context.state.quiz.finishedAt)
+        : 0;
+      const answerPace = getAverageAnswerSeconds(durationSeconds, scoredTotal);
 
       context.elements.quizTitle.textContent = "Quiz";
       context.elements.quizProgress.textContent = `${validatedCount} / ${total}`;
@@ -1125,6 +1376,11 @@
           <span class="quiz-score-pill">Fausses <strong>${wrongCount}</strong></span>
           <span class="quiz-score-pill">Contestees <strong>${contestedCount}</strong></span>
           <span class="quiz-score-pill">Temps <strong data-quiz-duration>${duration}</strong></span>
+          ${
+            completed
+              ? `<span class="quiz-score-pill">Temps / rep. <strong>${formatAnswerPace(answerPace)}</strong></span>`
+              : ""
+          }
         </div>
         <div class="quiz-session-shell">
           <div class="quiz-session-list">
@@ -1239,11 +1495,20 @@
       const intermediate = countedQuestions.filter((item) => item.difficulty === "intermediate").length;
       const easy = countedQuestions.filter((item) => item.difficulty === "easy").length;
       const contested = questions.filter((item) => item.contested).length;
+      const durationSeconds = getSessionDurationSeconds(
+        context.state.quiz.startedAt,
+        context.state.quiz.finishedAt
+      );
+      const answerPace = getAverageAnswerSeconds(durationSeconds, total);
       const wrongRows = questions.filter((item) => item.validated && !item.isCorrect && !item.contested);
 
       return `
         <p class="quiz-summary-line">
-          Score final : <strong>${correctCount}/${total}</strong>. Repartition : ${hard} difficiles, ${intermediate} intermediaires, ${easy} faciles${contested ? `, ${contested} contestee(s)` : ""}.
+          Score final : <strong>${correctCount}/${total}</strong>. Temps : <strong>${formatSessionDuration(
+            durationSeconds
+          )}</strong>. Moyenne : <strong>${formatAnswerPace(
+            answerPace
+          )}</strong>. Repartition : ${hard} difficiles, ${intermediate} intermediaires, ${easy} faciles${contested ? `, ${contested} contestee(s)` : ""}.
         </p>
         ${
           wrongRows.length
@@ -1281,4 +1546,3 @@
     };
   };
 })(window);
-

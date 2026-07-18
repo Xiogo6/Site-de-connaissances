@@ -274,6 +274,14 @@
           title: context.elements.titleInput?.value.trim() || note.title || "Sans titre",
           content: context.elements.contentInput?.value || note.content || "",
           type: context.elements.typeInput?.value || note.type || "concept",
+          tags: context.helpers.parseTags
+            ? context.helpers.parseTags(context.elements.tagsInput?.value || "")
+            : cloneValue(note.tags || []),
+          parentId: context.elements.parentInput?.value || note.parentId || "",
+          favorite:
+            typeof context.elements.favoriteInput?.checked === "boolean"
+              ? context.elements.favoriteInput.checked
+              : Boolean(note.favorite),
           metadata: context.notes.collectMetadataFromInputs
             ? context.notes.collectMetadataFromInputs()
             : cloneValue(note.metadata || {}),
@@ -321,9 +329,52 @@
         return false;
       }
 
+      const snapshot = backup.editorSnapshot || {};
+      const metadata = snapshot.metadata || backup.noteSnapshot?.metadata || note.metadata || {};
+      const restoredTitle =
+        typeof snapshot.title === "string"
+          ? snapshot.title
+          : backup.noteSnapshot?.title || note.title || "Sans titre";
+      const restoredType =
+        typeof snapshot.type === "string" && snapshot.type.trim()
+          ? snapshot.type
+          : note.type || "concept";
+      const restoredContent =
+        typeof snapshot.content === "string"
+          ? snapshot.content
+          : backup.noteSnapshot?.content || note.content || "";
       context.state.noteViewMode = "edit";
-      context.elements.titleInput.value = backup.noteSnapshot.title || note.title || "Sans titre";
-      context.elements.contentInput.value = backup.noteSnapshot.content || note.content || "";
+      context.elements.titleInput.value = restoredTitle;
+      context.elements.typeInput.value = restoredType;
+      context.elements.tagsInput.value = Array.isArray(snapshot.tags)
+        ? snapshot.tags.join(", ")
+        : (note.tags || []).join(", ");
+      context.elements.parentInput.value = snapshot.parentId || "";
+      context.elements.favoriteInput.checked =
+        typeof snapshot.favorite === "boolean" ? snapshot.favorite : Boolean(note.favorite);
+      context.elements.noteHasDate.value = metadata.hasDate ? "true" : "false";
+      context.elements.noteDateMode.value =
+        !metadata.hasDate
+          ? "none"
+          : ["reference", "life", "range"].includes(metadata.dateMode)
+          ? metadata.dateMode
+          : "reference";
+      context.elements.noteDateSingle.value = metadata.singleDate
+        ? context.helpers.formatFlexibleDate(metadata.singleDate)
+        : "";
+      context.elements.noteDateStart.value = metadata.startDate
+        ? context.helpers.formatFlexibleDate(metadata.startDate)
+        : "";
+      context.elements.noteDateEnd.value = metadata.endDate
+        ? context.helpers.formatFlexibleDate(metadata.endDate)
+        : "";
+      context.notes.syncNewPageClassificationControls?.();
+      context.renderers.renderStructuredFields?.();
+      context.elements.contentInput.value = restoredContent;
+      context.state.editorQuizQuestions = cloneValue(
+        snapshot.quizQuestions || backup.noteSnapshot?.quizQuestions || note.quizQuestions || []
+      );
+      context.state.editorQuizQuestionsNoteId = note.id;
       context.notes.handleEditorContentChange();
       clearRewriteBackup();
       context.notes.saveCurrentNote({ stayInEdit: true });
@@ -403,11 +454,14 @@
         "- conserver le titre fourni sans le changer",
         "- ne pas generer de questions ici",
         "- rendre la note plus lisible meme si le sujet est technique",
+        "- privilegier les paragraphes et les phrases fluides plutot que les listes",
+        "- ne pas transformer chaque ligne en puce ou en tiret",
+        "- n'utiliser des puces que si la note contient deja une vraie liste ou si une enumeration est vraiment utile",
         "",
         "Mise en forme Markdown :",
         "- garder le titre principal en # Titre",
         "- utiliser des sous-titres en ## si cela aide",
-        "- utiliser des puces - pour les listes et les idees courtes",
+        "- utiliser des puces uniquement pour des listes reelles et limiter leur usage au strict necessaire",
         "- mettre en gras les termes importants avec **...**",
         "- utiliser l'italique *...* seulement pour nuancer",
         "- utiliser des liens wiki [[Nom de page]] quand une autre page pertinente existe",
@@ -417,7 +471,8 @@
         '- retourne uniquement un JSON valide, sans markdown ni commentaire',
         '- le JSON doit contenir uniquement la cle "content"',
         "- content doit commencer par la ligne # avec le titre fourni",
-        "- une idee par ligne ou par puce quand c est pertinent",
+        "- une idee par paragraphe autant que possible",
+        "- n'ajoute pas de tiret en debut de ligne sauf si la ligne fait partie d'une vraie liste",
         "- si une phrase est ambigue, reste sobre sans changer le sens",
         "- si la note contient une personne, fais ressortir naissance, deces, role et realisations",
         "- si la note contient un evenement, fais ressortir debut, fin, cause et consequence",

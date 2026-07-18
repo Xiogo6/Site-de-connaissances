@@ -1,0 +1,2720 @@
+[
+  {
+    "id": "a-trier",
+    "tags": [],
+    "type": "folder",
+    "title": "à trier",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-15T21:52:17.459+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# à trier\n\nContient : [[La liberté guidant le peuple]]\n\nContient : [[L'effet Barnum]]\n\nContient : [[Le Koala]]\n\nContient : [[Gutenberg]]\n\nContient : [[ITAR]]\n\nContient : [[Surnom Côte d'Ivoire]]\n",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-06-23T21:48:44.197+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouvelle-page-56",
+    "tags": [
+      "pensee"
+    ],
+    "type": "concept",
+    "title": "Aimer une mauvaise personne",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-29T21:25:08.062+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Aimer une mauvaise personne\n\nSelon moi il est impossible de connaître une personne a 100%. Tout depend du contexte.\n\nIl y a plusieurs personnes que je ne pourrai pas voir au travail ou alors en tant que personne à boire jn verre au bar etc.\n\nTout depend du contexte,\nOr lorsque que l'on est avec quelqu'un il est impossible de savoir qui est cette personne avec d'autres comment elle se comporte ? Est-ce que nous l'aimerions et tomberions amoureux quand meme ??\n\nDans : [[Philosophie]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "range",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouvelle-page-36",
+    "createdAt": "2026-04-29T21:25:08.061+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "amaron",
+    "tags": [
+      "vin"
+    ],
+    "type": "concept",
+    "title": "Amaron",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-05-05T11:19:48.712+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Amaron\n\nSèche et re fermenté\n\nDans : [[Vins]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-5",
+    "createdAt": "2026-05-05T11:19:48.712+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouvelle-page-68",
+    "tags": [],
+    "type": "concept",
+    "title": "Amélioration pour faire un quiz",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-05-13T19:41:09.295+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Amélioration pour faire un quiz\n\nFaire un quiz\nSous les notes avoir un champ pour les questions correspondant à cette note, le champ est simple, il doit avoir une colonne question et une colonne réponses (avec plusieurs orthographe acceptées) il peut y avoir plusieurs questions sous une même note\n\nPar la suite, nous allons travailler une logique de questions à poser dans l'onglet quiz \nEt nous devrons répondre à l'écrit\nToutes les questions apparaîtront dans un tableau les unes en dessous des autres et nous les écrirons, les réponses dans la colonne à droite sur la ligne associée à la question \nIl y aura à droite de cette réponse, un petit bouton validé une fois que j'aurais écrit la réponse de la ligne. Si celle-ci est bonne, elle mettra en verre automatiquement. Sinon elle se mettra en rouge.\nUne fois terminé, je verrai mon score et toutes les en comparant aux miennes\nPour ce rendu, je pourrais te montrer des photos pour exemple\nL'ongle qui prendra les questions, faites sous les notes mais ne pourra pas prendre sur un même quiz de questions provenant d'une même note\n\nNous pourrons choisir le nombre de questions qui sera pris\n\nEn arrière plan, il aura un classement des difficultés des questions et ainsi que de leur redondance afin d' optimiser l'apprentissage\n\nLa logique serait d'avoir 40 % de questions difficiles, 40 % de questions intermédiaires et 20 % de questions faciles\n\nLa catégorisation des questions se fera de manière automatique en utilisant le principe suivant\n\nToutes les questions partent avec un degré de difficulté difficile\nUne fois que la question est passée cinq fois si il y a eu cinq bonnes réponses alors la question passera directement en facile\nSi il y a trois ou quatre bonnes réponses, la question passera en intermédiaire\nSinon, la question restera au niveau difficile\n\nUne fois que la septième fois que la question est sortie alors on résonnera sur le niveau des questions en fonction du pourcentage de réussite de la question, c'est-à-dire le nombre de réponses, juste donner sur le nombre de fois que la question a été posée\n\nSi ce pourcentage est entre 70 et 100 %, alors la question est considéré comme facile\nSi ce pourcentage est entre 30 et 70, la question est considérée comme intermédiaire\nEn dessous de 30% La question est considérée comme difficile.\n\nFais en sorte que les questions soient prises de manière aléatoire, c'est-à-dire de ne pas faire ressortir toujours les mêmes questions si une question est sorti déjà cinq fois et une autre zéro c'est qu'il y a un problème",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-05-13T19:41:09.294+00:00",
+    "updatedAt": "2026-06-20T23:02:52.89477+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouveau-dossier-2-2",
+    "tags": [],
+    "type": "folder",
+    "title": "Anecdotes",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-16T20:53:28.617+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Anecdotes\n\nContient : [[Coiffeur Villeurbanne]]\n\nDans : [[Kevin Barbet]]\n\nContient : [[Les poils du loup]]\n\nContient : [[Ol- Auxerre]]\n\nContient : [[Bloqué dans les rues de Come]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouvelle-page-37",
+    "createdAt": "2026-04-16T20:53:28.616+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "batonnet",
+    "tags": [],
+    "type": "concept",
+    "title": "Batonnet",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-18T12:52:27.752+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Batonnet\n\nIl s'agit de remuer le lit de grappe de peau de raisin dans la cuve à intervalles réguliers.\n\nCela donne un gout de \"baume\" a la fin\n\nDans : [[Vins]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-5",
+    "createdAt": "2026-04-18T12:52:27.752+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouvelle-page-57",
+    "tags": [],
+    "type": "concept",
+    "title": "Bloqué dans les rues de Come",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-05-04T20:19:41.728+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Bloqué dans les rues de Come\n\nPhs s'est trompe de route, on s'est retrouvé bloqué dans une impasse\n\nDans : [[Anecdotes]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": "2026-05-04"
+    },
+    "parentId": "nouveau-dossier-2-2",
+    "createdAt": "2026-05-04T20:19:41.728+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "tapitaine-du-titanic",
+    "tags": [
+      "cultureg",
+      "histoire",
+      "titanic"
+    ],
+    "type": "concept",
+    "title": "Capitaine du titanic",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-04T10:17:18.082+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Capitaine du titanic\n\nLe premier capitaine du Titanic était le capitaine Haddock\n\nDans : [[Histoire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-2",
+    "createdAt": "2026-04-04T10:17:18.082+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "casino",
+    "tags": [],
+    "type": "concept",
+    "title": "Casino",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-05-01T15:02:21.985+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Casino\n\nVient de l'italien \"petite maison\"\n\nDans : [[Culture Générale]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-05-01T15:02:21.982+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "clavier-chinois",
+    "tags": [
+      "cultureg"
+    ],
+    "type": "concept",
+    "title": "Clavier chinois",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-19T12:20:55.158+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Clavier chinois\n\nSur ordinateur, les Chinois utilisent très souvent un clavier physique proche du QWERTY classique. Pour écrire en chinois, ils ne tapent pas directement chaque caractère sur une touche. \nIls utilisent généralement un logiciel de saisie, appelé IME (Input Method Editor), qui transforme ce qu’ils tapent en caractères chinois.\n \nPar exemple, avec la méthode pinyin, on tape la prononciation d’un mot avec l’alphabet latin, puis l’ordinateur propose les caractères chinois correspondants. Pour la programmation, ils codent donc en grande partie comme nous, avec les mots-clés habituels des langages informatiques, qui sont majoritairement en anglais : if, else, for, while, return, etc.\n\nDans : [[Culture Générale]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-04-19T12:20:55.157+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "question-1781736013453",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "un clavier proche du QWERTY",
+          "un clavier QWERTY",
+          "QWERTY"
+        ],
+        "question": "Quel type de clavier physique les Chinois utilisent-ils très souvent sur ordinateur ?"
+      },
+      {
+        "id": "question-1781736037696",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "IME",
+          "Input Method Editor",
+          "éditeur de méthode de saisie",
+          "editeur de methode de saisie"
+        ],
+        "question": "Quel logiciel permet de transformer ce qu’on tape au clavier en caractères chinois ?"
+      },
+      {
+        "id": "question-1781736070585",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "anglais",
+          "en anglais",
+          "l’anglais"
+        ],
+        "question": "Dans quelle langue sont majoritairement les mots-clés des langages informatiques utilisés pour programmer ?"
+      }
+    ]
+  },
+  {
+    "id": "nouvelle-page-48",
+    "tags": [],
+    "type": "concept",
+    "title": "Club des 27",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-24T21:16:51.492+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Club des 27\n\n## Explication / contenu\n\n* Le Club des 27 est le surnom donné à un ensemble d’artistes célèbres, surtout liés au rock et au blues, morts à l’âge de 27 ans.  \n* Les membres les plus souvent inclus sont : Robert Johnson, Brian Jones, Jimi Hendrix, Janis Joplin, Jim Morrison, Kurt Cobain et Amy Winehouse.  \n* Les morts de Brian Jones, Jimi Hendrix, Janis Joplin et Jim Morrison entre juillet 1969 et juillet 1971 ont fortement contribué à la création de cette idée. Kurt Cobain a ensuite renforcé sa notoriété en 1994, puis Amy Winehouse en 2011.  \n\n## Elements pour quiz\n\n* Club des 27 : groupe informel d’artistes célèbres morts à 27 ans.  \n* Robert Johnson : bluesman américain, souvent inclus dans le Club des 27.  \n* Brian Jones : fondateur des Rolling Stones, guitariste et multi-instrumentiste britannique.  \n* Jimi Hendrix est un guitariste, auteur, compositeur et interprète américain.  \n* Janis Joplin est une chanteuse américaine et fondatrice du Full Tilt Boogie Band.  \n* Jim Morrison est un chanteur, poète et auteur américain, cofondateur des Doors.  \n* Kurt Cobain est un chanteur, auteur-compositeur et guitariste américain, cofondateur de Nirvana.  \n* Amy Winehouse est une chanteuse, auteure-compositrice et interprète britannique.  \n* Brian Jones : mort le 3 juillet 1969 à 27 ans.  \n* Jimi Hendrix : mort le 18 septembre 1970 à 27 ans.  \n* Janis Joplin : morte le 4 octobre 1970 à 27 ans.  \n* Jim Morrison : mort le 3 juillet 1971 à 27 ans.  \n* Kurt Cobain : mort le 5 avril 1994 à 27 ans.  \n* Amy Winehouse : morte le 23 juillet 2011 à 27 ans.\n\nDans : [[Culture Générale]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-04-24T21:16:51.492+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page-1776370653666",
+    "tags": [
+      "anecdote"
+    ],
+    "type": "concept",
+    "title": "Coiffeur Villeurbanne",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-16T20:17:33.667+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Coiffeur Villeurbanne\n\nJe vais chez le coiffeur pour la 3eme fois à villeurbanne, j'ai mes quelques habitudes. C'est un coiffeur de quartier à 20€ le tout.\n\nJe rentre le vendredi du travail et je dois ressortir le soir. Il est 19h et en regardant sur planity je vois qu'il y a une place à 19h30 et qu'il ferme à 20h.\n\nJe me dis parfait let's go. le coiffeur est un peu loin j'arrive pile à l'heure.\n\nIl est entrain de coiffé un mec il me voit rentrer, et me dit\n\n \"ta rdv ?\n -- oui 19h30\"\n\n  il regarde sa montre, et dit \"ok rentre.\"\n\nil fini le mec avant et commence à me coiffer\non parle bien , il m'explique qu'il est crévé de la semaine etc..\nil fait ca assez vite (20min) mais bien \n\nà la fin je lui dis \"tu n'as pas de la poudre ?\"\nIl me repond \"oui oui\" et petit momment de flottement,\nil enchaine par \n\"Ah !! pour les cheveux non je n'en ai plus\"\n\nDans : [[Anecdotes]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": "2025-12"
+    },
+    "parentId": "nouveau-dossier-2-2",
+    "createdAt": "2026-04-16T20:17:33.666+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouvelle-page-32",
+    "tags": [],
+    "type": "folder",
+    "title": "Connaissances",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-16T20:53:57.608+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Connaissances\n\nContient : [[Lina]]\n\nDans : [[Kevin Barbet]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouvelle-page-37",
+    "createdAt": "2026-04-16T20:53:57.608+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "couper-la-salade",
+    "tags": [
+      "cultureg"
+    ],
+    "type": "concept",
+    "title": "Couper la salade",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-26T11:26:03.188+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Couper la salade\n\nOn ne doit pas couper la salade car avant avec la vinaigrette ça oxydé les couverts\nDepuis c'est resté\n\nDans : [[Culture Générale]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-04-26T11:26:03.187+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "courroie-caoutchouc",
+    "tags": [
+      "voiture"
+    ],
+    "type": "concept",
+    "title": "Courroie caoutchouc",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-26T18:48:39.033+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Courroie caoutchouc\n\nUne courroie = HNBR + fibres (verre/aramide) + tissu nylon\n\nDans : [[Puretech: le problème]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "puretech-le-probleme",
+    "createdAt": "2026-04-26T18:48:39.033+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouvelle-page-5",
+    "tags": [
+      "drapeau"
+    ],
+    "type": "concept",
+    "title": "Création Croix Rouge",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-15T21:13:25.347+00:00",
+      "lastReviewedAt": "2026-04-15T21:13:25.347+00:00"
+    },
+    "content": "# Création Croix Rouge\n\nLe symbole de la Croix-Rouge est une inversion du drapeau suisse (croix rouge sur fond blanc), en hommage à son fondateur suisse, [[Henry Dunant]]\n\nLe 24 juin 1859, la bataille de [[Solférino]] marque l’événement déclencheur de sa création\n\nDans : [[Histoire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": "1859-06-24"
+    },
+    "parentId": "nouveau-dossier-1-2",
+    "createdAt": "2026-03-31T11:11:29.365+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "croatie-dans-l-ue",
+    "tags": [
+      "cultureg"
+    ],
+    "type": "event",
+    "title": "Croatie dans l'ue",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-03-30T22:51:07.769+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Croatie dans l'ue\n\nLa Croatie rejoint l’Union européenne en 2013, parmi les derniers pays à y adhérer.\n Son entrée est liée aux réformes nécessaires pour stabiliser un État démocratique après les conflits des années 1990.\n\nDans : [[Géographie]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-2",
+    "createdAt": "2026-03-30T22:51:07.768+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "croatie-dans-l-39-ue",
+    "tags": [],
+    "type": "concept",
+    "title": "Croatie dans l'ue",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-05-13T20:08:41.931+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Croatie dans l'ue",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-05-13T20:08:41.93+00:00",
+    "updatedAt": "2026-06-20T23:02:52.89477+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouveau-dossier-1-3",
+    "tags": [],
+    "type": "folder",
+    "title": "Culture Générale",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-13T21:25:16.651+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Culture Générale\n\nContient : [[Clavier chinois]]\n\nContient : [[La joconde]]\n\nContient : [[Nids propres]]\n\nContient : [[Origine Aya Nakamura]]\n\nContient : [[Vins]]\n\nContient : [[Couper la salade]]\n\nContient : [[Les rois mages]]\n\nContient : [[Club des 27]]\n\nContient : [[Casino]]\n\nContient : [[Lorem Impsum]]\n\nContient : [[Protéine du lait]]\n\nContient : [[Griots]]\n",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-04-13T21:25:16.651+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouvelle-page-38",
+    "tags": [],
+    "type": "folder",
+    "title": "Daily",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-16T21:13:29.396+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Daily\n\nDans : [[Kevin Barbet]]\n\nContient : [[La souffrance de la solitude]]\n\nContient : [[Visite greffe]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouvelle-page-37",
+    "createdAt": "2026-04-16T21:13:29.396+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "dominique",
+    "tags": [
+      "drapeau"
+    ],
+    "type": "concept",
+    "title": "Dominique 🇩🇲",
+    "review": {
+      "streak": 1,
+      "nextReviewAt": "2026-04-01T10:06:56.271+00:00",
+      "lastReviewedAt": "2026-03-31T22:06:56.271+00:00"
+    },
+    "content": "# Dominique 🇩🇲\n\n*   Le drapeau de la **Dominique** est le seul drapeau national au monde à contenir la couleur **violette**.\n*   Cette couleur est visible sur le **perroquet Sisserou** (Amazona imperialis), une espèce [[Endémique]] à l'île, représenté sur le drapeau.\n*   Historiquement, la couleur **violette** était considérée comme rare et coûteuse à produire.\n\nDans : [[Géographie]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-2",
+    "createdAt": "2026-03-30T23:21:47.073+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "dominique-question-1",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Violet"
+        ],
+        "question": "Quelle couleur rend le drapeau de la Dominique unique parmi les drapeaux nationaux ?"
+      },
+      {
+        "id": "dominique-question-2",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Le perroquet Sisserou",
+          "Sisserou",
+          "le Sisserou"
+        ],
+        "question": "Quel animal, représenté sur le drapeau de la Dominique, porte la couleur violette ?"
+      },
+      {
+        "id": "dominique-question-3",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Dominique",
+          "la Dominique",
+          "Commonwealth de la Dominique"
+        ],
+        "question": "Quel pays possède un drapeau national contenant du violet, notamment visible sur le perroquet Sisserou ?"
+      }
+    ]
+  },
+  {
+    "id": "endemique",
+    "tags": [
+      "voc"
+    ],
+    "type": "concept",
+    "title": "Endémique",
+    "review": {
+      "streak": 1,
+      "nextReviewAt": "2026-04-01T09:04:10.145+00:00",
+      "lastReviewedAt": "2026-03-31T21:04:10.145+00:00"
+    },
+    "content": "# Endémique\n\nSe dit d’une espèce qui vit uniquement dans une zone géographique précise et n’existe nulle part ailleurs à l’état naturel\n\nDans : [[Vocabulaire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1",
+    "createdAt": "2026-03-30T23:22:45.854+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page-14",
+    "tags": [
+      "art"
+    ],
+    "type": "concept",
+    "title": "Endémique",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-22T16:05:20.111+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Endémique\n\nLe terme **endémique** qualifie une espèce vivante dont la présence est limitée à une zone géographique bien précise. Une espèce est dite endémique lorsqu'elle n'existe nulle part ailleurs à l'état naturel, ce qui souligne son lien exclusif avec un territoire donné.\n\nCette notion appartient au [[Vocabulaire]] spécifique des sciences naturelles.\n",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1",
+    "createdAt": "2026-06-22T16:05:20.109+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "esope",
+    "tags": [
+      "auteur",
+      "cultureg",
+      "grec",
+      "histoire"
+    ],
+    "type": "person",
+    "title": "Esope",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-20T20:01:08.779+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Esope\n\nÉsope est l’auteur grec antique auquel on rattache le plus souvent l’origine de la fable dans la tradition occidentale. \n\nJean de La Fontaine s’est largement inspiré des récits attribués à Ésope pour écrire plusieurs de ses propres fables.\n\nDans : [[Philosophie]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "564",
+      "hasDate": true,
+      "dateMode": "life",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouvelle-page-36",
+    "createdAt": "2026-04-20T20:01:08.778+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "question-1781735881899",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Ésope",
+          "Esope"
+        ],
+        "question": "De quel auteur grec antique Jean de La Fontaine s’est-il largement inspiré pour écrire plusieurs de ses fables ?"
+      },
+      {
+        "id": "question-1781735916679",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Jean de La Fontaine",
+          "La Fontaine"
+        ],
+        "question": "Quel fabuliste français s’est largement inspiré des récits attribués à Ésope ?"
+      }
+    ]
+  },
+  {
+    "id": "ferdinand-cheval",
+    "tags": [],
+    "type": "person",
+    "title": "Ferdinand Cheval",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-06T14:10:47.693+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Ferdinand Cheval\n\nIdee a developper.\n\nDans : [[Palais du facteur Cheval]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouvelle-page-22",
+    "createdAt": "2026-04-06T14:10:47.693+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouveau-dossier-2",
+    "tags": [
+      "dossier"
+    ],
+    "type": "folder",
+    "title": "Géographie",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-03-31T21:11:09.145+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Nouveau dossier 2\n\nCe dossier regroupe :\n\n- Themes contenus :\n- Questions liees :\n- Voir aussi :\n\nContient : [[Dominique 🇩🇲]]\n\nContient : [[Plus long fleuve d'afrique]]\n\nContient : [[Kilimanjaro]]\n\nContient : [[Place principale Strasbourgeoise]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-03-31T21:11:09.145+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "glanage",
+    "tags": [
+      "voc"
+    ],
+    "type": "concept",
+    "title": "Glanage",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-03-31T21:04:09.743+00:00",
+      "lastReviewedAt": "2026-03-31T21:04:09.743+00:00"
+    },
+    "content": "# Glanage\n\n- Le **glanage** désigne l'action de ramasser les restes de produits agricoles après la **moisson**.\n- Il correspond à un ancien **droit d'usage** qui permettait historiquement aux plus modestes de récupérer ce qui subsistait dans les champs.\n\nDans : [[Vocabulaire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1",
+    "createdAt": "2026-03-31T11:16:52.536+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "glanage-question-1",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Le glanage",
+          "Glanage"
+        ],
+        "question": "Comment appelle-t-on l'action de ramasser les restes agricoles après la moisson ?"
+      },
+      {
+        "id": "glanage-question-2",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Après la moisson",
+          "Post-moisson"
+        ],
+        "question": "À quel moment précis du cycle agricole le glanage est-il pratiqué ?"
+      }
+    ]
+  },
+  {
+    "id": "griots",
+    "tags": [],
+    "type": "concept",
+    "title": "Griots",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T05:19:18.158+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Griots\n\nLes griots sont des conteurs, chanteurs et gardiens de la mémoire orale en Afrique de l’Ouest.\n\nDans : [[Culture Générale]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-06-19T05:19:18.156+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "griots-question-1",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "mémoire orale",
+          "la mémoire orale",
+          "tradition orale"
+        ],
+        "question": "De quel type de patrimoine les griots sont-ils les gardiens ?"
+      },
+      {
+        "id": "griots-question-2",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Afrique de l'Ouest",
+          "Afrique de l’Ouest",
+          "Ouest de l'Afrique"
+        ],
+        "question": "Dans quelle zone géographique la tradition des griots s'inscrit-elle ?"
+      },
+      {
+        "id": "griots-question-3",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "chanteurs",
+          "chanteur"
+        ],
+        "question": "Quelles fonctions artistiques les griots occupent-ils, outre le conte ?"
+      }
+    ]
+  },
+  {
+    "id": "page-11",
+    "tags": [
+      "histoire"
+    ],
+    "type": "person",
+    "title": "Gutenberg",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T18:23:03.129+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Gutenberg\n\nGutenberg est l’inventeur de l’imprimerie moderne en Europe.\nVers 1450, il perfectionne l’impression à caractères mobiles métalliques, ce qui permet de produire des livres beaucoup plus vite.\n\nDans : [[à trier]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "a-trier",
+    "createdAt": "2026-06-19T18:23:03.126+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "heliciculture",
+    "tags": [
+      "cultureg"
+    ],
+    "type": "concept",
+    "title": "Héliciculture",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-20T19:58:29.074+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Héliciculture\n\nElevage d'escargots\n\nDans : [[Vocabulaire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1",
+    "createdAt": "2026-04-20T19:58:29.074+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouveau-dossier-1-2",
+    "tags": [],
+    "type": "folder",
+    "title": "Histoire",
+    "review": {
+      "streak": 3,
+      "nextReviewAt": "2026-04-18T21:13:30.204+00:00",
+      "lastReviewedAt": "2026-04-15T21:13:30.204+00:00"
+    },
+    "content": "\n\nContient : [[Les cowboys]]\n\nContient : [[Création Croix Rouge]]\n\nContient : [[Marcher sur la lune]]\n\nContient : [[Palais du facteur Cheval]]\n\nContient : [[Capitaine du titanic]]\n\nContient : [[Première voiture construite en série]]\n\nContient : [[Surnom Napoléon]]\n\nContient : [[Les Trois Glorieuses]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-03-31T21:11:07.249+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page-12",
+    "tags": [],
+    "type": "concept",
+    "title": "ITAR",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T18:23:35.46+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# ITAR\n\nL’ITAR est une réglementation des États-Unis qui contrôle l’exportation et le transfert de technologies, matériels et données liés à la défense.\nElle sert à protéger les intérêts de sécurité nationale américains.\n\nDans : [[à trier]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "a-trier",
+    "createdAt": "2026-06-19T18:23:35.457+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "jan-zelezny",
+    "tags": [
+      "sport"
+    ],
+    "type": "person",
+    "title": "Jan Železný",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-06T21:51:26.16+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Jan Železný\n\nDate : né le 16 juin 1966\nLieu : Mladá Boleslav (Tchécoslovaquie, actuelle République tchèque)\n\n- Jan Železný est le détenteur du [[Record du monde du lancer du javelot]]\n\t•\tIl est considéré comme le plus grand lanceur de l’histoire\n\t•\tIl a remporté 3 médailles d’or olympiques (1992, 1996, 2000)\n\t•\tIl a dominé sa discipline pendant plus de 10 ans\n\nSource :\nInternational Olympic Committee\n\nDans : [[Lancé de Javelot]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "life",
+      "startDate": "1966-06-16",
+      "singleDate": ""
+    },
+    "parentId": "nouvelle-page-35",
+    "createdAt": "2026-04-06T21:51:26.16+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "jan-zelezny-question-1",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Lancer du javelot",
+          "Le javelot",
+          "Javelot"
+        ],
+        "question": "Quelle discipline Jan Železný a-t-il dominée pendant plus de 10 ans ?"
+      },
+      {
+        "id": "jan-zelezny-question-3",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "3",
+          "Trois",
+          "3 médailles"
+        ],
+        "question": "Combien de médailles d'or olympiques Jan Železný a-t-il remportées ?"
+      }
+    ]
+  },
+  {
+    "id": "nouvelle-page-37",
+    "tags": [],
+    "type": "folder",
+    "title": "Kevin Barbet",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-16T21:01:32.704+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Kevin Barbet\n\nContient : [[Connaissances]]\n\nContient : [[Anecdotes]]\n\nContient : [[Daily]]\n\nContient : [[Notre propre escape game]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "life",
+      "startDate": "2000-12-09",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-04-16T21:01:32.703+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page-2",
+    "tags": [],
+    "type": "concept",
+    "title": "Kilimanjaro",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T05:15:56.19+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Kilimanjaro\n\nLe Kilimandjaro mesure environ 5 895 m.\nC’est le plus haut sommet d’Afrique. Il se trouve en Tanzanie, près de la frontière avec le Kenya\n\nDans : [[Géographie]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-2",
+    "createdAt": "2026-06-19T05:15:56.188+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "page-2-question-1",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "5 895 m",
+          "5895 mètres",
+          "5895 m"
+        ],
+        "question": "Quelle est l'altitude approximative du Kilimandjaro ?"
+      },
+      {
+        "id": "page-2-question-3",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Tanzanie",
+          "La Tanzanie"
+        ],
+        "question": "Dans quel pays se situe le Kilimandjaro ?"
+      }
+    ]
+  },
+  {
+    "id": "page-5",
+    "tags": [
+      "sociologie"
+    ],
+    "type": "concept",
+    "title": "L'effet Barnum",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T18:16:29.325+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# L'effet Barnum\n\nL’effet Barnum est le fait de croire qu’une description générale parle précisément de nous.\nIl est souvent utilisé pour expliquer pourquoi on peut se reconnaître dans l’astrologie ou les horoscopes.\n\nDans : [[à trier]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "a-trier",
+    "createdAt": "2026-06-19T18:16:29.324+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "la-joconde",
+    "tags": [
+      "cultureg"
+    ],
+    "type": "concept",
+    "title": "La joconde",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-20T19:53:10.928+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# La joconde\n\nIl existe plein de déclinaisons de la Joconde\n\nDans : [[Culture Générale]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-04-20T19:53:10.927+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page-4",
+    "tags": [
+      "art",
+      "histoire",
+      "peinture"
+    ],
+    "type": "concept",
+    "title": "La liberté guidant le peuple",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T18:13:19.33+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# La liberté guidant le peuple\n\nLa Liberté guidant le peuple est un tableau d’Eugène Delacroix, peint en 1830.\nIl ne représente pas la Révolution française de 1789, mais la révolution de Juillet 1830, appelée [[Les Trois Glorieuses]].\nSes dimensions sont 260 × 325 cm.\nLe tableau n’a pas été peint directement “pour le roi”, mais il a été acheté par l’État sous le règne de Louis-Philippe Ier\n\nDans : [[à trier]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "a-trier",
+    "createdAt": "2026-06-19T18:13:19.329+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "page-4-question-2",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Trois Glorieuses",
+          "les trois glorieuses",
+          "les 3 glorieuses",
+          "révolution de juillet"
+        ],
+        "question": "Quelle révolution est illustrée par La Liberté guidant le peuple ?"
+      },
+      {
+        "id": "page-4-question-3",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Eugène Delacroix",
+          "Delacroix"
+        ],
+        "question": "Qui est l'auteur du tableau La Liberté guidant le peuple ?"
+      },
+      {
+        "id": "page-4-question-4",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "1830"
+        ],
+        "question": "En quelle année La Liberté guidant le peuple a-t-il été achevé ?"
+      }
+    ]
+  },
+  {
+    "id": "nouvelle-page-39",
+    "tags": [
+      "pensee"
+    ],
+    "type": "concept",
+    "title": "La souffrance de la solitude",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-16T21:14:08.689+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# La souffrance de la solitude\n\nCela fait 4j que je ne suis plus en couple que je viens de mettre fin à 2 ans de relation. En 1j de tinder j'ai l'impression que je peux retomber amoureux de n'importe qui. \n\nSuis-je un connard pour cela ?\n\nAis-je un réél problème d'attachement ? un vide à comblé en permanence ?\n\nAu dela de tout cela, j'ai l'impression que je ne serais jamais heureux que je cours toujours après les choses que je n'ai pas.\nQuand je suis en coupleje veux du temps et de l'indépendance alors que lorsque que je suis seul je veux partager plein de chose.\n\n**J'ai l'impression de me prendre que des murs volontairement.**\n\nDans : [[Daily]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": "2026-04-16"
+    },
+    "parentId": "nouvelle-page-38",
+    "createdAt": "2026-04-16T21:14:08.689+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouvelle-page-35",
+    "tags": [],
+    "type": "folder",
+    "title": "Lancé de Javelot",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-16T20:55:53.843+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Lancé de Javelot\n\nDans : [[Sport]]\n\nContient : [[Jan Železný]]\n\nContient : [[Record du monde du lancer du javelot]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-2-3",
+    "createdAt": "2026-04-16T20:55:53.842+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page-9",
+    "tags": [],
+    "type": "concept",
+    "title": "Le judo",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T18:21:19.158+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Le judo\n\nLe judo est un art martial japonais fondé en 1882 par Jigorō Kanō. Il fonde cette année-là le Kōdōkan, considéré comme le lieu d’origine du judo moderne. Le mot judo signifie généralement « voie de la souplesse » ou « voie de la flexibilité ».\n\nDans : [[Sport]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-2-3",
+    "createdAt": "2026-06-19T18:21:19.156+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page-6",
+    "tags": [
+      "animau"
+    ],
+    "type": "concept",
+    "title": "Le Koala",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T18:19:02.843+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Le Koala\n\nLe koala est un marsupial : la femelle possède une poche où son petit continue de grandir.\nIl mange surtout des feuilles d’eucalyptus, difficiles à digérer et toxiques pour beaucoup d’animaux. Le koala y arrive grâce à un système digestif spécialisé et à des bactéries intestinales.\nLe petit koala mange une substance appelée pap, produite par sa mère, pour acquérir les microbes nécessaires à la digestion de l’eucalyptus.\nComme l’eucalyptus apporte peu d’énergie, le koala dort beaucoup, souvent 18 à 20 heures par jour, pour économiser ses forces\n\nDans : [[à trier]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "a-trier",
+    "createdAt": "2026-06-19T18:19:02.842+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "page-6-question-1",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Marsupial"
+        ],
+        "question": "À quelle catégorie d'animaux appartient le koala ?"
+      },
+      {
+        "id": "page-6-question-3",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Eucalyptus",
+          "Feuilles eucalyptus"
+        ],
+        "question": "Quelle est la principale source de nourriture du koala ?"
+      },
+      {
+        "id": "page-6-question-6",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Pap",
+          "caca"
+        ],
+        "question": "Comment se nomme la substance que le petit koala mange pour acquérir ses microbes digestifs ?"
+      },
+      {
+        "id": "page-6-question-7",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Sa mère",
+          "La mère",
+          "Mère"
+        ],
+        "question": "Qui produit le \"pap\" consommé par le jeune koala ?"
+      },
+      {
+        "id": "page-6-question-9",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "18h",
+          "18"
+        ],
+        "question": "Combien d'heures par jour un koala dort-il en moyenne ?"
+      }
+    ]
+  },
+  {
+    "id": "page-13",
+    "tags": [
+      "echec",
+      "sport"
+    ],
+    "type": "concept",
+    "title": "Le pat",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T18:24:07.44+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Le pat\n\nLe pat arrive quand un joueur doit jouer, que son roi n’est pas en échec, mais qu’il n’a aucun coup légal.\nLa partie se termine alors par un match nul.\n\nDans : [[Sport]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-2-3",
+    "createdAt": "2026-06-19T18:24:07.437+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "les-cowboys",
+    "tags": [
+      "cultureg"
+    ],
+    "type": "concept",
+    "title": "Les cowboys",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-03-30T22:45:57.938+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Les cowboys\n\nÀ l’origine, le terme « cowboy » n’était pas forcément valorisant. Le mot « boy » pouvait être utilisé de manière péjorative pour désigner des hommes noirs, notamment dans le contexte de l’esclavage et de la ségrégation. \n\nUn cowboy était d’abord une personne chargée de garder, déplacer et conduire le bétail, souvent à cheval. Dans l’Ouest américain, beaucoup de cowboys venaient de populations marginalisées, notamment des Afro-Américains, mais aussi des Mexicains et des descendants des vaqueros, les gardiens de troupeaux issus de la tradition hispano-mexicaine. \n\nAprès la guerre de Sécession, de nombreux Afro-Américains, anciens esclaves ou descendants d’esclaves, ont travaillé comme cowboys. Les historiens estiment souvent qu’environ un cowboy sur quatre était noir, même si cette présence a longtemps été peu représentée dans les westerns et la culture populaire. \n\nLes cowboys pouvaient être armés, car leur travail consistait aussi à protéger les troupeaux contre les voleurs, les prédateurs ou les dangers rencontrés pendant les déplacements.\n\nSource: France inter\n\nDans : [[Histoire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-2",
+    "createdAt": "2026-03-30T22:45:57.937+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "question-1781736402519",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "cowboy",
+          "cow-boy",
+          "cow boy"
+        ],
+        "question": "Dans l’Ouest américain, quel métier consistait à garder, déplacer et conduire le bétail, souvent à cheval ?"
+      },
+      {
+        "id": "question-1781736433384",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "vaqueros",
+          "vaquero"
+        ],
+        "question": "Quel terme hispano-mexicain désigne les gardiens de troupeaux dont descendent en partie les cowboys américains ?"
+      },
+      {
+        "id": "question-1781736443677",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "guerre de Sécession",
+          "la guerre de Sécession",
+          "guerre civile américaine"
+        ],
+        "question": "Après quelle guerre de nombreux Afro-Américains, anciens esclaves ou descendants d’esclaves, ont-ils travaillé comme cowboys ?"
+      },
+      {
+        "id": "question-1781736465349",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "un sur quatre",
+          "environ un sur quatre",
+          "1 sur 4",
+          "environ 25 %",
+          "25%",
+          "1/4"
+        ],
+        "question": "Selon de nombreux historiens, quelle proportion approximative des cowboys était noire dans l’Ouest américain ?"
+      }
+    ]
+  },
+  {
+    "id": "les-poils-du-loup",
+    "tags": [
+      "anecdote"
+    ],
+    "type": "concept",
+    "title": "Les poils du loup",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-18T21:09:01.652+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Les poils du loup\n\nEn colo de 2 semaines à Dieppe\nNous avons fait une activité ou une meuf était habillée en loup et devait chasser les enfants\n\nÀ la fin on fait un goûter et mon chouchou s'assoit à côté de moi, il avait environ trois à quatre ans il regarde mes jambes, il me dit \"waaa, mais tu es encore plus poilu que le loup\"\n\nDans : [[Anecdotes]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-2-2",
+    "createdAt": "2026-04-18T21:09:01.651+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "les-rois-mages",
+    "tags": [
+      "cultureg"
+    ],
+    "type": "concept",
+    "title": "Les rois mages",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-05-12T18:36:37.208+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Les rois mages\n\nLes 3 rois mages s'appelaient: \n\n- Gaspard\n- Balthazar \n- Melchior\n\nDans : [[Culture Générale]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-05-12T18:36:37.208+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page-3",
+    "tags": [
+      "histoire"
+    ],
+    "type": "concept",
+    "title": "Les Trois Glorieuses",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T18:10:45.432+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Les Trois Glorieuses\n\nLes Trois Glorieuses sont les trois journées révolutionnaires des 27, 28 et 29 juillet 1830.\nElles entraînent la chute du roi Charles X et l’arrivée au pouvoir de Louis-Philippe Ier.\n\nDans : [[Histoire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "1830-08-29",
+      "hasDate": true,
+      "dateMode": "range",
+      "startDate": "1830-08-27",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-2",
+    "createdAt": "2026-06-19T18:10:45.43+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "page-3-question-1",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "27-29 juillet 1830",
+          "27 au 29 juillet"
+        ],
+        "question": "Quelles dates précises marquent le déroulement des Trois Glorieuses ?"
+      },
+      {
+        "id": "page-3-question-2",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Charles X"
+        ],
+        "question": "Quel monarque est contraint d'abandonner le trône suite à ces journées ?"
+      },
+      {
+        "id": "page-3-question-3",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Louis-Philippe Ier",
+          "Louis-Philippe 1er",
+          "Louis-Philippe"
+        ],
+        "question": "Qui accède au pouvoir après la chute de Charles X ?"
+      },
+      {
+        "id": "question-1781892736577",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "1830"
+        ],
+        "question": "En quelle année a eu lieu les Trois glorieuses"
+      }
+    ]
+  },
+  {
+    "id": "nouvelle-page-28",
+    "tags": [
+      "famille"
+    ],
+    "type": "person",
+    "title": "Lina",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-15T19:40:36.666+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Lina\n\nDans : [[Connaissances]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "life",
+      "startDate": "2014-04-15",
+      "singleDate": ""
+    },
+    "parentId": "nouvelle-page-32",
+    "createdAt": "2026-04-15T19:40:36.665+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page-8",
+    "tags": [
+      "cultureg"
+    ],
+    "type": "concept",
+    "title": "Lorem Impsum",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T18:20:35.651+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Lorem Impsum\n\nLe Lorem ipsum est un faux texte de remplissage utilisé pour tester une mise en page avant d’ajouter le texte définitif.\nIl ressemble à du latin, mais il est volontairement modifié pour ne pas distraire le lecteur du design.\n\nDans : [[Culture Générale]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-06-19T18:20:35.648+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "marcher-sur-la-lune",
+    "tags": [],
+    "type": "concept",
+    "title": "Marcher sur la lune",
+    "review": {
+      "streak": 1,
+      "nextReviewAt": "2026-04-01T10:06:55.348+00:00",
+      "lastReviewedAt": "2026-03-31T22:06:55.348+00:00"
+    },
+    "content": "# Marcher sur la lune\n\nAu total, 12 d'astronautes ont marché sur la Lune, le premier en 1969 et le dernier en 1972\n\nDans : [[Histoire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "1972-12-14",
+      "hasDate": true,
+      "dateMode": "range",
+      "startDate": "1969-07-21",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-2",
+    "createdAt": "2026-03-31T20:52:42.851+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouveau-dossier-1-4",
+    "tags": [],
+    "type": "folder",
+    "title": "Mécanique",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-26T13:34:34.626+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Mécanique\n\nContient : [[Puretech: le problème]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-04-26T13:34:34.625+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "neviolo",
+    "tags": [
+      "vin"
+    ],
+    "type": "concept",
+    "title": "Neviolo",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-05-05T19:26:50.372+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Neviolo\n\nIdee a developper.\n\nDans : [[Vins]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-5",
+    "createdAt": "2026-05-05T19:26:50.37+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouvelle-page-8",
+    "tags": [],
+    "type": "question",
+    "title": "Nids propres",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-03-31T11:21:58.729+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "Chez beaucoup d’oiseaux, les petits produisent des sacs fécaux que les parents retirent du nid ou mangent pour le garder propre.\n\nDans : [[Culture Générale]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-03-31T11:21:58.728+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "notre-propre-escape-game",
+    "tags": [
+      "idee"
+    ],
+    "type": "concept",
+    "title": "Notre propre escape game",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-05-12T18:19:27.517+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Notre propre escape game\n\nAllez dans un escape game et faire le notre en mettant nos cadenas et changeant les codes des cadenas. Le but serait de creer une énigme en amont avec des papiers et Reverse le concept.\n\nDans : [[Kevin Barbet]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouvelle-page-37",
+    "createdAt": "2026-05-12T18:19:27.517+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "ol-auxerre",
+    "tags": [
+      "dayli"
+    ],
+    "type": "concept",
+    "title": "Ol- Auxerre",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-27T09:07:10.304+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Ol- Auxerre\n\nJ'ai parlé avec une meuf dans le kop sud, \nElle était devant, je l'ai bousculé a la célébration et m'a dit pas de soucis puis elle a regardé le but d'Auxerre sur mon tel\n\nJe lui ai proposé d'aller boire une bière a la mt. Elle me dit oui carrément et elle part devant \nElle me dit qu'elle a ses contacts et me dit que si ca me va on va porte T a l'extérieur il y a des buvettes\n\nEt sa pote etait responsable d'une, donc on arrive parle avec sa pote et elle nous payes une bière \n\nOn a fait la 2eme mt en parlant foot, puis on est rentré en trame (à part dieu) je voulais voir s'il y avait un feeling mais non donc je suis parti comme ca sans rien demander\n\nDans : [[Anecdotes]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": "2026-04-25"
+    },
+    "parentId": "nouveau-dossier-2-2",
+    "createdAt": "2026-04-27T09:07:10.304+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "onirique",
+    "tags": [
+      "voc"
+    ],
+    "type": "concept",
+    "title": "Onirique",
+    "review": {
+      "streak": 1,
+      "nextReviewAt": "2026-04-01T10:06:54.547+00:00",
+      "lastReviewedAt": "2026-03-31T22:06:54.547+00:00"
+    },
+    "content": "# Onirique\n\nL’adjectif « onirique » se rapporte aux rêves.\n\nIl vient des Oneiroi, dans la mythologie grecque, qui sont les divinités des rêves\n\nDans : [[Vocabulaire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1",
+    "createdAt": "2026-03-31T20:56:48.39+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "origine-aya-nakamura",
+    "tags": [],
+    "type": "concept",
+    "title": "Origine Aya Nakamura",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-04T10:19:21.21+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Origine Aya Nakamura\n\nAya Nakamura vient d’une famille de [[Griots]] maliens.\n\nDans : [[Culture Générale]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-04-04T10:19:21.209+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "origine-aya-nakamura-question-1",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Griots",
+          "Famille de griots",
+          "Des griots"
+        ],
+        "question": "De quelle tradition familiale Aya Nakamura est-elle issue ?"
+      },
+      {
+        "id": "origine-aya-nakamura-question-2",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Mali",
+          "Du Mali",
+          "Maliens"
+        ],
+        "question": "De quel pays provient la lignée de griots d'Aya Nakamura ?"
+      }
+    ]
+  },
+  {
+    "id": "nouvelle-page-22",
+    "tags": [],
+    "type": "folder",
+    "title": "Palais du facteur Cheval",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-06T14:10:06.618+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Palais du facteur Cheval\n\nDate :\nLieu : Hauterives\n\n## Resume\n\n- \n\n## Chronologie\n\n- Avant :\n- Pendant :\n- Apres :\n\n## Consequences\n\n-\n\nDans : [[Histoire]]\n\nContient : [[Tombeau du facteur Cheval]]\n\nContient : [[Ferdinand Cheval]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-2",
+    "createdAt": "2026-04-06T14:10:06.618+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "paronyme",
+    "tags": [],
+    "type": "concept",
+    "title": "Paronyme",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-04T18:42:19.786+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Paronyme\n\nSe dit de mots presque homonymes \nExemple: éminent et imminent\n\nDans : [[Vocabulaire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1",
+    "createdAt": "2026-04-04T18:42:19.786+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "paronyme-question-1",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Paronymes",
+          "Des paronymes",
+          "Paronyme"
+        ],
+        "question": "Comment qualifie-t-on des mots qui sont presque homonymes ?"
+      },
+      {
+        "id": "paronyme-question-2",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Paronymie",
+          "Paronymes",
+          "La paronymie"
+        ],
+        "question": "Quel terme désigne la relation lexicale entre « éminent » et « imminent » ?"
+      }
+    ]
+  },
+  {
+    "id": "pensee-rapide",
+    "tags": [
+      "pensee"
+    ],
+    "type": "concept",
+    "title": "Pensée rapide",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-05-12T18:16:49.855+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Pensée rapide\n\nC'est dure d'etre comme je veux, \nEntre ce que je cherche : etre en paux avec moi ne pas forcer avec Lena car c'est une personne incroyablement fascinante ! \n\nJe dois garder en moi toute cette envie, \nEtre la pour moi, me developper,  continuer a me connaitre\n\nJe dois apprendre à coudre, lire, refaire du jetpunk, noter toutes ces idees qui traverse mon esprit\n\nDans : [[Philosophie]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": "2026-06-02"
+    },
+    "parentId": "nouvelle-page-36",
+    "createdAt": "2026-05-12T18:16:49.854+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "perlant",
+    "tags": [],
+    "type": "concept",
+    "title": "Perlant",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-22T18:37:39.705+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Perlant\n\nLe sauvignon riesling chardonnay \n\nCote piquant a la première gorgée\n\nContient : [[Sauvignon]]\n\nDans : [[Vins]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-5",
+    "createdAt": "2026-04-22T18:37:39.703+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouvelle-page-36",
+    "tags": [],
+    "type": "folder",
+    "title": "Philosophie",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-16T20:59:59.586+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Philosophie\n\nContient : [[Aimer une mauvaise personne]]\n\nContient : [[Pensée rapide]]\n\nContient : [[Esope]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-04-16T20:59:59.586+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page-7",
+    "tags": [],
+    "type": "concept",
+    "title": "Place principale Strasbourgeoise",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T18:20:00.504+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Place principale Strasbourgeoise\n\nLa principale place de Strasbourg est la place Kléber.\nC’est une grande place centrale et piétonne, située au cœur de la ville.\n\nDans : [[Géographie]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-2",
+    "createdAt": "2026-06-19T18:20:00.503+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "plus-long-fleuve-d-afrique",
+    "tags": [],
+    "type": "concept",
+    "title": "Plus long fleuve d'afrique",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-04T10:23:28.949+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Plus long fleuve d'afrique\n\nLe Nil est le plus long fleuve d’Afrique, avec environ 6 650 km. Il traverse le nord-est du continent et se jette dans la mer Méditerranée.\nIl est lié à 11 pays du bassin du Nil : Burundi, RDC, Égypte, Érythrée, Éthiopie, Kenya, Rwanda, Soudan du Sud, Soudan, Tanzanie et Ouganda.\n\nSources\nEncyclopaedia Britannica — article « Nile River ».\n\nDans : [[Géographie]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-2",
+    "createdAt": "2026-04-04T10:23:28.949+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "plus-long-fleuve-d-afrique-question-1",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Le Nil"
+        ],
+        "question": "Quel est le plus long fleuve d'Afrique ?"
+      },
+      {
+        "id": "plus-long-fleuve-d-afrique-question-2-2",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "6650 km",
+          "6 650 km",
+          "Environ 6650 km"
+        ],
+        "question": "Quelle est la longueur approximative du Nil ?"
+      },
+      {
+        "id": "plus-long-fleuve-d-afrique-question-3",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Mer Méditerranée",
+          "La Méditerranée",
+          "Méditerranée"
+        ],
+        "question": "Où se jette le Nil ?"
+      },
+      {
+        "id": "question-1781736324788",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "11",
+          "onze",
+          "onze pays"
+        ],
+        "question": "Combien de pays sont cités comme faisant partie du bassin du Nil ?"
+      }
+    ]
+  },
+  {
+    "id": "nouvelle-page-20",
+    "tags": [
+      "histoire"
+    ],
+    "type": "event",
+    "title": "Première voiture construite en série",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-05T11:27:14.357+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Première voiture produite en série\n\nDate : 1908\nLieu : USA\n\n## Resume\n\nFord T (1908)\n\nLa Ford Model T est lancée le 1er octobre 1908 à Detroit.\nC’est la première voiture produite en grande série.\nSon nom vient simplement de la suite des prototypes (A, B, C…).\n\nDans : [[Histoire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": "1908-10-01"
+    },
+    "parentId": "nouveau-dossier-1-2",
+    "createdAt": "2026-04-05T11:27:14.357+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page-10",
+    "tags": [
+      "cultureg"
+    ],
+    "type": "concept",
+    "title": "Protéine du lait",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-19T18:21:56.733+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Protéine du lait\n\nLa principale protéine du lait est la caséine.\nDans le lait de vache, elle représente environ 80 % des protéines, contre environ 20 % pour les protéines de lactosérum, ou whey.\n\nDans : [[Culture Générale]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-06-19T18:21:56.731+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "puretech-le-probleme",
+    "tags": [
+      "voiture"
+    ],
+    "type": "folder",
+    "title": "Puretech: le problème",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-26T13:31:44.899+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Puretech: le problème\n\nLe moteur PureTech est une famille de moteurs essence développée à l’origine par PSA Peugeot-Citroën. Le groupe Stellantis, lui, n’existe que depuis 2021, après la fusion entre PSA et Fiat Chrysler.\n\nSur certains moteurs 1.0 et 1.2 PureTech, produits notamment à partir de 2012, la distribution utilise une courroie en caoutchouc dite “humide”, car elle baigne dans l’huile moteur. Ce choix technique permet notamment de réduire les frottements, le bruit et la consommation.\n\nLe problème vient du fait que cette courroie peut se dégrader prématurément au contact de l’huile, surtout si l’huile est contaminée ou dégradée. Sur un moteur thermique, une petite quantité de gaz et parfois de carburant peut passer entre les pistons et les cylindres : c’est le phénomène de blow-by. Cela peut contribuer à diluer ou à dégrader l’huile moteur.\n\nAvec le temps, l’huile abîmée peut attaquer la courroie. La courroie ne casse pas forcément d’un coup : elle peut plutôt gonfler, s’effriter ou se désagréger progressivement.\n\nLes résidus de caoutchouc se mélangent alors à l’huile et peuvent former une sorte de pâte ou de dépôt. Ces dépôts peuvent venir boucher la crépine de pompe à huile, c’est-à-dire le filtre d’aspiration qui permet à la pompe d’envoyer l’huile dans le moteur.\n\nSi la crépine se bouche, la pression d’huile peut chuter. Le moteur est alors mal lubrifié, ce qui peut provoquer une usure importante, voire une casse moteur.\nDans : [[Mécanique]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-4",
+    "createdAt": "2026-04-26T13:31:44.898+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "question-1781846020865",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "PureTech",
+          "moteur PureTech",
+          "moteurs PureTech"
+        ],
+        "question": "Quelle famille de moteurs essence, développée à l’origine par PSA Peugeot-Citroën, a ensuite été associée au groupe Stellantis ?"
+      },
+      {
+        "id": "question-1781846042212",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "Stellantis",
+          "groupe Stellantis"
+        ],
+        "question": "Quel groupe automobile est né en 2021 de la fusion entre PSA et Fiat Chrysler ?"
+      },
+      {
+        "id": "question-1781846061771",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "blow-by",
+          "le blow-by",
+          "blowby"
+        ],
+        "question": "Quel phénomène désigne le passage d’une petite quantité de gaz ou de carburant entre les pistons et les cylindres d’un moteur thermique ?"
+      },
+      {
+        "id": "question-1781846097513",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "crépine de pompe à huile",
+          "crépine",
+          "crepine de pompe à huile",
+          "filtre d’aspiration de la pompe à huile"
+        ],
+        "question": "Quelle pièce peut se boucher lorsque les résidus de courroie se mélangent à l’huile moteur, provoquant une chute de pression d’huile ?"
+      }
+    ]
+  },
+  {
+    "id": "nouvelle-page-24",
+    "tags": [
+      "histoire",
+      "sport"
+    ],
+    "type": "event",
+    "title": "Record du monde du lancer du javelot",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-06T21:43:49.93+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Record du monde du lancer du javelot\n\nDate : 1996\nLieu : Léna (Allemagne)\n\n## Resume\n\n- Le record du monde du lancer du javelot est de **98,48 mètres** par [[Jan Železný]]\n\n- Ce record tient toujours aujourd’hui, ce qui est rare en athlétisme\n\n- Il a été établi avec le javelot moderne (modifié pour limiter les distances)\n\nSource : World Athletics\n\nDans : [[Lancé de Javelot]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": "1996-04-06"
+    },
+    "parentId": "nouvelle-page-35",
+    "createdAt": "2026-04-06T21:43:49.929+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "sauvignon",
+    "tags": [
+      "vin"
+    ],
+    "type": "concept",
+    "title": "Sauvignon",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-22T18:38:20.416+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Sauvignon\n\nSent l'ammoniaque et sent l'agrume\n\nDans : [[Perlant]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "perlant",
+    "createdAt": "2026-04-22T18:38:20.416+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "scapula",
+    "tags": [],
+    "type": "concept",
+    "title": "Scapula",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-04T10:21:01.092+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Scapula\n\nLa **scapula** est le terme anatomique désignant l'**omoplate**.\n\nVoir aussi : [[Vocabulaire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1",
+    "createdAt": "2026-04-04T10:21:01.092+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": [
+      {
+        "id": "scapula-question-1",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "omoplate",
+          "l'omoplate"
+        ],
+        "question": "Quel est le nom courant désigné par le terme anatomique « scapula » ?"
+      },
+      {
+        "id": "scapula-question-2",
+        "stats": {
+          "asked": 0,
+          "correct": 0,
+          "lastAskedAt": null,
+          "lastCorrectAt": null
+        },
+        "answers": [
+          "scapula",
+          "la scapula"
+        ],
+        "question": "Quel terme anatomique désigne l'omoplate ?"
+      }
+    ]
+  },
+  {
+    "id": "nouveau-dossier-2-4",
+    "tags": [],
+    "type": "folder",
+    "title": "Science",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-16T20:55:14.119+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Science\n",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-04-16T20:55:14.118+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouvelle-page-9",
+    "tags": [
+      "voc"
+    ],
+    "type": "concept",
+    "title": "Scopesthésie",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-03-31T11:25:10.076+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Scopesthésie\nL'effet extrasensorielle de penser que quelqu'un nous observe.\n\nDans : [[Vocabulaire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1",
+    "createdAt": "2026-03-31T11:25:10.075+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouveau-dossier-2-3",
+    "tags": [],
+    "type": "folder",
+    "title": "Sport",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-16T20:54:55.716+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Sport\n\nContient : [[Lancé de Javelot]]\n\nContient : [[Le judo]]\n\nContient : [[Le pat]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-04-16T20:54:55.715+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "stellantis",
+    "tags": [
+      "voiture"
+    ],
+    "type": "concept",
+    "title": "Stellantis",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-26T18:50:20.19+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Stellantis\n\nEn 2021, le groupe PSA (Peugeot, Citroën, DS, Opel…) a fusionné avec un autre géant : Fiat Chrysler Automobiles (FCA)\n\nUn énorme groupe automobile qui regroupe :\n\n* Peugeot\n* Citroën\n* DS\n* Opel\n* Fiat\n* Jeep\n* Alfa Romeo\n* etc.\n\n👉 Environ 14 marques au total\n\nDans : [[Puretech: le problème]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "puretech-le-probleme",
+    "createdAt": "2026-04-26T18:50:20.19+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "surnom-cote-d-ivoire",
+    "tags": [
+      "foot"
+    ],
+    "type": "concept",
+    "title": "Surnom Côte d'Ivoire",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-06-20T21:16:23.169+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Surnom Côte d'Ivoire\n\nAu foot le surnom de l'équipe de la Côte d'Ivoire est \"Les éléphants\"\n\nDans : [[à trier]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "a-trier",
+    "createdAt": "2026-06-20T21:16:23.168+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "surnom-napoleon",
+    "tags": [
+      "cultureg",
+      "histoire"
+    ],
+    "type": "concept",
+    "title": "Surnom Napoléon",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-25T17:40:40.175+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Surnom Napoléon\n\nLe petit caporal\n\nDans : [[Histoire]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-2",
+    "createdAt": "2026-04-25T17:40:40.174+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouvelle-page-21",
+    "tags": [],
+    "type": "event",
+    "title": "Tombeau du facteur Cheval",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-06T12:42:27.529+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Tombeau du facteur Cheval\n\nDate :\nLieu : Hauterives\n\nDans : [[Palais du facteur Cheval]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "1922-04-06",
+      "hasDate": true,
+      "dateMode": "range",
+      "startDate": "1914-04-06",
+      "singleDate": ""
+    },
+    "parentId": "nouvelle-page-22",
+    "createdAt": "2026-04-06T12:42:27.529+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouveau-dossier-1-5",
+    "tags": [],
+    "type": "folder",
+    "title": "Vins",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-04-26T13:35:56.087+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Vins\n\nContient : [[Perlant]]\n\nContient : [[Batonnet]]\n\nDans : [[Culture Générale]]\n\nContient : [[Amaron]]\n\nContient : [[Neviolo]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": "nouveau-dossier-1-3",
+    "createdAt": "2026-04-26T13:35:56.086+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "page",
+    "tags": [],
+    "type": "concept",
+    "title": "Visite greffe",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-05-12T18:20:01.842+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Visite greffe\n\nAujourd'hui fut mon premier rdv pour une possible greffe de cheveux \n\nJe dois prendre des gélules que je trouve ne pharmacie pour réguler ma testostérone et eviter la perte continue de cheveux \n\nLa greffe coute env 5000€ avec la methode FUE CHOI \n\nCette méthode consiste à pouvoir implanter les greffons entre les greffons existants, evite de les détériorer et evitent un rasage intégral de la tete\n\nJe dois d'abord essayer les gélules et ensuite on passera a la greffe en fin d'année\n\nDans : [[Daily]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": true,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": "2026-05-12"
+    },
+    "parentId": "nouvelle-page-38",
+    "createdAt": "2026-05-12T18:20:01.841+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  },
+  {
+    "id": "nouveau-dossier-1",
+    "tags": [],
+    "type": "folder",
+    "title": "Vocabulaire",
+    "review": {
+      "streak": 0,
+      "nextReviewAt": "2026-03-31T11:17:21.054+00:00",
+      "lastReviewedAt": null
+    },
+    "content": "# Vocabulaire \n\nCe dossier regroupe :\n\nContient : [[Endémique]]\n\nContient : [[Glanage]]\n\nContient : [[Scopesthésie]]\n\nContient : [[Onirique]]\n\nContient : [[Scapula]]\n\nContient : [[Paronyme]]\n\nContient : [[Héliciculture]]",
+    "favorite": false,
+    "metadata": {
+      "endDate": "",
+      "hasDate": false,
+      "dateMode": "reference",
+      "startDate": "",
+      "singleDate": ""
+    },
+    "parentId": null,
+    "createdAt": "2026-03-31T11:17:21.054+00:00",
+    "updatedAt": "2026-06-24T10:11:24.928414+00:00",
+    "quizQuestions": []
+  }
+]
