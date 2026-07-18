@@ -37,6 +37,11 @@
   --theme-overlay: color-mix(in srgb, var(--text) 32%, transparent);
   --theme-scroll-track: color-mix(in srgb, var(--surface) 82%, transparent);
   --theme-scroll-thumb: color-mix(in srgb, var(--accent) 72%, var(--text-soft) 28%);
+  --theme-feed-background: #f3eadc;
+  --theme-feed-card: #fffaf2;
+  --theme-feed-control: #fff6e9;
+  --theme-feed-popover: #fffaf2;
+  --theme-feed-separator: rgba(86, 70, 48, 0.18);
 }
 
 :root[data-theme-preset="classic-dark"] {
@@ -65,6 +70,17 @@
   --theme-primary-text: #fff9f1;
   --theme-secondary-accent: #6f917f;
   --theme-tertiary-accent: #7089aa;
+  --theme-sidebar-surface: #20262b;
+  --theme-page-surface: #151b19;
+  --theme-side-panel-surface: #242a2f;
+  --theme-section-surface: #252c31;
+  --theme-button-surface: #282e34;
+  --theme-button-hover: #343c43;
+  --theme-feed-background: #12171b;
+  --theme-feed-card: #1c2227;
+  --theme-feed-control: #252c31;
+  --theme-feed-popover: #20272c;
+  --theme-feed-separator: rgba(215, 201, 185, 0.18);
   --theme-quiz-background:
     radial-gradient(circle at 14% 8%, rgba(208, 122, 76, 0.12), transparent 32%),
     linear-gradient(145deg, #181c21, #111519 58%, #18201e);
@@ -82,6 +98,17 @@
   --shadow: 0 24px 60px rgba(81, 55, 30, 0.12);
   --theme-secondary-accent: #5d7461;
   --theme-tertiary-accent: #496a8f;
+  --theme-sidebar-surface: #f3e7d7;
+  --theme-page-surface: #fffaf2;
+  --theme-side-panel-surface: #eee4d6;
+  --theme-section-surface: #faf0e2;
+  --theme-button-surface: #f5eadd;
+  --theme-button-hover: #ead9c8;
+  --theme-feed-background: #f4eadc;
+  --theme-feed-card: #fffaf2;
+  --theme-feed-control: #f9efe2;
+  --theme-feed-popover: #fffaf2;
+  --theme-feed-separator: rgba(86, 70, 48, 0.18);
 }
 
 :root[data-theme-preset="forest"] {
@@ -109,6 +136,17 @@
   --theme-primary-text: #10170d;
   --theme-secondary-accent: #5f8c72;
   --theme-tertiary-accent: #b39b62;
+  --theme-sidebar-surface: #142219;
+  --theme-page-surface: #19281e;
+  --theme-side-panel-surface: #1d3023;
+  --theme-section-surface: #24372a;
+  --theme-button-surface: #293c2e;
+  --theme-button-hover: #38513d;
+  --theme-feed-background: #0f1913;
+  --theme-feed-card: #1d2d22;
+  --theme-feed-control: #263a2b;
+  --theme-feed-popover: #1b2c21;
+  --theme-feed-separator: rgba(184, 212, 134, 0.22);
   --theme-graph-base: #060b07;
   --theme-graph-background:
     radial-gradient(circle at 20% 18%, rgba(119, 150, 89, 0.17), transparent 27%),
@@ -145,6 +183,17 @@
   --theme-primary-text: #041615;
   --theme-secondary-accent: #4d78a5;
   --theme-tertiary-accent: #7798a8;
+  --theme-sidebar-surface: #0b202c;
+  --theme-page-surface: #0e2734;
+  --theme-side-panel-surface: #123242;
+  --theme-section-surface: #173b49;
+  --theme-button-surface: #193e4c;
+  --theme-button-hover: #245464;
+  --theme-feed-background: #071923;
+  --theme-feed-card: #102d3a;
+  --theme-feed-control: #173846;
+  --theme-feed-popover: #0e2a37;
+  --theme-feed-separator: rgba(121, 209, 199, 0.22);
   --theme-graph-base: #02080d;
   --theme-graph-background:
     radial-gradient(circle at 16% 18%, rgba(55, 148, 153, 0.18), transparent 28%),
@@ -181,6 +230,17 @@
   --theme-primary-text: #fffaf5;
   --theme-secondary-accent: #a97d68;
   --theme-tertiary-accent: #7b718e;
+  --theme-sidebar-surface: #eed8c6;
+  --theme-page-surface: #fff8ef;
+  --theme-side-panel-surface: #f1ddcf;
+  --theme-section-surface: #fae7d8;
+  --theme-button-surface: #f7e1d1;
+  --theme-button-hover: #edcdb9;
+  --theme-feed-background: #f3dfcf;
+  --theme-feed-card: #fff7ed;
+  --theme-feed-control: #f9e8da;
+  --theme-feed-popover: #fff8ef;
+  --theme-feed-separator: rgba(145, 60, 40, 0.2);
   --theme-graph-background:
     radial-gradient(circle at 18% 17%, rgba(169, 98, 69, 0.17), transparent 27%),
     radial-gradient(circle at 80% 25%, rgba(109, 77, 89, 0.15), transparent 28%),
@@ -216,6 +276,17 @@
   --theme-primary-text: #f8fbfa;
   --theme-secondary-accent: #6f927b;
   --theme-tertiary-accent: #7c7896;
+  --theme-sidebar-surface: #dce7e1;
+  --theme-page-surface: #fbfcf7;
+  --theme-side-panel-surface: #e1ebe6;
+  --theme-section-surface: #edf3ee;
+  --theme-button-surface: #e5eeea;
+  --theme-button-hover: #d3e2dc;
+  --theme-feed-background: #e4ebe6;
+  --theme-feed-card: #f9fbf7;
+  --theme-feed-control: #edf3ef;
+  --theme-feed-popover: #f8faf6;
+  --theme-feed-separator: rgba(40, 79, 93, 0.2);
   --theme-graph-background:
     radial-gradient(circle at 18% 17%, rgba(80, 126, 135, 0.17), transparent 27%),
     radial-gradient(circle at 80% 25%, rgba(74, 102, 123, 0.15), transparent 28%),
@@ -584,6 +655,102 @@ body[data-theme-preset] .knowledge-item-menu {
   background: var(--theme-side-panel-surface);
   border: 1px solid var(--line);
   box-shadow: 0 18px 38px color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+/* Feed and reading surfaces need explicit colors, like the light/dark modes. */
+:root[data-theme-preset] body.feed-view-active #feed-tab.is-active,
+body[data-theme-preset].feed-view-active #feed-tab.is-active {
+  background:
+    radial-gradient(circle at 14% 0%, var(--theme-accent-wash), transparent 34%),
+    var(--theme-feed-background);
+  color: var(--text);
+}
+
+:root[data-theme-preset] body .feed-card,
+:root[data-theme-preset] body .feed-empty,
+body[data-theme-preset] .feed-card,
+body[data-theme-preset] .feed-empty {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.025), transparent 48%),
+    var(--theme-feed-card);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow:
+    0 14px 34px color-mix(in srgb, var(--text) 9%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  color: var(--text);
+}
+
+:root[data-theme-preset] body .feed-filter-input,
+:root[data-theme-preset] body .feed-filter-select,
+:root[data-theme-preset] body .feed-filter-toggle,
+:root[data-theme-preset] body .feed-filter-clear,
+:root[data-theme-preset] body .feed-tag-filter-button,
+:root[data-theme-preset] body .feed-tag-filter,
+:root[data-theme-preset] body .segmented-control,
+body[data-theme-preset] .feed-filter-input,
+body[data-theme-preset] .feed-filter-select,
+body[data-theme-preset] .feed-filter-toggle,
+body[data-theme-preset] .feed-filter-clear,
+body[data-theme-preset] .feed-tag-filter-button,
+body[data-theme-preset] .feed-tag-filter,
+body[data-theme-preset] .segmented-control {
+  background: var(--theme-feed-control);
+  border-color: var(--line);
+  color: var(--text-soft);
+}
+
+:root[data-theme-preset] body .feed-tag-filter-popover,
+body[data-theme-preset] .feed-tag-filter-popover {
+  background: var(--theme-feed-popover);
+  border-color: var(--theme-accent-line);
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+:root[data-theme-preset] body .segmented-control button.is-active,
+:root[data-theme-preset] body .feed-tag-filter-button.has-active-filter,
+:root[data-theme-preset] body .feed-tag-filter.is-excluded,
+body[data-theme-preset] .segmented-control button.is-active,
+body[data-theme-preset] .feed-tag-filter-button.has-active-filter,
+body[data-theme-preset] .feed-tag-filter.is-excluded {
+  background: var(--theme-accent-wash);
+  border-color: var(--theme-accent-line);
+  color: var(--accent-strong);
+}
+
+:root[data-theme-preset] body .feed-action,
+body[data-theme-preset] .feed-action {
+  background: var(--theme-button-surface);
+  border-color: var(--line);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--text) 10%, transparent);
+  color: var(--text);
+}
+
+:root[data-theme-preset] body .feed-page-separator,
+body[data-theme-preset] .feed-page-separator {
+  background: var(--theme-feed-separator);
+}
+
+:root[data-theme-preset] body #knowledge-tab.is-active,
+body[data-theme-preset] #knowledge-tab.is-active,
+:root[data-theme-preset] body .workspace > .panel.panel-preview,
+body[data-theme-preset] .workspace > .panel.panel-preview {
+  background:
+    radial-gradient(circle at 8% 0%, var(--theme-accent-wash), transparent 30%),
+    var(--theme-page-surface);
+  color: var(--text);
+}
+
+:root[data-theme-preset] body .workspace > .panel.panel-editor,
+body[data-theme-preset] .workspace > .panel.panel-editor {
+  background: var(--theme-sidebar-surface);
+}
+
+:root[data-theme-preset] body .workspace > .panel.panel-links,
+body[data-theme-preset] .workspace > .panel.panel-links {
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--theme-secondary-accent) 10%, transparent), transparent 38%),
+    var(--theme-side-panel-surface);
 }
 
 body[data-theme-preset] .organization-dropzone {
