@@ -51,6 +51,8 @@
   }
 
   function renderTabs() {
+    document.documentElement.dataset.activeTab = context.state.activeTab;
+    document.body.dataset.activeTab = context.state.activeTab;
     document.body.classList.toggle("utility-drawer-open", context.state.utilityDrawerOpen);
     document.body.classList.toggle("feed-nav-compact", context.state.feedNavCompact);
     document.documentElement.classList.toggle("feed-view-active", context.state.activeTab === "feed");
