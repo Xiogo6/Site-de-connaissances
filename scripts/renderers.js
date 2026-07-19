@@ -224,9 +224,15 @@
     document.documentElement.classList.toggle("theme-dark", isDark);
     document.body.classList.toggle("theme-dark", isDark);
 
+    const viewThemeColor = context.state.activeTab === "feed"
+      ? preset.feedColor
+      : ["knowledge", "timeline"].includes(context.state.activeTab)
+        ? preset.pageColor
+        : preset.themeColor;
+
     document
       .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", preset.themeColor || "#181b1f");
+      ?.setAttribute("content", viewThemeColor || preset.themeColor || "#181b1f");
 
     context.elements.themePresetButtons?.forEach((button) => {
       const isActive = button.dataset.themePreset === presetId;

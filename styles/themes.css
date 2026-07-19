@@ -329,6 +329,15 @@ body[data-theme-preset][data-active-tab="timeline"] {
   --theme-active-view-surface: var(--theme-page-surface);
 }
 
+html[data-theme-preset][data-active-tab="feed"] {
+  background: var(--theme-feed-background);
+}
+
+html[data-theme-preset][data-active-tab="knowledge"],
+html[data-theme-preset][data-active-tab="timeline"] {
+  background: var(--theme-page-surface);
+}
+
 .sidebar,
 .sidebar-card,
 .panel,
@@ -570,32 +579,6 @@ body[data-theme-preset] .sidebar-launcher {
     var(--theme-nav-background);
   border-color: var(--line);
   box-shadow: 0 16px 36px color-mix(in srgb, var(--text) 13%, transparent);
-}
-
-body[data-theme-preset] .top-navigation {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
-    var(--theme-active-view-surface);
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  box-shadow: 0 12px 30px color-mix(in srgb, var(--text) 9%, transparent);
-  padding: 8px;
-}
-
-body[data-theme-preset] .top-navigation .tabs,
-body[data-theme-preset] .top-navigation .utility-launcher,
-body[data-theme-preset] .top-navigation .sidebar-launcher {
-  background: var(--theme-button-surface);
-  border-color: var(--line);
-  box-shadow: none;
-}
-
-body[data-theme-preset] .top-navigation #new-full-page-button {
-  background:
-    linear-gradient(135deg, var(--theme-accent-wash), transparent 60%),
-    var(--theme-button-surface);
-  border-color: var(--theme-accent-line);
-  color: var(--accent-strong);
 }
 
 body[data-theme-preset] .tab {
@@ -878,6 +861,58 @@ body[data-theme-preset] .sport-table tr:nth-child(even) td {
   background: var(--theme-table-cell-alt);
 }
 
+/* Beat the legacy dark-mode rules for note and quiz question tables. */
+:root[data-theme-preset] body .quiz-bank-panel,
+:root[data-theme-preset] body .panel-preview > .link-section.preview-quiz-panel {
+  background: var(--theme-section-surface) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+  color: var(--text);
+}
+
+:root[data-theme-preset] body .quiz-bank-shell,
+:root[data-theme-preset] body .quiz-preview-shell,
+:root[data-theme-preset] body .quiz-session-shell {
+  background: var(--theme-table-cell) !important;
+  border-color: var(--line) !important;
+}
+
+:root[data-theme-preset] body .quiz-bank-table th,
+:root[data-theme-preset] body .quiz-preview-table th,
+:root[data-theme-preset] body .quiz-session-table th {
+  background: var(--theme-table-head) !important;
+  border-color: var(--line) !important;
+  color: var(--text-soft) !important;
+}
+
+:root[data-theme-preset] body .quiz-bank-table td,
+:root[data-theme-preset] body .quiz-preview-table td,
+:root[data-theme-preset] body .quiz-session-table td {
+  background: var(--theme-table-cell) !important;
+  border-color: var(--line) !important;
+  color: var(--text) !important;
+}
+
+:root[data-theme-preset] body .quiz-bank-table input,
+:root[data-theme-preset] body .quiz-bank-table textarea,
+:root[data-theme-preset] body .quiz-session-answer {
+  background: var(--theme-field-background) !important;
+  border-color: var(--line) !important;
+  color: var(--text) !important;
+}
+
+:root[data-theme-preset] body .quiz-session-table tr.is-correct td {
+  background: color-mix(in srgb, var(--theme-secondary-accent) 20%, var(--theme-table-cell)) !important;
+}
+
+:root[data-theme-preset] body .quiz-session-table tr.is-wrong td {
+  background: color-mix(in srgb, #b73d3d 16%, var(--theme-table-cell)) !important;
+}
+
+:root[data-theme-preset] body .quiz-session-table tr.is-contested td {
+  background: color-mix(in srgb, var(--theme-tertiary-accent) 18%, var(--theme-table-cell)) !important;
+}
+
 body[data-theme-preset] .data-table td:focus-within,
 body[data-theme-preset] .sport-table td:focus-within {
   background: var(--theme-item-active);
@@ -1009,20 +1044,6 @@ body[data-theme-preset].graph-view-active .graph-node.is-current {
 }
 
 @media (max-width: 780px) {
-  body[data-theme-preset] .top-navigation {
-    border: 0;
-    border-radius: 18px;
-    box-shadow: none;
-    margin-inline: -6px;
-    padding: 6px;
-  }
-
-  body[data-theme-preset].graph-view-active .top-navigation {
-    background: transparent;
-    margin: 0;
-    padding: 0;
-  }
-
   body[data-theme-preset][data-active-tab="knowledge"] .main-layout,
   body[data-theme-preset][data-active-tab="knowledge"] #knowledge-tab.is-active,
   body[data-theme-preset][data-active-tab="knowledge"] .workspace,
