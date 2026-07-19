@@ -156,6 +156,11 @@
   width: 100%;
 }
 
+.sidebar-folder-toggle.is-hidden,
+.sidebar-folder-form.is-hidden {
+  display: none;
+}
+
 .sidebar-folder-icon {
   align-items: center;
   background: var(--theme-accent-wash, rgba(191, 91, 44, 0.12));

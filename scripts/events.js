@@ -107,6 +107,7 @@
 
   function setSidebarFolderFormOpen(isOpen) {
     context.elements.sidebarFolderForm?.classList.toggle("is-hidden", !isOpen);
+    context.elements.sidebarNewFolderToggle?.classList.toggle("is-hidden", isOpen);
     context.elements.sidebarNewFolderToggle?.setAttribute("aria-expanded", String(isOpen));
     context.elements.sidebarFolderError?.classList.add("is-hidden");
     if (context.elements.sidebarFolderError) {
@@ -114,7 +115,10 @@
     }
 
     if (isOpen) {
-      window.requestAnimationFrame(() => context.elements.sidebarFolderName?.focus());
+      window.requestAnimationFrame(() => {
+        context.elements.sidebarFolderForm?.scrollIntoView({ block: "nearest" });
+        context.elements.sidebarFolderName?.focus();
+      });
       return;
     }
 
