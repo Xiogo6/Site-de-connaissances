@@ -61,7 +61,7 @@
   color: var(--quiz-ink);
   display: grid;
   gap: 18px;
-  overflow: hidden;
+  overflow: visible;
   padding: clamp(14px, 3vw, 26px);
 }
 
@@ -2186,7 +2186,7 @@ body[data-theme="dark"] .quiz-universe .quiz-session-table th {
     linear-gradient(135deg, rgba(255, 252, 245, 0.98), rgba(246, 235, 216, 0.74));
   display: grid;
   gap: 18px;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 

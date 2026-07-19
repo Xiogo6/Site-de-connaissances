@@ -1273,7 +1273,6 @@ body[data-theme-preset].quiz-view-active .quiz-session-answer:not(:disabled) {
   opacity: 1;
   pointer-events: auto !important;
   position: relative;
-  resize: none;
   scroll-margin-block: 150px;
   touch-action: auto;
   -webkit-user-select: text;
@@ -1284,6 +1283,12 @@ body[data-theme-preset].quiz-view-active .quiz-session-answer:not(:disabled) {
 
 body[data-theme-preset].quiz-view-active .quiz-session-answer:focus {
   transform: none;
+}
+
+body.quiz-answer-writing .tabs,
+body.quiz-answer-writing .quick-capture-toggle,
+body.quiz-answer-writing .quiz-floating-action {
+  transition: none !important;
 }
 
 @media (max-width: 780px) {

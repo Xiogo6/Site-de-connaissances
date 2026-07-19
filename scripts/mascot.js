@@ -359,6 +359,10 @@
     }
 
     function queueSync() {
+      if (document.activeElement?.matches?.("[data-quiz-session-answer]")) {
+        return;
+      }
+
       if (syncHandle) {
         return;
       }
