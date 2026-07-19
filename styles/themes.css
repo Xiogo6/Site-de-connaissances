@@ -1043,6 +1043,31 @@ body[data-theme-preset].graph-view-active .graph-node.is-current {
   filter: drop-shadow(0 0 13px color-mix(in srgb, var(--accent) 54%, transparent));
 }
 
+/* Keep the app chrome and the active view on one continuous solid surface. */
+html[data-theme-preset][data-active-tab="feed"],
+body[data-theme-preset][data-active-tab="feed"],
+body[data-theme-preset][data-active-tab="feed"] .shell,
+body[data-theme-preset][data-active-tab="feed"] .main-layout,
+body[data-theme-preset][data-active-tab="feed"] .top-navigation,
+body[data-theme-preset][data-active-tab="feed"] #feed-tab.is-active {
+  background: var(--theme-feed-background) !important;
+}
+
+html[data-theme-preset][data-active-tab="knowledge"],
+body[data-theme-preset][data-active-tab="knowledge"],
+body[data-theme-preset][data-active-tab="knowledge"] .shell,
+body[data-theme-preset][data-active-tab="knowledge"] .main-layout,
+body[data-theme-preset][data-active-tab="knowledge"] .top-navigation,
+body[data-theme-preset][data-active-tab="knowledge"] #knowledge-tab.is-active {
+  background: var(--theme-page-surface) !important;
+}
+
+body[data-theme-preset][data-active-tab="feed"] .top-navigation,
+body[data-theme-preset][data-active-tab="knowledge"] .top-navigation {
+  border: 0;
+  box-shadow: none;
+}
+
 @media (max-width: 780px) {
   body[data-theme-preset][data-active-tab="knowledge"] .main-layout,
   body[data-theme-preset][data-active-tab="knowledge"] #knowledge-tab.is-active,
