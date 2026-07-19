@@ -711,6 +711,7 @@
     );
     context.state.editorQuizQuestionsNoteId = current.id;
     context.data.saveNotes();
+    context.data.clearEditorDraft(current.id);
     context.data.saveAutomaticSnapshot(`Maj ${current.title}`);
     if (context.state.pendingNewNoteId === current.id) {
       context.state.pendingNewNoteId = null;
@@ -727,6 +728,7 @@
       return;
     }
 
+    context.data.clearEditorDraft(pendingId);
     context.state.notes = context.state.notes.filter((note) => note.id !== pendingId);
     const fallbackNote =
       context.state.notes.find((note) => note.id === context.state.previousActiveNoteId) ??
@@ -748,6 +750,7 @@
       return;
     }
 
+    context.data.clearEditorDraft(context.state.activeNoteId);
     context.state.noteViewMode = "read";
     clearEditorTemplateSeed();
     context.renderers.renderEverything();
@@ -887,6 +890,7 @@
     context.renderers.renderStructuredFields();
     clearEditorTemplateSeed();
     context.renderers.renderLivePreview();
+    persistEditorDraft();
   }
 
   function handleEditorTitleChange() {
@@ -895,6 +899,7 @@
 
     syncMarkdownHeadingWithTitle(title);
     context.renderers.renderLivePreview();
+    persistEditorDraft();
   }
 
   function handleEditorContentChange() {
@@ -913,6 +918,33 @@
         context.elements.titleInput.value = nextTitle;
       }
     }
+
+    persistEditorDraft();
+  }
+
+  function persistEditorDraft() {
+    const note = getActiveNote();
+    if (
+      !note ||
+      context.data.isReadOnlyMode() ||
+      context.state.noteViewMode !== "edit"
+    ) {
+      return false;
+    }
+
+    return context.data.saveEditorDraft(note.id, {
+      title: context.elements.titleInput.value,
+      type: context.elements.typeInput.value,
+      tags: context.elements.tagsInput.value,
+      parentId: context.elements.parentInput.value,
+      favorite: context.elements.favoriteInput.checked,
+      noteDateMode: context.elements.noteDateMode.value,
+      noteDateSingle: context.elements.noteDateSingle.value,
+      noteDateStart: context.elements.noteDateStart.value,
+      noteDateEnd: context.elements.noteDateEnd.value,
+      content: context.elements.contentInput.value,
+      quizQuestions: structuredClone(context.state.editorQuizQuestions || []),
+    });
   }
 
   function moveNoteToParent(noteId, parentId) {
@@ -1510,6 +1542,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     resetTemplate,
     sanitizeParentId,
     saveCurrentNote,
+    persistEditorDraft,
     saveQuickCapture,
     saveTemplate,
     syncNewPageClassificationControls,

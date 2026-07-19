@@ -477,6 +477,7 @@
     context.elements.tagsInput.addEventListener("input", () => {
       context.renderers.renderTagSuggestions("note");
       context.renderers.renderLivePreview();
+      context.notes.persistEditorDraft();
     });
     context.elements.tagsInput.addEventListener("blur", () => {
       window.setTimeout(() => context.renderers.renderTagSuggestions("note"), 80);
@@ -485,15 +486,29 @@
       "change",
       context.notes.handleEditorClassificationModeChange
     );
-    context.elements.parentInput.addEventListener("change", context.renderers.renderLivePreview);
-    context.elements.favoriteInput.addEventListener("change", context.renderers.renderLivePreview);
+    context.elements.parentInput.addEventListener("change", () => {
+      context.renderers.renderLivePreview();
+      context.notes.persistEditorDraft();
+    });
+    context.elements.favoriteInput.addEventListener("change", () => {
+      context.renderers.renderLivePreview();
+      context.notes.persistEditorDraft();
+    });
     context.elements.noteDateMode.addEventListener("change", () => {
       context.renderers.renderStructuredFields();
       context.renderers.renderLivePreview();
+      context.notes.persistEditorDraft();
     });
-    context.elements.noteDateSingle.addEventListener("input", context.renderers.renderLivePreview);
-    context.elements.noteDateStart.addEventListener("input", context.renderers.renderLivePreview);
-    context.elements.noteDateEnd.addEventListener("input", context.renderers.renderLivePreview);
+    [
+      context.elements.noteDateSingle,
+      context.elements.noteDateStart,
+      context.elements.noteDateEnd,
+    ].forEach((input) => {
+      input.addEventListener("input", () => {
+        context.renderers.renderLivePreview();
+        context.notes.persistEditorDraft();
+      });
+    });
     [
       context.elements.noteDateSingle,
       context.elements.noteDateStart,
@@ -525,6 +540,7 @@
     });
     context.elements.contentInput.addEventListener("click", scheduleEditorViewportFollow);
     context.elements.contentInput.addEventListener("keyup", scheduleEditorViewportFollow);
+    window.addEventListener("pagehide", context.notes.persistEditorDraft);
     context.elements.formatButtons.forEach((button) => {
       button.addEventListener("click", () => {
         applyEditorFormat(button.dataset.formatAction);
@@ -1469,6 +1485,7 @@
     );
     active.updatedAt = new Date().toISOString();
     context.data.saveNotes();
+    context.notes.persistEditorDraft();
   }
 
   function handleQuizSessionAnswerInput(event) {

@@ -141,7 +141,7 @@
         context.state.notes.length !== notesBeforeSystemFolders ||
         ensuredFolders?.didChange
       ) {
-        context.data.saveNotes({ skipRemote: true });
+        context.data.saveNotes();
       }
     }
 
