@@ -1004,6 +1004,17 @@
       return;
     }
 
+    context.data.saveAutomaticSnapshot(`Avant suppression ${note.title}`);
+    context.state.settings.deletedNotes = [
+      ...(context.state.settings.deletedNotes || []).filter(
+        (deletion) => deletion.id !== noteId
+      ),
+      {
+        id: noteId,
+        deletedAt: new Date().toISOString(),
+      },
+    ];
+
     context.state.notes = context.state.notes
       .filter((candidate) => candidate.id !== noteId)
       .map((candidate) => {
@@ -1027,7 +1038,6 @@
     }
 
     context.data.saveNotes();
-    context.data.saveAutomaticSnapshot(`Suppression ${note.title}`);
     context.renderers.renderEverything();
   }
 
