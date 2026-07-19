@@ -302,6 +302,33 @@ body {
   transition: background 260ms ease, color 180ms ease;
 }
 
+body[data-theme-preset] {
+  --theme-active-view-background: var(--theme-body-background);
+  --theme-active-view-surface: var(--theme-panel-background);
+  background: var(--theme-active-view-background);
+}
+
+body[data-theme-preset][data-active-tab="feed"] {
+  --theme-active-view-background: var(--theme-feed-background);
+  --theme-active-view-surface: var(--theme-feed-background);
+}
+
+body[data-theme-preset][data-active-tab="knowledge"] {
+  --theme-active-view-background: var(--theme-page-surface);
+  --theme-active-view-surface: var(--theme-page-surface);
+}
+
+body[data-theme-preset][data-active-tab="visualization"],
+body[data-theme-preset][data-active-tab="graph"] {
+  --theme-active-view-background: var(--theme-graph-background);
+  --theme-active-view-surface: var(--theme-graph-base);
+}
+
+body[data-theme-preset][data-active-tab="timeline"] {
+  --theme-active-view-background: var(--theme-page-surface);
+  --theme-active-view-surface: var(--theme-page-surface);
+}
+
 .sidebar,
 .sidebar-card,
 .panel,
@@ -545,6 +572,32 @@ body[data-theme-preset] .sidebar-launcher {
   box-shadow: 0 16px 36px color-mix(in srgb, var(--text) 13%, transparent);
 }
 
+body[data-theme-preset] .top-navigation {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
+    var(--theme-active-view-surface);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--text) 9%, transparent);
+  padding: 8px;
+}
+
+body[data-theme-preset] .top-navigation .tabs,
+body[data-theme-preset] .top-navigation .utility-launcher,
+body[data-theme-preset] .top-navigation .sidebar-launcher {
+  background: var(--theme-button-surface);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+body[data-theme-preset] .top-navigation #new-full-page-button {
+  background:
+    linear-gradient(135deg, var(--theme-accent-wash), transparent 60%),
+    var(--theme-button-surface);
+  border-color: var(--theme-accent-line);
+  color: var(--accent-strong);
+}
+
 body[data-theme-preset] .tab {
   color: var(--text-soft);
 }
@@ -738,6 +791,14 @@ body[data-theme-preset] .workspace > .panel.panel-preview {
   background:
     radial-gradient(circle at 8% 0%, var(--theme-accent-wash), transparent 30%),
     var(--theme-page-surface);
+  color: var(--text);
+}
+
+body[data-theme-preset][data-active-tab="knowledge"] #knowledge-tab.is-active,
+body[data-theme-preset][data-active-tab="knowledge"] .workspace,
+body[data-theme-preset][data-active-tab="knowledge"] .workspace > .panel.panel-preview,
+body[data-theme-preset][data-active-tab="knowledge"] .preview-note-card {
+  background-color: var(--theme-page-surface);
   color: var(--text);
 }
 
@@ -948,6 +1009,38 @@ body[data-theme-preset].graph-view-active .graph-node.is-current {
 }
 
 @media (max-width: 780px) {
+  body[data-theme-preset] .top-navigation {
+    border: 0;
+    border-radius: 18px;
+    box-shadow: none;
+    margin-inline: -6px;
+    padding: 6px;
+  }
+
+  body[data-theme-preset].graph-view-active .top-navigation {
+    background: transparent;
+    margin: 0;
+    padding: 0;
+  }
+
+  body[data-theme-preset][data-active-tab="knowledge"] .main-layout,
+  body[data-theme-preset][data-active-tab="knowledge"] #knowledge-tab.is-active,
+  body[data-theme-preset][data-active-tab="knowledge"] .workspace,
+  body[data-theme-preset][data-active-tab="knowledge"] .workspace > .panel.panel-preview,
+  body[data-theme-preset][data-active-tab="knowledge"] .preview-note-card {
+    background: var(--theme-page-surface);
+  }
+
+  body[data-theme-preset][data-active-tab="knowledge"] #knowledge-tab.is-active {
+    margin-inline: -14px;
+    padding-inline: 14px;
+  }
+
+  body[data-theme-preset][data-active-tab="knowledge"] .workspace,
+  body[data-theme-preset][data-active-tab="knowledge"] .workspace > .panel.panel-preview {
+    gap: 0;
+  }
+
   body[data-theme-preset] #knowledge-tab.is-active,
   body[data-theme-preset] .workspace {
     background: var(--theme-page-surface);
@@ -960,7 +1053,7 @@ body[data-theme-preset].graph-view-active .graph-node.is-current {
   }
 
   body[data-theme-preset] .preview-note-card {
-    background: transparent;
+    background: var(--theme-page-surface);
     border: 0;
     border-radius: 0;
     box-shadow: none;
