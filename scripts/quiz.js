@@ -1440,19 +1440,20 @@
                 }
               </div>
               <div class="quiz-answer-cell">
-                <input
+                <textarea
                   class="text-input quiz-session-answer"
-                  type="text"
+                  id="quiz-session-answer-${index}"
                   data-quiz-session-answer="${index}"
-                  value="${escapeHtml(question.userAnswer || "")}"
                   placeholder="Tapez votre reponse"
+                  aria-label="Reponse a la question ${index + 1}"
+                  rows="1"
                   autocomplete="off"
                   autocorrect="off"
                   autocapitalize="sentences"
                   enterkeyhint="done"
                   spellcheck="false"
                   ${completed ? "disabled" : ""}
-                />
+                >${escapeHtml(question.userAnswer || "")}</textarea>
                 ${
                   completed
                     ? `<div class="quiz-answer-feedback ${

@@ -1259,18 +1259,27 @@ body[data-theme-preset].quiz-view-active .quiz-answer-cell {
 }
 
 body[data-theme-preset].quiz-view-active .quiz-answer-cell {
+  cursor: text;
   isolation: isolate;
   position: relative;
   z-index: 2;
 }
 
 body[data-theme-preset].quiz-view-active .quiz-session-answer:not(:disabled) {
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: text;
+  display: block;
+  min-height: 50px;
+  opacity: 1;
   pointer-events: auto !important;
   position: relative;
+  resize: none;
   scroll-margin-block: 150px;
   touch-action: auto;
   -webkit-user-select: text;
   user-select: text;
+  visibility: visible;
   z-index: 3;
 }
 
