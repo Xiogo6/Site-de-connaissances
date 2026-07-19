@@ -3459,9 +3459,18 @@ body.graph-view-active .graph-node.is-selected {
   filter: drop-shadow(0 0 14px rgba(139, 108, 246, 0.7));
 }
 
+body.graph-view-active .graph-node.is-pinned {
+  filter: drop-shadow(0 0 11px rgba(167, 139, 250, 0.5));
+}
+
 body.graph-view-active g[data-graph-node-id]:hover .graph-node {
   filter: drop-shadow(0 0 14px rgba(214, 226, 246, 0.44));
   transform: scale(1.12);
+}
+
+body.graph-view-active .graph-node.is-dragging {
+  filter: drop-shadow(0 0 18px rgba(196, 181, 253, 0.8));
+  transform: scale(1.16);
 }
 
 body.graph-view-active .graph-node.is-muted {

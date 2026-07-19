@@ -1268,10 +1268,14 @@ body[data-theme-preset].quiz-view-active .quiz-session-answer:not(:disabled) {
   pointer-events: auto !important;
   position: relative;
   scroll-margin-block: 150px;
-  touch-action: manipulation;
+  touch-action: auto;
   -webkit-user-select: text;
   user-select: text;
   z-index: 3;
+}
+
+body[data-theme-preset].quiz-view-active .quiz-session-answer:focus {
+  transform: none;
 }
 
 @media (max-width: 780px) {

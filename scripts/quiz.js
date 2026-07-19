@@ -1446,6 +1446,11 @@
                   data-quiz-session-answer="${index}"
                   value="${escapeHtml(question.userAnswer || "")}"
                   placeholder="Tapez votre reponse"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="sentences"
+                  enterkeyhint="done"
+                  spellcheck="false"
                   ${completed ? "disabled" : ""}
                 />
                 ${
