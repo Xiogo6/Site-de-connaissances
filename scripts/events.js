@@ -139,8 +139,7 @@
           return;
         }
 
-        context.state.settings.themePreset = presetId;
-        context.state.settings.theme = preset.mode;
+        context.data.saveThemePreference(presetId);
         context.data.saveNotes({ skipRemote: true });
         context.renderers.renderEverything();
       });
