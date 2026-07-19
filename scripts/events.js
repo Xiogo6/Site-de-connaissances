@@ -625,6 +625,8 @@
     context.elements.addQuizQuestionButton?.addEventListener("click", addQuizQuestionRow);
     context.elements.noteQuizQuestionsBody?.addEventListener("input", handleQuizQuestionDraftInput);
     context.elements.noteQuizQuestionsBody?.addEventListener("click", handleQuizQuestionDraftClick);
+    context.elements.quizCard?.addEventListener("focusin", handleQuizSessionAnswerFocusIn);
+    context.elements.quizCard?.addEventListener("focusout", handleQuizSessionAnswerFocusOut);
     context.elements.quizCard?.addEventListener("input", handleQuizSessionAnswerInput);
     context.elements.quizCard?.addEventListener("click", handleQuizSessionClick);
     context.elements.quizCard?.addEventListener("keydown", handleQuizSessionKeydown);
@@ -1121,6 +1123,11 @@
   }
 
   function handleBottomNavScroll() {
+    if (isQuizSessionAnswer(document.activeElement)) {
+      lastScrollY = window.scrollY || 0;
+      return;
+    }
+
     if (navScrollTicking) {
       return;
     }
@@ -1399,6 +1406,28 @@
 
     const index = Number(input.dataset.quizSessionAnswer);
     context.quiz.setQuizAnswer(index, input.value);
+  }
+
+  function isQuizSessionAnswer(element) {
+    return Boolean(element?.matches?.("[data-quiz-session-answer]"));
+  }
+
+  function handleQuizSessionAnswerFocusIn(event) {
+    if (!isQuizSessionAnswer(event.target)) {
+      return;
+    }
+
+    context.state.feedNavCompact = false;
+    document.body.classList.remove("feed-nav-compact");
+    document.body.classList.add("quiz-answer-writing");
+  }
+
+  function handleQuizSessionAnswerFocusOut() {
+    window.setTimeout(() => {
+      if (!isQuizSessionAnswer(document.activeElement)) {
+        document.body.classList.remove("quiz-answer-writing");
+      }
+    }, 0);
   }
 
   function handleQuizSessionClick(event) {

@@ -1348,9 +1348,22 @@
         return;
       }
 
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./service-worker.js").catch(() => {});
-      });
+      const installWorker = async () => {
+        try {
+          const registration = await navigator.serviceWorker.register("./service-worker.js", {
+            updateViaCache: "none",
+          });
+          await registration.update();
+        } catch (error) {
+          // The application remains usable without offline caching.
+        }
+      };
+
+      if (document.readyState === "complete") {
+        installWorker();
+      } else {
+        window.addEventListener("load", installWorker, { once: true });
+      }
     }
 
     return {

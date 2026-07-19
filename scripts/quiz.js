@@ -63,7 +63,7 @@
       context.renderers.renderTabs();
       renderQuizViewMode();
       renderQuizDashboard();
-      renderQuizCard();
+      renderQuizCard({ force: true });
       context.mascot?.sync();
       startQuizTimer();
     }
@@ -80,7 +80,7 @@
         revealPending: false,
       };
 
-      renderQuizCard();
+      renderQuizCard({ force: true });
       renderQuizDashboard();
       context.mascot?.sync();
     }
@@ -92,7 +92,7 @@
       }
       renderQuizViewMode();
       renderQuizDashboard();
-      renderQuizCard();
+      renderQuizCard({ force: true });
       context.mascot?.sync();
     }
 
@@ -660,7 +660,7 @@
       recordQuizSession();
       context.data.saveNotes();
       renderQuizDashboard();
-      renderQuizCard();
+      renderQuizCard({ force: true });
 
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(finalizeRevealSequence);
@@ -722,7 +722,7 @@
       updateRecordedQuizSession();
       context.data.saveNotes();
       renderQuizDashboard();
-      renderQuizCard();
+      renderQuizCard({ force: true });
     }
 
     function acceptContestedAnswer(index) {
@@ -769,7 +769,7 @@
       note.updatedAt = new Date().toISOString();
       context.data.saveNotes();
       renderQuizDashboard();
-      renderQuizCard();
+      renderQuizCard({ force: true });
     }
 
     function findMatchingAcceptedAnswer(userAnswer, acceptedAnswers) {
@@ -1310,7 +1310,12 @@
         .join("");
     }
 
-    function renderQuizCard() {
+    function renderQuizCard({ force = false } = {}) {
+      const focusedAnswer = document.activeElement?.closest?.("[data-quiz-session-answer]");
+      if (!force && focusedAnswer && context.elements.quizCard?.contains(focusedAnswer)) {
+        return;
+      }
+
       renderQuizViewMode();
       const total = context.state.quiz.questions.length;
       const hasSession = total > 0;
@@ -1440,20 +1445,22 @@
                 }
               </div>
               <div class="quiz-answer-cell">
-                <textarea
+                <input
                   class="text-input quiz-session-answer"
                   id="quiz-session-answer-${index}"
+                  type="text"
                   data-quiz-session-answer="${index}"
+                  value="${escapeHtml(question.userAnswer || "")}"
                   placeholder="Tapez votre reponse"
                   aria-label="Reponse a la question ${index + 1}"
-                  rows="1"
+                  inputmode="text"
                   autocomplete="off"
                   autocorrect="off"
                   autocapitalize="sentences"
                   enterkeyhint="done"
                   spellcheck="false"
                   ${completed ? "disabled" : ""}
-                >${escapeHtml(question.userAnswer || "")}</textarea>
+                />
                 ${
                   completed
                     ? `<div class="quiz-answer-feedback ${
