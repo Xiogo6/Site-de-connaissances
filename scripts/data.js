@@ -196,7 +196,55 @@
         correct: Number(stats?.correct) || 0,
         lastAskedAt: typeof stats?.lastAskedAt === "string" ? stats.lastAskedAt : null,
         lastCorrectAt: typeof stats?.lastCorrectAt === "string" ? stats.lastCorrectAt : null,
+        updatedAt: typeof stats?.updatedAt === "string" ? stats.updatedAt : null,
       };
+    }
+
+    function getLatestIsoTimestamp(firstValue, secondValue) {
+      const firstTimestamp = Date.parse(firstValue || "");
+      const secondTimestamp = Date.parse(secondValue || "");
+
+      if (Number.isNaN(firstTimestamp)) {
+        return Number.isNaN(secondTimestamp) ? null : secondValue;
+      }
+
+      return Number.isNaN(secondTimestamp) || firstTimestamp >= secondTimestamp
+        ? firstValue
+        : secondValue;
+    }
+
+    function mergeQuizQuestionStats(primaryStats = {}, fallbackStats = {}) {
+      const primary = createQuizQuestionStats(primaryStats);
+      const fallback = createQuizQuestionStats(fallbackStats);
+      const primaryTimestamp = Date.parse(primary.updatedAt || primary.lastAskedAt || "");
+      const fallbackTimestamp = Date.parse(fallback.updatedAt || fallback.lastAskedAt || "");
+
+      if (!Number.isNaN(primaryTimestamp) && primaryTimestamp !== fallbackTimestamp) {
+        return primaryTimestamp > fallbackTimestamp ? primary : fallback;
+      }
+
+      if (!Number.isNaN(fallbackTimestamp) && Number.isNaN(primaryTimestamp)) {
+        return fallback;
+      }
+
+      const asked = Math.max(primary.asked, fallback.asked);
+
+      return {
+        asked,
+        correct: Math.min(asked, Math.max(primary.correct, fallback.correct)),
+        lastAskedAt: getLatestIsoTimestamp(primary.lastAskedAt, fallback.lastAskedAt),
+        lastCorrectAt: getLatestIsoTimestamp(primary.lastCorrectAt, fallback.lastCorrectAt),
+        updatedAt: getLatestIsoTimestamp(primary.updatedAt, fallback.updatedAt),
+      };
+    }
+
+    function getQuizQuestionMatchKey(question) {
+      return String(question?.question || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ");
     }
 
     function normalizeQuizQuestionAnswers(value) {
@@ -251,6 +299,27 @@
             })
             .filter(Boolean)
         : [];
+    }
+
+    function mergeQuizQuestionCollectionStats(primaryQuestions, fallbackQuestions, noteId = "note") {
+      const primary = normalizeQuizQuestionCollection(primaryQuestions, noteId);
+      const fallback = normalizeQuizQuestionCollection(fallbackQuestions, noteId);
+      const fallbackById = new Map(fallback.map((question) => [question.id, question]));
+      const fallbackByText = new Map(
+        fallback.map((question) => [getQuizQuestionMatchKey(question), question])
+      );
+
+      return primary.map((question) => {
+        const fallbackQuestion =
+          fallbackById.get(question.id) || fallbackByText.get(getQuizQuestionMatchKey(question));
+
+        return fallbackQuestion
+          ? {
+              ...question,
+              stats: mergeQuizQuestionStats(question.stats, fallbackQuestion.stats),
+            }
+          : question;
+      });
     }
 
     function getDefaultMetadata() {
@@ -349,6 +418,26 @@
         normalized.push(normalizeImportedNote(note, normalized));
       });
       return normalized;
+    }
+
+    function mergeNoteCollectionQuizStats(primaryNotes, fallbackNotes) {
+      const fallbackById = new Map(fallbackNotes.map((note) => [note.id, note]));
+
+      return primaryNotes.map((note) => {
+        const fallbackNote = fallbackById.get(note.id);
+        if (!fallbackNote) {
+          return note;
+        }
+
+        return {
+          ...note,
+          quizQuestions: mergeQuizQuestionCollectionStats(
+            note.quizQuestions,
+            fallbackNote.quizQuestions,
+            note.id
+          ),
+        };
+      });
     }
 
     function normalizeSnapshot(rawSnapshot) {
@@ -534,6 +623,12 @@
                 0,
                 Number(session?.averageAnswerSeconds) || 0
               ),
+              updatedAt:
+                typeof session?.updatedAt === "string"
+                  ? session.updatedAt
+                  : typeof session?.finishedAt === "string"
+                    ? session.finishedAt
+                    : null,
               scope: typeof session?.scope === "string" ? session.scope : "all",
               focus: typeof session?.focus === "string" ? session.focus : "mixed",
             }))
@@ -548,6 +643,37 @@
               (Date.parse(left.finishedAt || "") || 0)
           )
           .slice(0, 120),
+      };
+    }
+
+    function mergeSettingsQuizHistory(primarySettings, fallbackSettings) {
+      const sessionsById = new Map();
+      const fallbackSessions = fallbackSettings?.quizPlayerStats?.sessions || [];
+      const primarySessions = primarySettings?.quizPlayerStats?.sessions || [];
+
+      [...fallbackSessions, ...primarySessions].forEach((session) => {
+        if (typeof session?.id === "string" && session.id.trim()) {
+          const existing = sessionsById.get(session.id);
+          const existingTimestamp = Date.parse(
+            existing?.updatedAt || existing?.finishedAt || ""
+          );
+          const sessionTimestamp = Date.parse(session.updatedAt || session.finishedAt || "");
+
+          if (
+            !existing ||
+            Number.isNaN(existingTimestamp) ||
+            (!Number.isNaN(sessionTimestamp) && sessionTimestamp >= existingTimestamp)
+          ) {
+            sessionsById.set(session.id, session);
+          }
+        }
+      });
+
+      return {
+        ...primarySettings,
+        quizPlayerStats: normalizeQuizPlayerStats({
+          sessions: [...sessionsById.values()],
+        }),
       };
     }
 
@@ -898,9 +1024,14 @@
           Boolean(remoteSettings.lastPublishAt);
 
         if (hasRemoteData) {
+          const localNotes = context.state.notes;
+          const localSettings = context.state.settings;
           const localLatest = getLatestNoteTimestamp(context.state.notes);
           const remoteLatest = getLatestNoteTimestamp(remoteNotes);
           if (localLatest > remoteLatest + 1000) {
+            context.state.notes = mergeNoteCollectionQuizStats(localNotes, remoteNotes);
+            context.state.settings = mergeSettingsQuizHistory(localSettings, remoteSettings);
+            saveNotes({ skipRemote: true });
             setRemoteState({
               status: "syncing",
               lastError: "",
@@ -909,8 +1040,8 @@
             return true;
           }
 
-          context.state.notes = remoteNotes;
-          context.state.settings = remoteSettings;
+          context.state.notes = mergeNoteCollectionQuizStats(remoteNotes, localNotes);
+          context.state.settings = mergeSettingsQuizHistory(remoteSettings, localSettings);
           context.state.snapshots = remoteSnapshots;
           saveNotes({ skipRemote: true });
           const prunedRemoteSnapshots = saveSnapshots({ skipRemote: true });
@@ -1249,6 +1380,7 @@
       loadPublishedNotesIfNeeded,
       loadSettings,
       loadSnapshots,
+      mergeQuizQuestionCollectionStats,
       shouldSeedDefaultKnowledge,
       normalizeImportedNote,
       normalizeNoteCollection,

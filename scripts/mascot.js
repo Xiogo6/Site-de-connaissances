@@ -4,9 +4,11 @@
   AtlasApp.createMascotModule = function createMascotModule(context) {
     const SETUP_DELAY_MIN = 8500;
     const SETUP_DELAY_MAX = 13500;
-    const SPEECH_DURATION = 3800;
-    const SPEECH_COOLDOWN = 16000;
-    const SPEECH_CHANCE = 0.5;
+    const SPEECH_DURATION_MIN = 3000;
+    const SPEECH_DURATION_MAX = 6200;
+    const SPEECH_COOLDOWN = 12500;
+    const SPEECH_CHANCE = 0.72;
+    const RECENT_SPEECH_LIMIT = 14;
 
     const setupFrames = [
       {
@@ -17,7 +19,7 @@
         rotate: -3,
         scale: 1,
         size: 138,
-        speech: "Je reste pres du depart !",
+        speechGroup: "watch",
       },
       {
         dx: -18,
@@ -27,7 +29,7 @@
         rotate: 5,
         scale: 0.96,
         size: 134,
-        speech: "Je reflechis avec toi !",
+        speechGroup: "think",
       },
       {
         dx: -4,
@@ -37,7 +39,7 @@
         rotate: -6,
         scale: 1.03,
         size: 142,
-        speech: "On peut y aller !",
+        speechGroup: "start",
       },
       {
         dx: -28,
@@ -47,7 +49,7 @@
         rotate: 7,
         scale: 0.95,
         size: 132,
-        speech: "Je verifie les reglages !",
+        speechGroup: "check",
       },
       {
         dx: -10,
@@ -57,9 +59,100 @@
         rotate: -2,
         scale: 0.99,
         size: 136,
-        speech: "Je t'attends ici !",
+        speechGroup: "wait",
       },
     ];
+
+    const speechGroups = {
+      watch: [
+        "Je garde le portail du quiz !",
+        "Je fais le guet, version etoile",
+        "Je surveille le bouton sans le presser",
+        "Je reste la, petit phare discret",
+        "Si une question s'echappe, je la rattrape !",
+        "Je veille sur le depart",
+        "Je clignote mentalement",
+        "Je suis pret, mais sans pression",
+        "Le tableau de bord respire bien",
+        "Je garde une orbite de courtoisie",
+        "Je fais juste un petit passage",
+        "Je tiens la lumiere pendant que tu choisis",
+      ],
+      think: [
+        "Je trie les idees dans ma petite galaxie",
+        "Deux secondes, je consulte mon caillou imaginaire",
+        "Je fais tourner les neurones stellaires",
+        "Je pense en orbite basse",
+        "Je cherche la bonne etoile de depart",
+        "Je range les questions par constellation",
+        "Mon point du front calcule tres fort",
+        "Je fais semblant d'etre sage",
+        "Je remue une idee, elle brille un peu",
+        "Le cerveau d'etoile chauffe doucement",
+        "Je prends un air profond, ca aide parfois",
+        "Je laisse les options se poser",
+      ],
+      start: [
+        "Top depart quand tu veux !",
+        "On peut lancer la fusee !",
+        "Je crois en ce bouton bleu !",
+        "Petit courage, grand quiz !",
+        "Je mets une mini fanfare silencieuse !",
+        "Allez, on transforme ca en victoire !",
+        "Je suis minuscule, mais motive !",
+        "Ce quiz n'a aucune idee de ce qui l'attend !",
+        "Tu choisis, je scintille !",
+        "On y va doucement, mais surement !",
+        "Je prepare mon meilleur sourire !",
+        "Une question apres l'autre, et hop !",
+      ],
+      check: [
+        "Je verifie les reglages, facon astronaute",
+        "Je regarde si tout tient en orbite",
+        "Les options ont l'air bien alignees",
+        "Je fais mon tour de controle",
+        "Je renifle les parametres, tres scientifique",
+        "Je compte les questions sur mes branches",
+        "J'inspecte le menu sans le juger",
+        "Je mets un peu d'ordre dans les etoiles",
+        "Tout semble pret, capitaine !",
+        "Je passe derriere le decor une seconde",
+        "Je verifie que rien ne mord",
+        "Les reglages ont une bonne tete",
+      ],
+      wait: [
+        "Je t'attends ici, tranquille",
+        "Pas de precipitation, je flotte",
+        "Je peux patienter longtemps, je suis une etoile",
+        "Je garde le rythme doux",
+        "Je ne bouge presque pas, promis",
+        "Je laisse de la place aux idees",
+        "Je fais une pause lumineuse",
+        "Quand tu es pret, je le suis aussi",
+        "Je reste dans le coin, bien sage",
+        "Je garde le silence, enfin presque",
+        "Je peux attendre, j'ai le temps cosmique",
+        "On respire, puis on demarre",
+      ],
+      rare: [
+        "Un mouton a traverse mon orbite",
+        "Si tu vois une planete, dis-lui bonjour",
+        "Je connais un asteroide qui revise tres bien",
+        "Le Petit Prince aurait clique doucement",
+        "Je dessine une constellation avec trois pixels",
+        "J'ai range ma cape, elle faisait trop de vent",
+        "Je viens en paix et en paillettes",
+        "Promis, je ne mange pas les questions",
+        "Un jour, j'aurai une chaise minuscule",
+        "Je fais semblant d'etre fixe, mais non",
+        "Mes branches font equipe avec toi",
+        "J'ai vu passer une idee, elle etait rapide",
+        "Ce formulaire a une bonne energie",
+        "Je suis la mascotte, pas le surveillant",
+        "Je brille localement, sans abonnement",
+        "Je garde les etoiles en ordre approximatif",
+      ],
+    };
 
     const poseClasses = [
       "is-listening",
@@ -76,6 +169,7 @@
 
     let currentFrameIndex = -1;
     let lastSpeechAt = 0;
+    let recentSpeeches = [];
     let roamTimer = null;
     let speechTimer = null;
     let syncHandle = 0;
@@ -136,6 +230,32 @@
       return Math.round(SETUP_DELAY_MIN + Math.random() * (SETUP_DELAY_MAX - SETUP_DELAY_MIN));
     }
 
+    function getSpeechDuration(text) {
+      return clamp(2600 + String(text || "").length * 58, SPEECH_DURATION_MIN, SPEECH_DURATION_MAX);
+    }
+
+    function getSpeechCandidates(frame) {
+      const group = speechGroups[frame.speechGroup] || speechGroups.watch;
+      if (Math.random() < 0.18) {
+        return [...group, ...speechGroups.rare];
+      }
+      return group;
+    }
+
+    function pickSpeech(frame) {
+      const candidates = getSpeechCandidates(frame);
+      const freshCandidates = candidates.filter((line) => !recentSpeeches.includes(line));
+      const pool = freshCandidates.length ? freshCandidates : candidates;
+      let selected = pool[Math.floor(Math.random() * pool.length)];
+
+      if (selected === recentSpeeches[recentSpeeches.length - 1] && pool.length > 1) {
+        selected = pool[(pool.indexOf(selected) + 1) % pool.length];
+      }
+
+      recentSpeeches = [...recentSpeeches, selected].slice(-RECENT_SPEECH_LIMIT);
+      return selected;
+    }
+
     function scheduleNextMove(delay = getDelay()) {
       if (roamTimer) {
         window.clearTimeout(roamTimer);
@@ -153,7 +273,7 @@
 
     function maybeSpeak(root, frame) {
       const speech = getSpeech();
-      if (!root || !speech || !frame.speech) {
+      if (!root || !speech || !frame) {
         hideSpeech(root);
         return;
       }
@@ -164,13 +284,14 @@
         return;
       }
 
-      speech.textContent = frame.speech;
+      const line = pickSpeech(frame);
+      speech.textContent = line;
       root.classList.add("has-speech");
       lastSpeechAt = now;
       speechTimer = window.setTimeout(() => {
         root.classList.remove("has-speech");
         speechTimer = null;
-      }, SPEECH_DURATION);
+      }, getSpeechDuration(line));
     }
 
     function applyPose(frame, options = {}) {

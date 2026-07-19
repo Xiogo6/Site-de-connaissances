@@ -331,6 +331,7 @@
         correct: Number(stats?.correct) || 0,
         lastAskedAt: typeof stats?.lastAskedAt === "string" ? stats.lastAskedAt : null,
         lastCorrectAt: typeof stats?.lastCorrectAt === "string" ? stats.lastCorrectAt : null,
+        updatedAt: typeof stats?.updatedAt === "string" ? stats.updatedAt : null,
       };
     }
 
@@ -605,6 +606,7 @@
 
       const now = new Date().toISOString();
       const activeEditorNoteId = context.state.editorQuizQuestionsNoteId;
+      const updatedNotes = new Set();
 
       context.state.quiz.questions.forEach((question) => {
         const userAnswer = String(question.userAnswer || "").trim();
@@ -626,7 +628,9 @@
             storedQuestion.stats.lastCorrectAt = now;
           }
           storedQuestion.stats.lastAskedAt = now;
+          storedQuestion.stats.updatedAt = now;
           question.statsAfter = { ...storedQuestion.stats };
+          updatedNotes.add(note);
 
           if (activeEditorNoteId === note.id) {
             context.state.editorQuizQuestions = (context.state.editorQuizQuestions || []).map(
@@ -642,6 +646,10 @@
         } else {
           question.statsAfter = null;
         }
+      });
+
+      updatedNotes.forEach((note) => {
+        note.updatedAt = now;
       });
 
       context.state.quiz.validatedCount = context.state.quiz.questions.length;
@@ -691,7 +699,9 @@
       const storedQuestion = note?.quizQuestions?.find((item) => item.id === question.questionId);
       if (storedQuestion && question.statsBefore) {
         storedQuestion.stats = normalizeQuestionStats(question.statsBefore);
+        storedQuestion.stats.updatedAt = new Date().toISOString();
         question.statsAfter = { ...storedQuestion.stats };
+        note.updatedAt = new Date().toISOString();
 
         if (context.state.editorQuizQuestionsNoteId === note.id) {
           context.state.editorQuizQuestions = (context.state.editorQuizQuestions || []).map(
@@ -839,6 +849,7 @@
         id,
         startedAt: new Date(context.state.quiz.startedAt).toISOString(),
         finishedAt: new Date(context.state.quiz.finishedAt).toISOString(),
+        updatedAt: new Date(context.state.quiz.finishedAt).toISOString(),
         durationSeconds,
         averageAnswerSeconds: getAverageAnswerSeconds(durationSeconds, score.total),
         total: score.total,
@@ -869,6 +880,7 @@
 
       sessions[index] = {
         ...sessions[index],
+        updatedAt: new Date().toISOString(),
         total: score.total,
         correct: score.correct,
         averageAnswerSeconds: getAverageAnswerSeconds(sessions[index].durationSeconds, score.total),
