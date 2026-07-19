@@ -625,7 +625,6 @@
     context.elements.addQuizQuestionButton?.addEventListener("click", addQuizQuestionRow);
     context.elements.noteQuizQuestionsBody?.addEventListener("input", handleQuizQuestionDraftInput);
     context.elements.noteQuizQuestionsBody?.addEventListener("click", handleQuizQuestionDraftClick);
-    context.elements.quizCard?.addEventListener("pointerup", handleQuizSessionAnswerPointerUp);
     context.elements.quizCard?.addEventListener("input", handleQuizSessionAnswerInput);
     context.elements.quizCard?.addEventListener("click", handleQuizSessionClick);
     context.elements.quizCard?.addEventListener("keydown", handleQuizSessionKeydown);
@@ -841,6 +840,7 @@
     if (
       event.touches.length !== 1 ||
       !window.matchMedia("(max-width: 780px)").matches ||
+      context.state.activeTab === "quiz" ||
       context.state.utilityDrawerOpen ||
       context.state.quickCaptureOpen ||
       event.target.closest?.("input, textarea, select, button, a, [contenteditable='true']")
@@ -1401,38 +1401,7 @@
     context.quiz.setQuizAnswer(index, input.value);
   }
 
-  function getQuizSessionAnswerFromTarget(target) {
-    const directInput = target.closest?.("[data-quiz-session-answer]");
-    if (directInput) {
-      return directInput;
-    }
-
-    return target.closest?.(".quiz-answer-cell")?.querySelector("[data-quiz-session-answer]") || null;
-  }
-
-  function focusQuizSessionAnswer(target) {
-    const input = getQuizSessionAnswerFromTarget(target);
-    if (!input || input.disabled) {
-      return false;
-    }
-
-    if (document.activeElement !== input) {
-      input.focus();
-    }
-    return true;
-  }
-
-  function handleQuizSessionAnswerPointerUp(event) {
-    if (event.pointerType === "touch") {
-      focusQuizSessionAnswer(event.target);
-    }
-  }
-
   function handleQuizSessionClick(event) {
-    if (focusQuizSessionAnswer(event.target)) {
-      return;
-    }
-
     const noteButton = event.target.closest("[data-open-quiz-note]");
     if (noteButton) {
       openQuizLinkedNote(noteButton.dataset.openQuizNote);
