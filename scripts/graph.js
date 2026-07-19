@@ -169,14 +169,17 @@
     return null;
   }
 
-  function releaseLockedNode(nodeId = context.state.graphDrag.nodeId) {
+  function restoreDraggedNodeLock(
+    nodeId = context.state.graphDrag.nodeId,
+    wasLocked = context.state.graphDrag.wasLocked
+  ) {
     if (!nodeId) {
       return;
     }
 
     const position = context.state.graphPositions.get(nodeId);
     if (position) {
-      position.locked = false;
+      position.locked = Boolean(wasLocked);
     }
   }
 
@@ -642,9 +645,12 @@
         context.state.graphSelection.id === node.id;
       const isRelatedToFocus =
         !focusNodeId || node.id === focusNodeId || focusNeighbors.has(node.id) || isSelected;
+      const isDragging =
+        context.state.graphDrag.mode === "node" && context.state.graphDrag.nodeId === node.id;
       const degree = getNodeDegree(node.id, graph.edges);
       const labelMode = getGraphLabelMode(node, degree, zoom, isCurrent, isSelected);
-      const shouldShowLabel = Boolean(labelMode);
+      const effectiveLabelMode = labelMode || (position.locked ? "compact" : null);
+      const shouldShowLabel = Boolean(effectiveLabelMode);
       const palette =
         node.kind === "tag"
           ? { fill: "#69a77a", stroke: "#dcf0e1", label: "#ffffff" }
@@ -656,8 +662,13 @@
       group.dataset.graphNodeKind = node.kind;
       group.setAttribute("role", "button");
       group.setAttribute("tabindex", "0");
-      group.setAttribute("aria-label", node.kind === "tag" ? `Tag ${node.label}` : node.label);
-      group.style.cursor = "pointer";
+      group.setAttribute(
+        "aria-label",
+        `${node.kind === "tag" ? `Tag ${node.label}` : node.label}${
+          position.locked ? ", épinglé" : ""
+        }`
+      );
+      group.style.cursor = isDragging ? "grabbing" : "grab";
 
       const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       circle.setAttribute("cx", position.x);
@@ -681,18 +692,26 @@
         "class",
         `graph-node${isCurrent ? " is-current" : ""}${isSelected ? " is-selected" : ""}${
           focusNeighbors.has(node.id) ? " is-neighbor" : ""
-        }${!isRelatedToFocus ? " is-muted" : ""}`
+        }${position.locked ? " is-pinned" : ""}${isDragging ? " is-dragging" : ""}${
+          !isRelatedToFocus ? " is-muted" : ""
+        }`
       );
       circle.style.fill = isSelected ? "#8b6cf6" : nodeFill;
-      circle.style.stroke = isSelected ? "#c4b5fd" : nodeStroke;
-      circle.style.strokeWidth = isCurrent || isSelected ? "3" : "2";
+      circle.style.stroke = isSelected
+        ? "#c4b5fd"
+        : position.locked
+          ? "#a78bfa"
+          : nodeStroke;
+      circle.style.strokeWidth = isCurrent || isSelected || position.locked ? "3" : "2";
 
       group.appendChild(circle);
       if (shouldShowLabel) {
         const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
         label.setAttribute(
           "x",
-          isSelected ? position.x : position.x + nodeRadius + (labelMode === "compact" ? 5 : 7)
+          isSelected
+            ? position.x
+            : position.x + nodeRadius + (effectiveLabelMode === "compact" ? 5 : 7)
         );
         label.setAttribute("y", isSelected ? position.y + nodeRadius + 16 : position.y + 3);
         if (isSelected) {
@@ -703,7 +722,7 @@
           [
             "graph-label",
             node.kind === "tag" ? "is-tag-label" : "",
-            labelMode === "compact" ? "is-compact" : "",
+            effectiveLabelMode === "compact" ? "is-compact" : "",
             isCurrent || isSelected ? "is-key" : "",
             !isRelatedToFocus ? "is-muted" : "",
           ]
@@ -819,9 +838,10 @@
     }
     updateActivePointer(event);
     stopZoomAnimation();
+    context.elements.graphCanvas.setPointerCapture?.(event.pointerId);
 
     if (event.pointerType === "touch" && getTouchPointerCount() > 1) {
-      releaseLockedNode();
+      restoreDraggedNodeLock();
       startPinchGesture();
       event.preventDefault();
       return;
@@ -833,7 +853,7 @@
     context.state.graphDrag.startClientX = event.clientX;
     context.state.graphDrag.startClientY = event.clientY;
 
-    if (group && event.pointerType !== "touch") {
+    if (group) {
       const point = getSvgPoint(event);
       const nodeId = group.dataset.graphNodeId;
       const position = context.state.graphPositions.get(nodeId);
@@ -843,6 +863,7 @@
 
       context.state.graphDrag.mode = "node";
       context.state.graphDrag.nodeId = nodeId;
+      context.state.graphDrag.wasLocked = Boolean(position.locked);
       context.state.graphDrag.offsetX = point.x - position.x;
       context.state.graphDrag.offsetY = point.y - position.y;
       position.locked = true;
@@ -852,6 +873,7 @@
 
     context.state.graphDrag.mode = "pan";
     context.state.graphDrag.nodeId = null;
+    context.state.graphDrag.wasLocked = false;
     context.state.graphDrag.startPanX = context.state.graphViewport.panX || 0;
     context.state.graphDrag.startPanY = context.state.graphViewport.panY || 0;
     event.preventDefault();
@@ -862,7 +884,7 @@
 
     if (getTouchPointerCount() > 1) {
       if (context.state.graphDrag.mode !== "pinch") {
-        releaseLockedNode();
+        restoreDraggedNodeLock();
         startPinchGesture();
       }
       handlePinchMove(event);
@@ -900,6 +922,15 @@
       return;
     }
 
+    const dragDistance = Math.hypot(
+      event.clientX - context.state.graphDrag.startClientX,
+      event.clientY - context.state.graphDrag.startClientY
+    );
+    if (!context.state.graphDrag.moved && dragDistance < 5) {
+      event.preventDefault();
+      return;
+    }
+
     position.x = context.helpers.clamp(
       point.x - context.state.graphDrag.offsetX,
       28,
@@ -917,6 +948,9 @@
 
   function handleGraphPointerUp(event) {
     removeActivePointer(event.pointerId);
+    if (context.elements.graphCanvas.hasPointerCapture?.(event.pointerId)) {
+      context.elements.graphCanvas.releasePointerCapture?.(event.pointerId);
+    }
 
     if (context.state.graphDrag.mode === "pinch") {
       if (context.state.graphDrag.moved) {
@@ -933,21 +967,42 @@
 
     const group = event.target.closest("[data-graph-node-id]");
     const isTap = event.pointerType === "touch" && !context.state.graphDrag.moved;
+    const isNodeDrag = context.state.graphDrag.mode === "node";
+    const wasCancelled = event.type === "pointercancel";
+    const draggedNodeId = context.state.graphDrag.nodeId;
+    const tapSelection =
+      isNodeDrag && draggedNodeId
+        ? {
+            kind: draggedNodeId.startsWith("tag::") ? "tag" : "note",
+            id: draggedNodeId,
+          }
+        : null;
 
     if (context.state.graphDrag.moved) {
       context.state.graphDrag.suppressClickUntil = Date.now() + 280;
     }
-    releaseLockedNode();
+    if (isNodeDrag && (!context.state.graphDrag.moved || wasCancelled)) {
+      restoreDraggedNodeLock();
+    }
     context.state.graphDrag.mode = null;
     context.state.graphDrag.nodeId = null;
     context.state.graphDrag.pointerId = null;
     context.state.graphDrag.moved = false;
+    context.state.graphDrag.wasLocked = false;
 
-    if (!isTap) {
+    if (isNodeDrag) {
+      drawGraph();
+    }
+
+    if (!isTap || wasCancelled) {
       return;
     }
 
-    setGraphSelectionFromNode(group);
+    if (tapSelection) {
+      context.state.graphSelection = tapSelection;
+    } else {
+      setGraphSelectionFromNode(group);
+    }
     context.state.graphDrag.suppressClickUntil = Date.now() + 280;
 
     if (context.state.graphSelection?.kind === "note") {
@@ -1002,7 +1057,7 @@
       return;
     }
 
-    releaseLockedNode();
+    restoreDraggedNodeLock();
 
     const [first, second] = pointers;
     const centerX = (first.clientX + second.clientX) / 2;
@@ -1018,6 +1073,7 @@
 
     context.state.graphDrag.mode = "pinch";
     context.state.graphDrag.nodeId = null;
+    context.state.graphDrag.wasLocked = false;
     context.state.graphDrag.pointerId = null;
     context.state.graphDrag.pinchStartDistance = distance;
     context.state.graphDrag.pinchStartZoom = context.state.graphZoom || 1;
@@ -1031,6 +1087,7 @@
     context.state.graphDrag.nodeId = null;
     context.state.graphDrag.pointerId = null;
     context.state.graphDrag.moved = false;
+    context.state.graphDrag.wasLocked = false;
     context.state.graphDrag.pinchStartDistance = 0;
   }
 
