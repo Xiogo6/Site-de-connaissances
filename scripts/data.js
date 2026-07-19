@@ -13,7 +13,9 @@
       snapshotStorageKey,
       storageKey,
       supabase,
+      themePresetStorageKey,
       themePresets,
+      themeStorageKey,
     } = AtlasApp.config;
 
     const remoteConfig = {
@@ -575,6 +577,50 @@
       return rawTheme === "light" ? "classic-light" : "classic-dark";
     }
 
+    function getStoredThemePreference(fallbackSettings = {}) {
+      let storedPreset = "";
+      let storedTheme = "";
+
+      try {
+        storedPreset = window.localStorage.getItem(themePresetStorageKey) || "";
+        storedTheme = window.localStorage.getItem(themeStorageKey) || "";
+      } catch (error) {
+        // Fall back to the workspace settings when storage is unavailable.
+      }
+
+      const fallbackPreset = normalizeThemePreset(
+        fallbackSettings?.themePreset,
+        fallbackSettings?.theme
+      );
+      const themePreset = themePresets?.[storedPreset]
+        ? storedPreset
+        : storedTheme === "light" || storedTheme === "dark"
+          ? normalizeThemePreset("", storedTheme)
+          : fallbackPreset;
+
+      return {
+        themePreset,
+        theme: themePresets?.[themePreset]?.mode === "light" ? "light" : "dark",
+      };
+    }
+
+    function applyStoredThemePreference(settings = {}) {
+      return {
+        ...settings,
+        ...getStoredThemePreference(settings),
+      };
+    }
+
+    function saveThemePreference(presetId) {
+      const themePreset = normalizeThemePreset(presetId, context.state.settings?.theme);
+      const theme = themePresets?.[themePreset]?.mode === "light" ? "light" : "dark";
+
+      context.state.settings.themePreset = themePreset;
+      context.state.settings.theme = theme;
+      window.localStorage.setItem(themePresetStorageKey, themePreset);
+      window.localStorage.setItem(themeStorageKey, theme);
+    }
+
     function normalizeSportEntry(entry = {}, fields = []) {
       return fields.reduce((result, field) => {
         const value = entry?.[field];
@@ -669,12 +715,12 @@
         }
       });
 
-      return {
+      return applyStoredThemePreference({
         ...primarySettings,
         quizPlayerStats: normalizeQuizPlayerStats({
           sessions: [...sessionsById.values()],
         }),
-      };
+      });
     }
 
     function normalizeTemplates(rawTemplates) {
@@ -758,13 +804,13 @@
       try {
         const raw = window.localStorage.getItem(appStorageKey);
         if (!raw) {
-          return getDefaultSettings();
+          return applyStoredThemePreference(getDefaultSettings());
         }
 
         const parsed = JSON.parse(raw);
-        return normalizeSettings(parsed?.settings);
+        return applyStoredThemePreference(normalizeSettings(parsed?.settings));
       } catch (error) {
-        return getDefaultSettings();
+        return applyStoredThemePreference(getDefaultSettings());
       }
     }
 
@@ -1411,6 +1457,7 @@
       saveManualSnapshot,
       saveNotes,
       saveSnapshots,
+      saveThemePreference,
       setRemoteState,
       updateReviewState,
     };

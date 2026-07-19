@@ -213,10 +213,7 @@
     };
     const isDark = preset.mode === "dark";
 
-    context.state.settings.themePreset = presetId;
-    context.state.settings.theme = preset.mode;
-    window.localStorage.setItem("atlas-connaissance-theme", preset.mode);
-    window.localStorage.setItem("atlas-connaissance-theme-preset", presetId);
+    context.data.saveThemePreference(presetId);
     document.documentElement.dataset.theme = preset.mode;
     document.documentElement.dataset.themePreset = presetId;
     document.body.dataset.theme = preset.mode;
