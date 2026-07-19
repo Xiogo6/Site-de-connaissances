@@ -710,8 +710,11 @@
       current.id
     );
     context.state.editorQuizQuestionsNoteId = current.id;
-    context.data.saveNotes();
+    context.data.saveNotes({
+      changedNoteIds: [current.id, previousParentId, current.parentId],
+    });
     context.data.clearEditorDraft(current.id);
+    context.elements.contentInput.dataset.editorDirty = "false";
     context.data.saveAutomaticSnapshot(`Maj ${current.title}`);
     if (context.state.pendingNewNoteId === current.id) {
       context.state.pendingNewNoteId = null;
@@ -729,6 +732,7 @@
     }
 
     context.data.clearEditorDraft(pendingId);
+    context.elements.contentInput.dataset.editorDirty = "false";
     context.state.notes = context.state.notes.filter((note) => note.id !== pendingId);
     const fallbackNote =
       context.state.notes.find((note) => note.id === context.state.previousActiveNoteId) ??
@@ -751,6 +755,7 @@
     }
 
     context.data.clearEditorDraft(context.state.activeNoteId);
+    context.elements.contentInput.dataset.editorDirty = "false";
     context.state.noteViewMode = "read";
     clearEditorTemplateSeed();
     context.renderers.renderEverything();
@@ -932,6 +937,7 @@
       return false;
     }
 
+    context.elements.contentInput.dataset.editorDirty = "true";
     return context.data.saveEditorDraft(note.id, {
       title: context.elements.titleInput.value,
       type: context.elements.typeInput.value,

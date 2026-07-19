@@ -801,8 +801,16 @@
       return;
     }
 
+    const isCurrentEditorDirty =
+      context.state.noteViewMode === "edit" &&
+      context.elements.contentInput.dataset.hydratedNoteId === note.id &&
+      context.elements.contentInput.dataset.editorDirty === "true";
+    if (isCurrentEditorDirty) {
+      return;
+    }
+
     const metadata = note.metadata || {};
-    const draft = context.data.loadEditorDraft(note.id, note.updatedAt);
+    const draft = context.data.loadEditorDraft(note.id);
     context.elements.titleInput.value = draft?.title ?? note.title;
     context.elements.typeInput.value = draft?.type ?? note.type;
     context.elements.tagsInput.value = draft?.tags ?? note.tags.join(", ");
@@ -829,6 +837,8 @@
     context.elements.noteDateEnd.value =
       draft?.noteDateEnd ?? (metadata.endDate ? formatFlexibleDate(metadata.endDate) : "");
     context.elements.contentInput.value = draft?.content ?? note.content;
+    context.elements.contentInput.dataset.hydratedNoteId = note.id;
+    context.elements.contentInput.dataset.editorDirty = draft ? "true" : "false";
     if (context.state.editorQuizQuestionsNoteId !== note.id) {
       context.state.editorQuizQuestions = structuredClone(
         draft?.quizQuestions || note.quizQuestions || []
