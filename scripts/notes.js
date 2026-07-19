@@ -677,8 +677,9 @@
     current.parentId = getEditorParentId(current);
     current.favorite = context.elements.favoriteInput.checked;
     current.content = context.elements.contentInput.value.trim();
-    current.quizQuestions = context.data.normalizeQuizQuestionCollection(
+    current.quizQuestions = context.data.mergeQuizQuestionCollectionStats(
       context.state.editorQuizQuestions,
+      current.quizQuestions,
       current.id
     );
     current.metadata = collectMetadataFromInputs();

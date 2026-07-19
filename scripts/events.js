@@ -625,6 +625,7 @@
     context.elements.addQuizQuestionButton?.addEventListener("click", addQuizQuestionRow);
     context.elements.noteQuizQuestionsBody?.addEventListener("input", handleQuizQuestionDraftInput);
     context.elements.noteQuizQuestionsBody?.addEventListener("click", handleQuizQuestionDraftClick);
+    context.elements.quizCard?.addEventListener("pointerdown", handleQuizSessionAnswerPointerDown);
     context.elements.quizCard?.addEventListener("input", handleQuizSessionAnswerInput);
     context.elements.quizCard?.addEventListener("click", handleQuizSessionClick);
     context.elements.quizCard?.addEventListener("keydown", handleQuizSessionKeydown);
@@ -1314,6 +1315,7 @@
         correct: 0,
         lastAskedAt: null,
         lastCorrectAt: null,
+        updatedAt: null,
       },
     });
     persistQuizQuestionDrafts();
@@ -1379,8 +1381,9 @@
       return;
     }
 
-    active.quizQuestions = context.data.normalizeQuizQuestionCollection(
+    active.quizQuestions = context.data.mergeQuizQuestionCollectionStats(
       context.state.editorQuizQuestions,
+      active.quizQuestions,
       active.id
     );
     active.updatedAt = new Date().toISOString();
@@ -1395,6 +1398,15 @@
 
     const index = Number(input.dataset.quizSessionAnswer);
     context.quiz.setQuizAnswer(index, input.value);
+  }
+
+  function handleQuizSessionAnswerPointerDown(event) {
+    const input = event.target.closest("[data-quiz-session-answer]");
+    if (!input || input.disabled || document.activeElement === input) {
+      return;
+    }
+
+    input.focus({ preventScroll: true });
   }
 
   function handleQuizSessionClick(event) {
