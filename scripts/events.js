@@ -711,6 +711,18 @@
     context.elements.generateQuizButton.addEventListener("click", context.quiz.buildQuizSession);
     context.elements.quizDashboard?.addEventListener("click", handleQuizDashboardClick);
     context.elements.addQuizQuestionButton?.addEventListener("click", addQuizQuestionRow);
+    context.elements.noteQuizQuestionsBody?.addEventListener(
+      "pointerdown",
+      handleQuizQuestionDraftPointerDown
+    );
+    context.elements.noteQuizQuestionsBody?.addEventListener(
+      "focusin",
+      handleQuizQuestionDraftFocusIn
+    );
+    context.elements.noteQuizQuestionsBody?.addEventListener(
+      "focusout",
+      handleQuizQuestionDraftFocusOut
+    );
     context.elements.noteQuizQuestionsBody?.addEventListener("input", handleQuizQuestionDraftInput);
     context.elements.noteQuizQuestionsBody?.addEventListener("click", handleQuizQuestionDraftClick);
     context.elements.quizCard?.addEventListener("pointerdown", handleQuizSessionAnswerPointerDown);
@@ -1416,7 +1428,7 @@
       },
     });
     persistQuizQuestionDrafts();
-    context.renderers.renderQuizQuestionBank();
+    context.renderers.renderQuizQuestionBank({ force: true });
     context.renderers.renderPreview(context.notes.getActiveNote(), true);
     context.quiz.renderQuizDashboard();
     window.requestAnimationFrame(() => {
@@ -1435,6 +1447,7 @@
       return;
     }
 
+    beginQuizQuestionWriting();
     const index = Number(input.dataset.quizQuestionIndex);
     const field = input.dataset.quizQuestionField;
     const draft = context.state.editorQuizQuestions[index];
@@ -1467,7 +1480,7 @@
     const index = Number(button.dataset.removeQuizQuestion);
     context.state.editorQuizQuestions.splice(index, 1);
     persistQuizQuestionDrafts();
-    context.renderers.renderQuizQuestionBank();
+    context.renderers.renderQuizQuestionBank({ force: true });
     context.renderers.renderPreview(context.notes.getActiveNote(), true);
     context.quiz.renderQuizDashboard();
   }
@@ -1486,6 +1499,36 @@
     active.updatedAt = new Date().toISOString();
     context.data.saveNotes();
     context.notes.persistEditorDraft();
+  }
+
+  function isQuizQuestionDraftField(element) {
+    return Boolean(element?.matches?.("[data-quiz-question-field]"));
+  }
+
+  function beginQuizQuestionWriting() {
+    context.state.feedNavCompact = false;
+    document.body.classList.remove("feed-nav-compact");
+    document.body.classList.add("quiz-question-writing");
+  }
+
+  function handleQuizQuestionDraftPointerDown(event) {
+    if (isQuizQuestionDraftField(event.target)) {
+      beginQuizQuestionWriting();
+    }
+  }
+
+  function handleQuizQuestionDraftFocusIn(event) {
+    if (isQuizQuestionDraftField(event.target)) {
+      beginQuizQuestionWriting();
+    }
+  }
+
+  function handleQuizQuestionDraftFocusOut() {
+    window.setTimeout(() => {
+      if (!isQuizQuestionDraftField(document.activeElement)) {
+        document.body.classList.remove("quiz-question-writing");
+      }
+    }, 0);
   }
 
   function handleQuizSessionAnswerInput(event) {

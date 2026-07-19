@@ -292,7 +292,7 @@
     const hasRewriteBackup = context.ai?.hasRewriteBackup?.();
     context.elements.knowledgeWorkspace.classList.toggle("is-editing", isEditing);
     if (!isEditing) {
-      document.body.classList.remove("editor-writing");
+      document.body.classList.remove("editor-writing", "quiz-question-writing");
     }
     setActionButtonLabel(
       context.elements.noteModeToggle,
@@ -1081,7 +1081,16 @@
     renderQuizQuestionPreview(note, isDraft);
   }
 
-  function renderQuizQuestionBank() {
+  function renderQuizQuestionBank({ force = false } = {}) {
+    const focusedField = document.activeElement?.closest?.("[data-quiz-question-field]");
+    if (
+      !force &&
+      focusedField &&
+      context.elements.noteQuizQuestionsBody?.contains(focusedField)
+    ) {
+      return;
+    }
+
     const editable = context.state.noteViewMode === "edit" && !context.data.isReadOnlyMode();
     const activeNote = context.notes.getActiveNote();
     const questions =
@@ -1172,6 +1181,10 @@
         input.placeholder = "Question";
         input.value = question.question || "";
         input.disabled = context.data.isReadOnlyMode();
+        input.autocomplete = "off";
+        input.autocapitalize = "sentences";
+        input.inputMode = "text";
+        input.spellcheck = true;
         questionCell.appendChild(input);
       } else {
         questionCell.innerHTML = `<span class="quiz-question-text">${escapeHtml(
@@ -1189,6 +1202,11 @@
         input.placeholder = "Reponse 1, Reponse 2";
         input.value = (question.answers || []).join(", ");
         input.disabled = context.data.isReadOnlyMode();
+        input.autocomplete = "off";
+        input.autocapitalize = "sentences";
+        input.enterKeyHint = "done";
+        input.inputMode = "text";
+        input.spellcheck = true;
         answersCell.appendChild(input);
       } else {
         answersCell.innerHTML = `<span class="quiz-answer-text">${escapeHtml(
