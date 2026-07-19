@@ -63,7 +63,7 @@
       })();
     </script>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=62" />
+    <link rel="stylesheet" href="./styles.css?v=63" />
   </head>
   <body>
     <div class="shell">
@@ -96,6 +96,42 @@
               type="search"
               placeholder="Titre, tag ou contenu"
             />
+
+            <div class="sidebar-folder-shortcut">
+              <button
+                id="sidebar-new-folder-toggle"
+                class="button sidebar-folder-toggle"
+                type="button"
+                aria-expanded="false"
+                aria-controls="sidebar-folder-form"
+              >
+                <span class="sidebar-folder-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" role="presentation">
+                    <path d="M4 7h6l2 2h8v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+                    <path d="M12 12v5M9.5 14.5h5" />
+                  </svg>
+                </span>
+                <span>Nouveau dossier</span>
+              </button>
+              <form id="sidebar-folder-form" class="sidebar-folder-form is-hidden">
+                <label class="field-label" for="sidebar-folder-name">Nom du dossier</label>
+                <input
+                  id="sidebar-folder-name"
+                  class="text-input"
+                  type="text"
+                  maxlength="80"
+                  autocomplete="off"
+                  placeholder="Ex. Voyages"
+                />
+                <p id="sidebar-folder-error" class="sidebar-folder-error is-hidden" aria-live="polite"></p>
+                <div class="sidebar-folder-actions">
+                  <button id="sidebar-folder-cancel" class="button button-ghost" type="button">
+                    Annuler
+                  </button>
+                  <button class="button button-primary" type="submit">Creer</button>
+                </div>
+              </form>
+            </div>
 
             <div id="filters-panel" class="stack-actions is-hidden">
               <label>
@@ -1483,17 +1519,17 @@
       </div>
     </div>
 
-    <script src="./scripts/config.js?v=62"></script>
-    <script src="./scripts/dom.js?v=62"></script>
-    <script src="./scripts/helpers.js?v=62"></script>
-    <script src="./scripts/data.js?v=62"></script>
-    <script src="./scripts/ai.js?v=62"></script>
-    <script src="./scripts/notes.js?v=62"></script>
-    <script src="./scripts/graph.js?v=62"></script>
-    <script src="./scripts/quiz.js?v=62"></script>
-    <script src="./scripts/mascot.js?v=62"></script>
-    <script src="./scripts/renderers.js?v=62"></script>
-    <script src="./scripts/events.js?v=62"></script>
-    <script src="./app.js?v=62"></script>
+    <script src="./scripts/config.js?v=63"></script>
+    <script src="./scripts/dom.js?v=63"></script>
+    <script src="./scripts/helpers.js?v=63"></script>
+    <script src="./scripts/data.js?v=63"></script>
+    <script src="./scripts/ai.js?v=63"></script>
+    <script src="./scripts/notes.js?v=63"></script>
+    <script src="./scripts/graph.js?v=63"></script>
+    <script src="./scripts/quiz.js?v=63"></script>
+    <script src="./scripts/mascot.js?v=63"></script>
+    <script src="./scripts/renderers.js?v=63"></script>
+    <script src="./scripts/events.js?v=63"></script>
+    <script src="./app.js?v=63"></script>
   </body>
 </html>

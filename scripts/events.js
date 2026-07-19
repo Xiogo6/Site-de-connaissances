@@ -105,6 +105,55 @@
     context.elements.tagRenameTarget.focus();
   }
 
+  function setSidebarFolderFormOpen(isOpen) {
+    context.elements.sidebarFolderForm?.classList.toggle("is-hidden", !isOpen);
+    context.elements.sidebarNewFolderToggle?.setAttribute("aria-expanded", String(isOpen));
+    context.elements.sidebarFolderError?.classList.add("is-hidden");
+    if (context.elements.sidebarFolderError) {
+      context.elements.sidebarFolderError.textContent = "";
+    }
+
+    if (isOpen) {
+      window.requestAnimationFrame(() => context.elements.sidebarFolderName?.focus());
+      return;
+    }
+
+    if (context.elements.sidebarFolderName) {
+      context.elements.sidebarFolderName.value = "";
+    }
+  }
+
+  function showSidebarFolderError(message) {
+    if (!context.elements.sidebarFolderError) {
+      return;
+    }
+    context.elements.sidebarFolderError.textContent = message;
+    context.elements.sidebarFolderError.classList.remove("is-hidden");
+  }
+
+  function handleSidebarFolderSubmit(event) {
+    event.preventDefault();
+    const title = context.elements.sidebarFolderName?.value?.trim() || "";
+    if (!title) {
+      showSidebarFolderError("Saisissez un nom de dossier.");
+      context.elements.sidebarFolderName?.focus();
+      return;
+    }
+
+    const result = context.notes.createNamedFolder(title);
+    if (!result.created) {
+      showSidebarFolderError(
+        result.reason === "duplicate"
+          ? "Un dossier porte deja ce nom."
+          : "Impossible de creer ce dossier."
+      );
+      context.elements.sidebarFolderName?.focus();
+      return;
+    }
+
+    setSidebarFolderFormOpen(false);
+  }
+
   function bindEvents() {
     window.addEventListener("beforeunload", handleBeforeUnload);
 
@@ -121,6 +170,26 @@
     });
     context.elements.sidebarDrawerClose.addEventListener("click", closeSidebarDrawer);
     context.elements.sidebarDrawerBackdrop.addEventListener("click", closeSidebarDrawer);
+    context.elements.sidebarNewFolderToggle?.addEventListener("click", () => {
+      const isOpen = context.elements.sidebarNewFolderToggle.getAttribute("aria-expanded") === "true";
+      setSidebarFolderFormOpen(!isOpen);
+    });
+    context.elements.sidebarFolderCancel?.addEventListener("click", () => {
+      setSidebarFolderFormOpen(false);
+      context.elements.sidebarNewFolderToggle?.focus();
+    });
+    context.elements.sidebarFolderForm?.addEventListener("submit", handleSidebarFolderSubmit);
+    context.elements.sidebarFolderName?.addEventListener("input", () => {
+      context.elements.sidebarFolderError?.classList.add("is-hidden");
+    });
+    context.elements.sidebarFolderName?.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+      event.stopPropagation();
+      setSidebarFolderFormOpen(false);
+      context.elements.sidebarNewFolderToggle?.focus();
+    });
     context.elements.themeToggleButton?.addEventListener("click", () => {
       context.state.activeTab = "settings";
       context.state.utilityDrawerOpen = false;
@@ -140,7 +209,7 @@
         }
 
         context.data.saveThemePreference(presetId);
-        context.data.saveNotes({ skipRemote: true });
+        context.data.saveNotes();
         context.renderers.renderEverything();
       });
     });

@@ -143,6 +143,66 @@
   min-height: 0;
 }
 
+.sidebar-folder-shortcut {
+  margin-top: 12px;
+}
+
+.sidebar-folder-toggle {
+  align-items: center;
+  border-color: var(--theme-accent-line, var(--line));
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.sidebar-folder-icon {
+  align-items: center;
+  background: var(--theme-accent-wash, rgba(191, 91, 44, 0.12));
+  border-radius: 10px;
+  color: var(--accent);
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.sidebar-folder-icon svg {
+  fill: none;
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 18px;
+}
+
+.sidebar-folder-form {
+  background: var(--theme-item-background, var(--surface));
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px;
+}
+
+.sidebar-folder-form .field-label {
+  margin-bottom: 0;
+}
+
+.sidebar-folder-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sidebar-folder-error {
+  color: var(--danger, #c45345);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
 .due-list,
 .insight-list,
 .hierarchy-list,

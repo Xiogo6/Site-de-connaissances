@@ -1125,6 +1125,40 @@
     });
   }
 
+  function createNamedFolder(title) {
+    if (context.data.isReadOnlyMode()) {
+      return { created: false, reason: "readonly" };
+    }
+
+    const normalizedTitle = String(title || "").trim();
+    if (!normalizedTitle) {
+      return { created: false, reason: "empty" };
+    }
+
+    const existingFolder = findNoteByTitle(normalizedTitle, {
+      parentId: null,
+      type: "folder",
+    });
+    if (existingFolder) {
+      return { created: false, reason: "duplicate", folder: existingFolder };
+    }
+
+    const folder = createFolderNote(normalizedTitle, null);
+    context.state.notes.unshift(folder);
+    context.state.activeNoteId = folder.id;
+    context.state.activeTab = "knowledge";
+    context.state.noteViewMode = "read";
+    context.state.pendingNewNoteId = null;
+    context.state.previousActiveNoteId = null;
+    context.state.organizationMenuNoteId = null;
+    context.state.explorerMenuNoteId = null;
+    rememberEditedNote(folder.id);
+    context.data.saveNotes();
+    context.data.saveAutomaticSnapshot(`Creation dossier ${folder.title}`);
+    context.renderers.renderEverything();
+    return { created: true, folder };
+  }
+
   function moveActiveNoteToRoot() {
     const active = getActiveNote();
     if (!active || context.data.isReadOnlyMode()) {
@@ -1432,6 +1466,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     closeQuickCapture,
     createEmptyNote,
     createFolderFromOrganization,
+    createNamedFolder,
     deleteNoteById,
     describeReviewState,
     duplicateNoteById,
