@@ -28,7 +28,7 @@
     let syncBannerTimer = null;
     let dailySnapshotTimer = null;
     const dailySnapshotHour = 3;
-    const dailySnapshotRetentionCount = 5;
+    const dailySnapshotRetentionCount = 30;
     const dayInMs = 24 * 60 * 60 * 1000;
 
     function getDefaultRemoteState() {
@@ -172,8 +172,11 @@
 
       let candidate = base;
       let index = 2;
+      const deletedIds = new Set(
+        (context.state.settings?.deletedNotes || []).map((deletion) => deletion.id)
+      );
 
-      while (notes.some((note) => note.id === candidate)) {
+      while (notes.some((note) => note.id === candidate) || deletedIds.has(candidate)) {
         candidate = `${base}-${index}`;
         index += 1;
       }
@@ -424,21 +427,93 @@
 
     function mergeNoteCollectionQuizStats(primaryNotes, fallbackNotes) {
       const fallbackById = new Map(fallbackNotes.map((note) => [note.id, note]));
+      const primaryIds = new Set(primaryNotes.map((note) => note.id));
 
-      return primaryNotes.map((note) => {
+      const mergedNotes = primaryNotes.map((note) => {
         const fallbackNote = fallbackById.get(note.id);
         if (!fallbackNote) {
           return note;
         }
 
+        const primaryTimestamp = Date.parse(note.updatedAt || note.createdAt || "") || 0;
+        const fallbackTimestamp =
+          Date.parse(fallbackNote.updatedAt || fallbackNote.createdAt || "") || 0;
+        const newestNote = fallbackTimestamp > primaryTimestamp ? fallbackNote : note;
+        const olderNote = newestNote === note ? fallbackNote : note;
+
         return {
-          ...note,
+          ...newestNote,
           quizQuestions: mergeQuizQuestionCollectionStats(
-            note.quizQuestions,
-            fallbackNote.quizQuestions,
-            note.id
+            newestNote.quizQuestions,
+            olderNote.quizQuestions,
+            newestNote.id
           ),
         };
+      });
+
+      fallbackNotes.forEach((note) => {
+        if (!primaryIds.has(note.id)) {
+          mergedNotes.push(note);
+        }
+      });
+
+      return mergedNotes;
+    }
+
+    function mergeSnapshotCollections(primarySnapshots, fallbackSnapshots) {
+      const snapshotsById = new Map();
+      [...fallbackSnapshots, ...primarySnapshots].forEach((snapshot) => {
+        const existing = snapshotsById.get(snapshot.id);
+        const existingTimestamp = Date.parse(existing?.createdAt || "") || 0;
+        const snapshotTimestamp = Date.parse(snapshot.createdAt || "") || 0;
+        if (!existing || snapshotTimestamp >= existingTimestamp) {
+          snapshotsById.set(snapshot.id, snapshot);
+        }
+      });
+      return normalizeSnapshotCollection([...snapshotsById.values()]);
+    }
+
+    function normalizeDeletedNotes(rawDeletedNotes = []) {
+      const deletionsById = new Map();
+      (Array.isArray(rawDeletedNotes) ? rawDeletedNotes : []).forEach((deletion) => {
+        const id = typeof deletion === "string" ? deletion.trim() : deletion?.id?.trim();
+        if (!id) {
+          return;
+        }
+        const deletedAt =
+          typeof deletion?.deletedAt === "string"
+            ? deletion.deletedAt
+            : new Date().toISOString();
+        const existing = deletionsById.get(id);
+        if (
+          !existing ||
+          (Date.parse(deletedAt) || 0) > (Date.parse(existing.deletedAt) || 0)
+        ) {
+          deletionsById.set(id, { id, deletedAt });
+        }
+      });
+      return [...deletionsById.values()];
+    }
+
+    function mergeDeletedNotes(primaryDeletedNotes, fallbackDeletedNotes) {
+      return normalizeDeletedNotes([
+        ...normalizeDeletedNotes(fallbackDeletedNotes),
+        ...normalizeDeletedNotes(primaryDeletedNotes),
+      ]);
+    }
+
+    function filterDeletedNotes(notes, deletedNotes) {
+      const deletionsById = new Map(
+        normalizeDeletedNotes(deletedNotes).map((deletion) => [deletion.id, deletion])
+      );
+      return notes.filter((note) => {
+        const deletion = deletionsById.get(note.id);
+        if (!deletion) {
+          return true;
+        }
+        const noteTimestamp = Date.parse(note.updatedAt || note.createdAt || "") || 0;
+        const deletionTimestamp = Date.parse(deletion.deletedAt || "") || 0;
+        return noteTimestamp > deletionTimestamp;
       });
     }
 
@@ -555,6 +630,7 @@
         typeLabels: {},
         customNoteTypes: [],
         deletedNoteTypes: [],
+        deletedNotes: [],
         templates: {},
         collapsedFolders: [],
         lastEditedNoteId: null,
@@ -717,6 +793,10 @@
 
       return applyStoredThemePreference({
         ...primarySettings,
+        deletedNotes: mergeDeletedNotes(
+          primarySettings?.deletedNotes,
+          fallbackSettings?.deletedNotes
+        ),
         quizPlayerStats: normalizeQuizPlayerStats({
           sessions: [...sessionsById.values()],
         }),
@@ -789,6 +869,7 @@
         deletedNoteTypes: Array.isArray(rawSettings?.deletedNoteTypes)
           ? rawSettings.deletedNoteTypes.filter((value) => typeof value === "string")
           : [],
+        deletedNotes: normalizeDeletedNotes(rawSettings?.deletedNotes),
         templates: normalizeTemplates(rawSettings?.templates),
         collapsedFolders: Array.isArray(rawSettings?.collapsedFolders)
           ? rawSettings.collapsedFolders.filter((value) => typeof value === "string")
@@ -839,6 +920,7 @@
           typeLabels: context.state.settings.typeLabels || {},
           customNoteTypes: context.state.settings.customNoteTypes || [],
           deletedNoteTypes: context.state.settings.deletedNoteTypes || [],
+          deletedNotes: normalizeDeletedNotes(context.state.settings.deletedNotes),
           templates: context.state.settings.templates || {},
           collapsedFolders: context.state.settings.collapsedFolders || [],
           lastEditedNoteId: context.state.settings.lastEditedNoteId || null,
@@ -863,6 +945,7 @@
             nextReviewAt: note.review?.nextReviewAt || null,
           },
         })),
+        deletedNotes: normalizeDeletedNotes(context.state.settings.deletedNotes),
       };
 
       if (includeSnapshots) {
@@ -1063,40 +1146,67 @@
         const remoteNotes = normalizeNoteCollection(payload?.notes || []);
         const remoteSnapshots = normalizeSnapshotCollection(payload?.snapshots || []);
         const remoteSettings = normalizeSettings(payload?.settings || {});
+        let remoteDeletedNotes = [];
+        try {
+          remoteDeletedNotes = normalizeDeletedNotes(await callRemoteRpc("get_note_deletions"));
+        } catch (error) {
+          // The deletion log is unavailable until the safety migration is deployed.
+        }
+        remoteSettings.deletedNotes = remoteDeletedNotes;
         const hasRemoteData =
           remoteNotes.length > 0 ||
           remoteSnapshots.length > 0 ||
+          remoteDeletedNotes.length > 0 ||
           Boolean(remoteSettings.publishedUrl) ||
           Boolean(remoteSettings.lastPublishAt);
 
         if (hasRemoteData) {
           const localNotes = context.state.notes;
           const localSettings = context.state.settings;
-          const localLatest = getLatestNoteTimestamp(context.state.notes);
-          const remoteLatest = getLatestNoteTimestamp(remoteNotes);
-          if (localLatest > remoteLatest + 1000) {
-            context.state.notes = mergeNoteCollectionQuizStats(localNotes, remoteNotes);
-            context.state.settings = mergeSettingsQuizHistory(localSettings, remoteSettings);
-            saveNotes({ skipRemote: true });
-            setRemoteState({
-              status: "syncing",
-              lastError: "",
-            });
-            queueRemoteSync({ includeSnapshots: true });
-            return true;
-          }
-
-          context.state.notes = mergeNoteCollectionQuizStats(remoteNotes, localNotes);
           context.state.settings = mergeSettingsQuizHistory(remoteSettings, localSettings);
-          context.state.snapshots = remoteSnapshots;
+          context.state.notes = filterDeletedNotes(
+            mergeNoteCollectionQuizStats(remoteNotes, localNotes),
+            context.state.settings.deletedNotes
+          );
+          context.state.snapshots = mergeSnapshotCollections(
+            remoteSnapshots,
+            context.state.snapshots
+          );
+
+          const remoteNotesById = new Map(remoteNotes.map((note) => [note.id, note]));
+          const hasLocalNotesToUpload = context.state.notes.some((note) => {
+            const remoteNote = remoteNotesById.get(note.id);
+            return !remoteNote || JSON.stringify(note) !== JSON.stringify(remoteNote);
+          });
+          const remoteSnapshotIds = new Set(remoteSnapshots.map((snapshot) => snapshot.id));
+          const hasLocalSnapshotsToUpload = context.state.snapshots.some(
+            (snapshot) => !remoteSnapshotIds.has(snapshot.id)
+          );
+          const hasLocalDeletionsToUpload = normalizeDeletedNotes(
+            localSettings.deletedNotes
+          ).some(
+            (deletion) =>
+              !remoteDeletedNotes.some(
+                (remoteDeletion) =>
+                  remoteDeletion.id === deletion.id &&
+                  (Date.parse(remoteDeletion.deletedAt) || 0) >=
+                    (Date.parse(deletion.deletedAt) || 0)
+              )
+          );
+
           saveNotes({ skipRemote: true });
-          const prunedRemoteSnapshots = saveSnapshots({ skipRemote: true });
+          const prunedSnapshots = saveSnapshots({ skipRemote: true });
           setRemoteState({
             status: "synced",
             lastSyncedAt: new Date().toISOString(),
             lastError: "",
           });
-          if (prunedRemoteSnapshots) {
+          if (
+            hasLocalNotesToUpload ||
+            hasLocalSnapshotsToUpload ||
+            hasLocalDeletionsToUpload ||
+            prunedSnapshots
+          ) {
             queueRemoteSync({ includeSnapshots: true });
           }
           return true;
@@ -1139,6 +1249,11 @@
         .catch(() => {})
         .then(async () => {
           try {
+            if (payload.deletedNotes.length > 0) {
+              await callRemoteRpc("register_note_deletions", {
+                deletions: payload.deletedNotes,
+              });
+            }
             await callRemoteRpc("sync_app_payload", { payload });
             setRemoteState({
               status: "synced",
@@ -1278,12 +1393,14 @@
         return;
       }
 
-      ensureDailySnapshot("Snapshot manuel");
+      createSnapshot("Snapshot manuel");
       context.renderers?.renderPublishCenter();
     }
 
     function saveAutomaticSnapshot(label) {
-      ensureDailySnapshot(label || "Snapshot quotidien");
+      if (!isReadOnlyMode()) {
+        createSnapshot(label || "Snapshot automatique");
+      }
     }
 
     function createSnapshot(label, date = new Date()) {
