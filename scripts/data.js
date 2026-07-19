@@ -32,6 +32,38 @@
     const localActionSnapshotRetentionCount = 15;
     const dayInMs = 24 * 60 * 60 * 1000;
     const pendingRemoteSyncStorageKey = `${appStorageKey}-pending-remote-sync`;
+    const remoteIntegrityStorageKey = `${appStorageKey}-remote-integrity`;
+    const editorDraftStorageKey = `${appStorageKey}-editor-drafts`;
+
+    function writeLocalStorage(key, value, options = {}) {
+      try {
+        window.localStorage.setItem(key, value);
+        return true;
+      } catch (error) {
+        if (!options.protectKnowledge || key === snapshotStorageKey) {
+          return false;
+        }
+
+        // Knowledge and pending writes take priority over the local snapshot cache.
+        // The snapshots remain available in Supabase and are reloaded on startup.
+        try {
+          window.localStorage.removeItem(snapshotStorageKey);
+          window.localStorage.setItem(key, value);
+          return true;
+        } catch (retryError) {
+          return false;
+        }
+      }
+    }
+
+    function readStoredJson(key, fallback = null) {
+      try {
+        const raw = window.localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (error) {
+        return fallback;
+      }
+    }
 
     function getDefaultRemoteState() {
       return {
@@ -117,12 +149,7 @@
     }
 
     function readPendingRemoteSync() {
-      try {
-        const raw = window.localStorage.getItem(pendingRemoteSyncStorageKey);
-        return raw ? JSON.parse(raw) : null;
-      } catch (error) {
-        return null;
-      }
+      return readStoredJson(pendingRemoteSyncStorageKey);
     }
 
     function writePendingRemoteSync(payload) {
@@ -130,7 +157,11 @@
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         payload,
       };
-      window.localStorage.setItem(pendingRemoteSyncStorageKey, JSON.stringify(envelope));
+      envelope.persisted = writeLocalStorage(
+        pendingRemoteSyncStorageKey,
+        JSON.stringify(envelope),
+        { protectKnowledge: true }
+      );
       return envelope;
     }
 
@@ -162,6 +193,95 @@
       await sendRemotePayload(pending.payload);
       clearPendingRemoteSync(pending.id);
       return true;
+    }
+
+    function loadEditorDraft(noteId, noteUpdatedAt = null) {
+      if (!noteId) {
+        return null;
+      }
+
+      const drafts = readStoredJson(editorDraftStorageKey, {});
+      const draft = drafts && typeof drafts === "object" ? drafts[noteId] : null;
+      if (!draft || typeof draft !== "object") {
+        return null;
+      }
+
+      const draftTimestamp = Date.parse(draft.updatedAt || "") || 0;
+      const noteTimestamp = Date.parse(noteUpdatedAt || "") || 0;
+      return draftTimestamp > noteTimestamp ? draft : null;
+    }
+
+    function saveEditorDraft(noteId, draft) {
+      if (!noteId || !draft || typeof draft !== "object") {
+        return false;
+      }
+
+      const drafts = readStoredJson(editorDraftStorageKey, {});
+      const safeDrafts = drafts && typeof drafts === "object" ? drafts : {};
+      safeDrafts[noteId] = {
+        ...draft,
+        updatedAt: new Date().toISOString(),
+      };
+      return writeLocalStorage(editorDraftStorageKey, JSON.stringify(safeDrafts), {
+        protectKnowledge: true,
+      });
+    }
+
+    function clearEditorDraft(noteId) {
+      if (!noteId) {
+        return;
+      }
+
+      const drafts = readStoredJson(editorDraftStorageKey, {});
+      if (!drafts || typeof drafts !== "object" || !drafts[noteId]) {
+        return;
+      }
+
+      delete drafts[noteId];
+      if (Object.keys(drafts).length) {
+        writeLocalStorage(editorDraftStorageKey, JSON.stringify(drafts), {
+          protectKnowledge: true,
+        });
+      } else {
+        window.localStorage.removeItem(editorDraftStorageKey);
+      }
+    }
+
+    function validateRemotePayload(payload, remoteNotes, remoteDeletedNotes) {
+      const declaredCount = Number(payload?.noteCount);
+      if (Number.isFinite(declaredCount) && declaredCount !== remoteNotes.length) {
+        throw new Error(
+          `Chargement bloque: Supabase annonce ${declaredCount} pages mais en a transmis ${remoteNotes.length}`
+        );
+      }
+
+      const previousIntegrity = readStoredJson(remoteIntegrityStorageKey, null);
+      const previousIds = Array.isArray(previousIntegrity?.noteIds)
+        ? previousIntegrity.noteIds
+        : [];
+      const currentIds = new Set(remoteNotes.map((note) => note.id));
+      const deletedIds = new Set(remoteDeletedNotes.map((deletion) => deletion.id));
+      const unexplainedMissingIds = previousIds.filter(
+        (noteId) => !currentIds.has(noteId) && !deletedIds.has(noteId)
+      );
+
+      if (unexplainedMissingIds.length) {
+        throw new Error(
+          `Chargement bloque: ${unexplainedMissingIds.length} page(s) ont disparu sans suppression enregistree`
+        );
+      }
+    }
+
+    function rememberRemoteIntegrity(remoteNotes, payload) {
+      writeLocalStorage(
+        remoteIntegrityStorageKey,
+        JSON.stringify({
+          noteIds: remoteNotes.map((note) => note.id),
+          noteCount: remoteNotes.length,
+          generatedAt: payload?.generatedAt || new Date().toISOString(),
+        }),
+        { protectKnowledge: true }
+      );
     }
 
     function getRemoteStatusLabel() {
@@ -902,7 +1022,10 @@
           tags: [...note.tags],
           content: note.content,
           quizQuestions: normalizeQuizQuestionCollection(note.quizQuestions, note.id),
-          metadata: normalizeMetadata(note.metadata),
+          metadata: {
+            ...normalizeMetadata(note.metadata),
+            _atlasType: note.type,
+          },
           createdAt: note.createdAt,
           updatedAt: note.updatedAt,
           review: {
@@ -935,18 +1058,32 @@
         settings: context.state.settings,
         notes: context.state.notes,
       };
-      window.localStorage.setItem(appStorageKey, JSON.stringify(payload));
-      window.localStorage.setItem(storageKey, JSON.stringify(context.state.notes));
+      const appSaved = writeLocalStorage(appStorageKey, JSON.stringify(payload), {
+        protectKnowledge: true,
+      });
+      const notesSaved = writeLocalStorage(storageKey, JSON.stringify(context.state.notes), {
+        protectKnowledge: true,
+      });
 
       if (!skipRemote) {
         queueRemoteSync({ includeSnapshots: false });
       }
+
+      if (!appSaved || !notesSaved) {
+        setRemoteState({
+          status: isRemoteConfigured() ? context.state.remote.status : "error",
+          lastError: "Le stockage local est plein. La sauvegarde Supabase reste prioritaire.",
+        });
+        context.renderers?.renderWorkspaceBanner();
+      }
+
+      return appSaved && notesSaved;
     }
 
     function saveSnapshots(options = {}) {
       const { skipRemote = false } = options;
       const didPrune = pruneExpiredSnapshots();
-      window.localStorage.setItem(snapshotStorageKey, JSON.stringify(context.state.snapshots));
+      writeLocalStorage(snapshotStorageKey, JSON.stringify(context.state.snapshots));
 
       if (!skipRemote) {
         queueRemoteSync({ includeSnapshots: true });
@@ -1121,6 +1258,7 @@
         } catch (error) {
           // The deletion log is unavailable until the safety migration is deployed.
         }
+        validateRemotePayload(payload, remoteNotes, remoteDeletedNotes);
         remoteSettings.deletedNotes = remoteDeletedNotes;
         const hasRemoteData =
           remoteNotes.length > 0 ||
@@ -1149,6 +1287,7 @@
 
           saveNotes({ skipRemote: true });
           saveSnapshots({ skipRemote: true });
+          rememberRemoteIntegrity(context.state.notes, payload);
           setRemoteState({
             status: "synced",
             lastSyncedAt: new Date().toISOString(),
@@ -1199,7 +1338,9 @@
         .then(async () => {
           try {
             await sendRemotePayload(payload);
-            clearPendingRemoteSync(pendingEnvelope.id);
+            if (pendingEnvelope.persisted) {
+              clearPendingRemoteSync(pendingEnvelope.id);
+            }
             setRemoteState({
               status: "synced",
               lastSyncedAt: new Date().toISOString(),
@@ -1403,7 +1544,7 @@
       restoreSnapshotById(context.state.snapshots[0].id);
     }
 
-    function restoreSnapshotById(snapshotId) {
+    async function restoreSnapshotById(snapshotId) {
       if (isReadOnlyMode()) {
         return;
       }
@@ -1413,10 +1554,43 @@
         return;
       }
 
-      context.state.notes = normalizeNoteCollection(snapshot.notes);
-      context.state.activeNoteId = context.state.notes[0]?.id ?? null;
-      saveNotes();
-      context.renderers?.renderEverything();
+      const snapshotNotes = normalizeNoteCollection(snapshot.notes);
+      const currentIds = new Set(context.state.notes.map((note) => note.id));
+      const missingNotes = snapshotNotes.filter((note) => !currentIds.has(note.id));
+      if (!missingNotes.length) {
+        return;
+      }
+
+      saveAutomaticSnapshot(`Avant restauration ${snapshot.label}`);
+
+      try {
+        if (isRemoteConfigured()) {
+          await remoteSyncQueue.catch(() => {});
+          await callRemoteRpc("restore_deleted_notes", {
+            restoration_ids: missingNotes.map((note) => note.id),
+          });
+        }
+
+        const restoredAt = Date.now();
+        const restoredNotes = missingNotes.map((note, index) => ({
+          ...note,
+          updatedAt: new Date(restoredAt + index).toISOString(),
+        }));
+        const restoredIds = new Set(restoredNotes.map((note) => note.id));
+        context.state.settings.deletedNotes = normalizeDeletedNotes(
+          context.state.settings.deletedNotes
+        ).filter((deletion) => !restoredIds.has(deletion.id));
+        context.state.notes = [...restoredNotes, ...context.state.notes];
+        context.state.activeNoteId = restoredNotes[0]?.id ?? context.state.activeNoteId;
+        saveNotes();
+        context.renderers?.renderEverything();
+      } catch (error) {
+        setRemoteState({
+          status: "error",
+          lastError: error.message || "Restauration impossible",
+        });
+        context.renderers?.renderWorkspaceBanner();
+      }
     }
 
     function updateReviewState(noteId, isCorrect) {
@@ -1498,6 +1672,7 @@
       isReadOnlyMode,
       isRemoteConfigured,
       loadNotes,
+      loadEditorDraft,
       loadPublishedNotesIfNeeded,
       loadSettings,
       loadSnapshots,
@@ -1515,11 +1690,13 @@
       registerServiceWorker,
       restoreLatestSnapshot,
       restoreSnapshotById,
+      saveEditorDraft,
       saveAutomaticSnapshot,
       saveManualSnapshot,
       saveNotes,
       saveSnapshots,
       saveThemePreference,
+      clearEditorDraft,
       setRemoteState,
       updateReviewState,
     };

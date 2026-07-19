@@ -802,30 +802,43 @@
     }
 
     const metadata = note.metadata || {};
-    context.elements.titleInput.value = note.title;
-    context.elements.typeInput.value = note.type;
-    context.elements.tagsInput.value = note.tags.join(", ");
-    context.elements.parentInput.value = note.parentId || "";
-    context.elements.favoriteInput.checked = Boolean(note.favorite);
-    context.elements.noteHasDate.value = metadata.hasDate ? "true" : "false";
-    context.elements.noteDateMode.value =
+    const draft = context.data.loadEditorDraft(note.id, note.updatedAt);
+    context.elements.titleInput.value = draft?.title ?? note.title;
+    context.elements.typeInput.value = draft?.type ?? note.type;
+    context.elements.tagsInput.value = draft?.tags ?? note.tags.join(", ");
+    context.elements.parentInput.value = draft?.parentId ?? note.parentId ?? "";
+    context.elements.favoriteInput.checked = draft?.favorite ?? Boolean(note.favorite);
+    context.elements.noteHasDate.value = draft
+      ? draft.noteDateMode !== "none"
+        ? "true"
+        : "false"
+      : metadata.hasDate
+      ? "true"
+      : "false";
+    context.elements.noteDateMode.value = draft?.noteDateMode ?? (
       !metadata.hasDate
         ? "none"
         : ["reference", "life", "range"].includes(metadata.dateMode)
         ? metadata.dateMode
-        : "reference";
-    context.elements.noteDateSingle.value = metadata.singleDate ? formatFlexibleDate(metadata.singleDate) : "";
-    context.elements.noteDateStart.value = metadata.startDate ? formatFlexibleDate(metadata.startDate) : "";
-    context.elements.noteDateEnd.value = metadata.endDate ? formatFlexibleDate(metadata.endDate) : "";
-    context.elements.contentInput.value = note.content;
+        : "reference"
+    );
+    context.elements.noteDateSingle.value =
+      draft?.noteDateSingle ?? (metadata.singleDate ? formatFlexibleDate(metadata.singleDate) : "");
+    context.elements.noteDateStart.value =
+      draft?.noteDateStart ?? (metadata.startDate ? formatFlexibleDate(metadata.startDate) : "");
+    context.elements.noteDateEnd.value =
+      draft?.noteDateEnd ?? (metadata.endDate ? formatFlexibleDate(metadata.endDate) : "");
+    context.elements.contentInput.value = draft?.content ?? note.content;
     if (context.state.editorQuizQuestionsNoteId !== note.id) {
-      context.state.editorQuizQuestions = structuredClone(note.quizQuestions || []);
+      context.state.editorQuizQuestions = structuredClone(
+        draft?.quizQuestions || note.quizQuestions || []
+      );
       context.state.editorQuizQuestionsNoteId = note.id;
     }
 
     const templateContent = context.data.buildTemplateContent(note.type, note.title || "Sans titre");
     context.state.editorTemplateSeed =
-      note.content.trim() === templateContent.trim()
+      !draft && note.content.trim() === templateContent.trim()
         ? {
             type: note.type,
             title: note.title || "Sans titre",
