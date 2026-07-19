@@ -195,7 +195,7 @@
       return true;
     }
 
-    function loadEditorDraft(noteId, noteUpdatedAt = null) {
+    function loadEditorDraft(noteId) {
       if (!noteId) {
         return null;
       }
@@ -206,9 +206,9 @@
         return null;
       }
 
-      const draftTimestamp = Date.parse(draft.updatedAt || "") || 0;
-      const noteTimestamp = Date.parse(noteUpdatedAt || "") || 0;
-      return draftTimestamp > noteTimestamp ? draft : null;
+      // An explicit save or cancel clears the draft. Server timestamps must not
+      // discard unsaved text because older clients could advance them artificially.
+      return draft;
     }
 
     function saveEditorDraft(noteId, draft) {
@@ -994,7 +994,7 @@
       }
     }
 
-    function createRemotePayload({ includeSnapshots = false } = {}) {
+    function createRemotePayload({ includeSnapshots = false, changedNoteIds = [] } = {}) {
       const payload = {
         settings: {
           siteName: document.title || "Atlas de Connaissance",
@@ -1035,6 +1035,7 @@
           },
         })),
         deletedNotes: normalizeDeletedNotes(context.state.settings.deletedNotes),
+        changedNoteIds: [...new Set(changedNoteIds.filter(Boolean))],
       };
 
       if (includeSnapshots) {
@@ -1051,7 +1052,7 @@
     }
 
     function saveNotes(options = {}) {
-      const { skipRemote = false } = options;
+      const { skipRemote = false, changedNoteIds = [] } = options;
       const payload = {
         version: dataVersion,
         updatedAt: new Date().toISOString(),
@@ -1066,7 +1067,7 @@
       });
 
       if (!skipRemote) {
-        queueRemoteSync({ includeSnapshots: false });
+        queueRemoteSync({ includeSnapshots: false, changedNoteIds });
       }
 
       if (!appSaved || !notesSaved) {
@@ -1313,12 +1314,12 @@
       }
     }
 
-    function queueRemoteSync({ includeSnapshots = false } = {}) {
+    function queueRemoteSync({ includeSnapshots = false, changedNoteIds = [] } = {}) {
       if (isReadOnlyMode() || !isRemoteConfigured()) {
         return remoteSyncQueue;
       }
 
-      const payload = createRemotePayload({ includeSnapshots });
+      const payload = createRemotePayload({ includeSnapshots, changedNoteIds });
       if (!Array.isArray(payload.notes) || payload.notes.length === 0) {
         setRemoteState({
           status: "error",
