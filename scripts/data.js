@@ -28,7 +28,8 @@
     let syncBannerTimer = null;
     let dailySnapshotTimer = null;
     const dailySnapshotHour = 3;
-    const dailySnapshotRetentionCount = 30;
+    const localDailySnapshotRetentionCount = 15;
+    const localActionSnapshotRetentionCount = 15;
     const dayInMs = 24 * 60 * 60 * 1000;
     const pendingRemoteSyncStorageKey = `${appStorageKey}-pending-remote-sync`;
 
@@ -562,10 +563,19 @@
 
     function pruneExpiredSnapshots() {
       const previousLength = context.state.snapshots.length;
-      context.state.snapshots = normalizeSnapshotCollection(context.state.snapshots).slice(
-        0,
-        dailySnapshotRetentionCount
-      );
+      const normalizedSnapshots = normalizeSnapshotCollection(context.state.snapshots);
+      const isDailySnapshot = (snapshot) =>
+        snapshot.id.startsWith("daily-") || snapshot.label === "Snapshot quotidien";
+      const dailySnapshots = normalizedSnapshots
+        .filter(isDailySnapshot)
+        .slice(0, localDailySnapshotRetentionCount);
+      const actionSnapshots = normalizedSnapshots
+        .filter((snapshot) => !isDailySnapshot(snapshot))
+        .slice(0, localActionSnapshotRetentionCount);
+      context.state.snapshots = normalizeSnapshotCollection([
+        ...dailySnapshots,
+        ...actionSnapshots,
+      ]);
       return context.state.snapshots.length !== previousLength;
     }
 
