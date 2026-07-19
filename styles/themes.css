@@ -1259,7 +1259,6 @@ body[data-theme-preset].quiz-view-active .quiz-answer-cell {
 }
 
 body[data-theme-preset].quiz-view-active .quiz-answer-cell {
-  cursor: text;
   isolation: isolate;
   position: relative;
   z-index: 2;
