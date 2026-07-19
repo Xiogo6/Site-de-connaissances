@@ -30,6 +30,7 @@
     const dailySnapshotHour = 3;
     const dailySnapshotRetentionCount = 30;
     const dayInMs = 24 * 60 * 60 * 1000;
+    const pendingRemoteSyncStorageKey = `${appStorageKey}-pending-remote-sync`;
 
     function getDefaultRemoteState() {
       return {
@@ -112,6 +113,54 @@
 
       const text = await response.text();
       return text ? JSON.parse(text) : null;
+    }
+
+    function readPendingRemoteSync() {
+      try {
+        const raw = window.localStorage.getItem(pendingRemoteSyncStorageKey);
+        return raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function writePendingRemoteSync(payload) {
+      const envelope = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        payload,
+      };
+      window.localStorage.setItem(pendingRemoteSyncStorageKey, JSON.stringify(envelope));
+      return envelope;
+    }
+
+    function clearPendingRemoteSync(envelopeId) {
+      const pending = readPendingRemoteSync();
+      if (pending?.id === envelopeId) {
+        window.localStorage.removeItem(pendingRemoteSyncStorageKey);
+      }
+    }
+
+    async function sendRemotePayload(payload) {
+      await callRemoteRpc("sync_client_settings", {
+        settings_payload: payload.settings,
+      });
+      if (payload.deletedNotes.length > 0) {
+        await callRemoteRpc("register_note_deletions", {
+          deletions: payload.deletedNotes,
+        });
+      }
+      await callRemoteRpc("sync_app_payload", { payload });
+    }
+
+    async function flushPendingRemoteSync() {
+      const pending = readPendingRemoteSync();
+      if (!pending?.id || !pending?.payload) {
+        return false;
+      }
+
+      await sendRemotePayload(pending.payload);
+      clearPendingRemoteSync(pending.id);
+      return true;
     }
 
     function getRemoteStatusLabel() {
@@ -425,54 +474,6 @@
       return normalized;
     }
 
-    function mergeNoteCollectionQuizStats(primaryNotes, fallbackNotes) {
-      const fallbackById = new Map(fallbackNotes.map((note) => [note.id, note]));
-      const primaryIds = new Set(primaryNotes.map((note) => note.id));
-
-      const mergedNotes = primaryNotes.map((note) => {
-        const fallbackNote = fallbackById.get(note.id);
-        if (!fallbackNote) {
-          return note;
-        }
-
-        const primaryTimestamp = Date.parse(note.updatedAt || note.createdAt || "") || 0;
-        const fallbackTimestamp =
-          Date.parse(fallbackNote.updatedAt || fallbackNote.createdAt || "") || 0;
-        const newestNote = fallbackTimestamp > primaryTimestamp ? fallbackNote : note;
-        const olderNote = newestNote === note ? fallbackNote : note;
-
-        return {
-          ...newestNote,
-          quizQuestions: mergeQuizQuestionCollectionStats(
-            newestNote.quizQuestions,
-            olderNote.quizQuestions,
-            newestNote.id
-          ),
-        };
-      });
-
-      fallbackNotes.forEach((note) => {
-        if (!primaryIds.has(note.id)) {
-          mergedNotes.push(note);
-        }
-      });
-
-      return mergedNotes;
-    }
-
-    function mergeSnapshotCollections(primarySnapshots, fallbackSnapshots) {
-      const snapshotsById = new Map();
-      [...fallbackSnapshots, ...primarySnapshots].forEach((snapshot) => {
-        const existing = snapshotsById.get(snapshot.id);
-        const existingTimestamp = Date.parse(existing?.createdAt || "") || 0;
-        const snapshotTimestamp = Date.parse(snapshot.createdAt || "") || 0;
-        if (!existing || snapshotTimestamp >= existingTimestamp) {
-          snapshotsById.set(snapshot.id, snapshot);
-        }
-      });
-      return normalizeSnapshotCollection([...snapshotsById.values()]);
-    }
-
     function normalizeDeletedNotes(rawDeletedNotes = []) {
       const deletionsById = new Map();
       (Array.isArray(rawDeletedNotes) ? rawDeletedNotes : []).forEach((deletion) => {
@@ -493,13 +494,6 @@
         }
       });
       return [...deletionsById.values()];
-    }
-
-    function mergeDeletedNotes(primaryDeletedNotes, fallbackDeletedNotes) {
-      return normalizeDeletedNotes([
-        ...normalizeDeletedNotes(fallbackDeletedNotes),
-        ...normalizeDeletedNotes(primaryDeletedNotes),
-      ]);
     }
 
     function filterDeletedNotes(notes, deletedNotes) {
@@ -585,13 +579,6 @@
       });
     }
 
-    function getLatestNoteTimestamp(notes = []) {
-      return notes.reduce((latest, note) => {
-        const updatedAt = Date.parse(note.updatedAt || note.createdAt || "");
-        return Number.isNaN(updatedAt) ? latest : Math.max(latest, updatedAt);
-      }, 0);
-    }
-
     function hasStoredWorkspaceData() {
       return Boolean(
         window.localStorage.getItem(appStorageKey) || window.localStorage.getItem(storageKey)
@@ -631,6 +618,7 @@
         customNoteTypes: [],
         deletedNoteTypes: [],
         deletedNotes: [],
+        settingsAuthorityVersion: 1,
         templates: {},
         collapsedFolders: [],
         lastEditedNoteId: null,
@@ -768,41 +756,6 @@
       };
     }
 
-    function mergeSettingsQuizHistory(primarySettings, fallbackSettings) {
-      const sessionsById = new Map();
-      const fallbackSessions = fallbackSettings?.quizPlayerStats?.sessions || [];
-      const primarySessions = primarySettings?.quizPlayerStats?.sessions || [];
-
-      [...fallbackSessions, ...primarySessions].forEach((session) => {
-        if (typeof session?.id === "string" && session.id.trim()) {
-          const existing = sessionsById.get(session.id);
-          const existingTimestamp = Date.parse(
-            existing?.updatedAt || existing?.finishedAt || ""
-          );
-          const sessionTimestamp = Date.parse(session.updatedAt || session.finishedAt || "");
-
-          if (
-            !existing ||
-            Number.isNaN(existingTimestamp) ||
-            (!Number.isNaN(sessionTimestamp) && sessionTimestamp >= existingTimestamp)
-          ) {
-            sessionsById.set(session.id, session);
-          }
-        }
-      });
-
-      return applyStoredThemePreference({
-        ...primarySettings,
-        deletedNotes: mergeDeletedNotes(
-          primarySettings?.deletedNotes,
-          fallbackSettings?.deletedNotes
-        ),
-        quizPlayerStats: normalizeQuizPlayerStats({
-          sessions: [...sessionsById.values()],
-        }),
-      });
-    }
-
     function normalizeTemplates(rawTemplates) {
       const templates = { ...noteTemplates };
 
@@ -870,6 +823,8 @@
           ? rawSettings.deletedNoteTypes.filter((value) => typeof value === "string")
           : [],
         deletedNotes: normalizeDeletedNotes(rawSettings?.deletedNotes),
+        settingsAuthorityVersion:
+          Number(rawSettings?.settingsAuthorityVersion) >= 1 ? 1 : 0,
         templates: normalizeTemplates(rawSettings?.templates),
         collapsedFolders: Array.isArray(rawSettings?.collapsedFolders)
           ? rawSettings.collapsedFolders.filter((value) => typeof value === "string")
@@ -921,6 +876,7 @@
           customNoteTypes: context.state.settings.customNoteTypes || [],
           deletedNoteTypes: context.state.settings.deletedNoteTypes || [],
           deletedNotes: normalizeDeletedNotes(context.state.settings.deletedNotes),
+          settingsAuthorityVersion: 1,
           templates: context.state.settings.templates || {},
           collapsedFolders: context.state.settings.collapsedFolders || [],
           lastEditedNoteId: context.state.settings.lastEditedNoteId || null,
@@ -1142,10 +1098,13 @@
       setRemoteState({ status: "loading", lastError: "" });
 
       try {
+        await flushPendingRemoteSync();
         const payload = await callRemoteRpc("get_app_payload");
         const remoteNotes = normalizeNoteCollection(payload?.notes || []);
         const remoteSnapshots = normalizeSnapshotCollection(payload?.snapshots || []);
         const remoteSettings = normalizeSettings(payload?.settings || {});
+        const hasAuthoritativeRemoteSettings =
+          Number(payload?.settings?.settingsAuthorityVersion) >= 1;
         let remoteDeletedNotes = [];
         try {
           remoteDeletedNotes = normalizeDeletedNotes(await callRemoteRpc("get_note_deletions"));
@@ -1161,53 +1120,32 @@
           Boolean(remoteSettings.lastPublishAt);
 
         if (hasRemoteData) {
-          const localNotes = context.state.notes;
           const localSettings = context.state.settings;
-          context.state.settings = mergeSettingsQuizHistory(remoteSettings, localSettings);
+          context.state.settings = hasAuthoritativeRemoteSettings
+            ? remoteSettings
+            : normalizeSettings({
+                ...localSettings,
+                publishedUrl: remoteSettings.publishedUrl,
+                lastPublishAt: remoteSettings.lastPublishAt,
+                settingsAuthorityVersion: 1,
+              });
+          context.state.settings.deletedNotes = remoteDeletedNotes;
           context.state.notes = filterDeletedNotes(
-            mergeNoteCollectionQuizStats(remoteNotes, localNotes),
-            context.state.settings.deletedNotes
+            remoteNotes,
+            remoteDeletedNotes
           );
-          context.state.snapshots = mergeSnapshotCollections(
-            remoteSnapshots,
-            context.state.snapshots
-          );
-
-          const remoteNotesById = new Map(remoteNotes.map((note) => [note.id, note]));
-          const hasLocalNotesToUpload = context.state.notes.some((note) => {
-            const remoteNote = remoteNotesById.get(note.id);
-            return !remoteNote || JSON.stringify(note) !== JSON.stringify(remoteNote);
-          });
-          const remoteSnapshotIds = new Set(remoteSnapshots.map((snapshot) => snapshot.id));
-          const hasLocalSnapshotsToUpload = context.state.snapshots.some(
-            (snapshot) => !remoteSnapshotIds.has(snapshot.id)
-          );
-          const hasLocalDeletionsToUpload = normalizeDeletedNotes(
-            localSettings.deletedNotes
-          ).some(
-            (deletion) =>
-              !remoteDeletedNotes.some(
-                (remoteDeletion) =>
-                  remoteDeletion.id === deletion.id &&
-                  (Date.parse(remoteDeletion.deletedAt) || 0) >=
-                    (Date.parse(deletion.deletedAt) || 0)
-              )
-          );
+          context.state.snapshots = remoteSnapshots;
+          saveThemePreference(context.state.settings.themePreset);
 
           saveNotes({ skipRemote: true });
-          const prunedSnapshots = saveSnapshots({ skipRemote: true });
+          saveSnapshots({ skipRemote: true });
           setRemoteState({
             status: "synced",
             lastSyncedAt: new Date().toISOString(),
             lastError: "",
           });
-          if (
-            hasLocalNotesToUpload ||
-            hasLocalSnapshotsToUpload ||
-            hasLocalDeletionsToUpload ||
-            prunedSnapshots
-          ) {
-            queueRemoteSync({ includeSnapshots: true });
+          if (!hasAuthoritativeRemoteSettings) {
+            queueRemoteSync({ includeSnapshots: false });
           }
           return true;
         }
@@ -1244,17 +1182,14 @@
 
       setRemoteState({ status: "syncing", lastError: "", showSyncWarning: false });
       context.renderers?.renderWorkspaceBanner();
+      const pendingEnvelope = writePendingRemoteSync(payload);
 
       remoteSyncQueue = remoteSyncQueue
         .catch(() => {})
         .then(async () => {
           try {
-            if (payload.deletedNotes.length > 0) {
-              await callRemoteRpc("register_note_deletions", {
-                deletions: payload.deletedNotes,
-              });
-            }
-            await callRemoteRpc("sync_app_payload", { payload });
+            await sendRemotePayload(payload);
+            clearPendingRemoteSync(pendingEnvelope.id);
             setRemoteState({
               status: "synced",
               lastSyncedAt: new Date().toISOString(),
