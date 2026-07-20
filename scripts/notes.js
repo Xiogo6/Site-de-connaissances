@@ -474,9 +474,28 @@
     }
   }
 
+  function syncPendingNewNoteFromEditor(options = {}) {
+    const { touchUpdatedAt = false } = options;
+    const note = getActiveNote();
+    if (!isPendingNewNote(note)) {
+      return;
+    }
+
+    note.title = context.elements.titleInput.value.trim() || "Sans titre";
+    note.type = context.elements.typeInput.value;
+    note.tags = parseTags(context.elements.tagsInput.value);
+    note.parentId = getEditorParentId(note);
+    note.favorite = context.elements.favoriteInput.checked;
+    note.metadata = collectMetadataFromInputs();
+    if (touchUpdatedAt) {
+      note.updatedAt = new Date().toISOString();
+    }
+  }
+
   function handleEditorClassificationModeChange() {
     syncNewPageClassificationControls();
     context.renderers.renderLivePreview();
+    persistEditorDraft();
   }
 
   function canMoveNote(noteId, targetId) {
@@ -938,11 +957,12 @@
     }
 
     context.elements.contentInput.dataset.editorDirty = "true";
-    return context.data.saveEditorDraft(note.id, {
+    const saved = context.data.saveEditorDraft(note.id, {
       title: context.elements.titleInput.value,
       type: context.elements.typeInput.value,
       tags: context.elements.tagsInput.value,
-      parentId: context.elements.parentInput.value,
+      parentId: getEditorParentId(note) || "",
+      directClassify: Boolean(context.elements.directClassifyInput?.checked),
       favorite: context.elements.favoriteInput.checked,
       noteDateMode: context.elements.noteDateMode.value,
       noteDateSingle: context.elements.noteDateSingle.value,
@@ -951,6 +971,8 @@
       content: context.elements.contentInput.value,
       quizQuestions: structuredClone(context.state.editorQuizQuestions || []),
     });
+    syncPendingNewNoteFromEditor({ touchUpdatedAt: true });
+    return saved;
   }
 
   function moveNoteToParent(noteId, parentId) {
@@ -1533,6 +1555,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     handleEditorContentChange,
     handleEditorTitleChange,
     handleEditorTypeChange,
+    syncPendingNewNoteFromEditor,
     isFolderCollapsed,
     isNoteDue,
     isOrphanNote,
