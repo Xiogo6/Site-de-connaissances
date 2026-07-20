@@ -667,8 +667,12 @@
       });
     }
 
+    function isUnresolvedContest(question) {
+      return Boolean(question?.contested && !question.contestedAnswerAccepted);
+    }
+
     function getCountedQuizQuestions() {
-      return context.state.quiz.questions.filter((question) => !question.contested);
+      return context.state.quiz.questions.filter((question) => !isUnresolvedContest(question));
     }
 
     function getQuizScoreSnapshot() {
@@ -677,7 +681,7 @@
         total: counted.length,
         correct: counted.filter((item) => item.validated && item.isCorrect).length,
         wrong: counted.filter((item) => item.validated && !item.isCorrect).length,
-        contested: context.state.quiz.questions.filter((item) => item.contested).length,
+        contested: context.state.quiz.questions.filter(isUnresolvedContest).length,
       };
     }
 
@@ -753,6 +757,18 @@
 
       question.contestedAnswerAccepted = true;
       question.contestedAcceptedAnswer = answer;
+      question.contestedResolvedAt = new Date().toISOString();
+      question.isCorrect = true;
+      question.matchedAnswer = answer;
+
+      const resolvedAt = question.contestedResolvedAt;
+      storedQuestion.stats = normalizeQuestionStats(question.statsBefore);
+      storedQuestion.stats.asked += 1;
+      storedQuestion.stats.correct += 1;
+      storedQuestion.stats.lastAskedAt = resolvedAt;
+      storedQuestion.stats.lastCorrectAt = resolvedAt;
+      storedQuestion.stats.updatedAt = resolvedAt;
+      question.statsAfter = { ...storedQuestion.stats };
 
       if (context.state.editorQuizQuestionsNoteId === note.id) {
         context.state.editorQuizQuestions = (context.state.editorQuizQuestions || []).map(
@@ -761,13 +777,16 @@
               ? {
                   ...draftQuestion,
                   answers: [...storedQuestion.answers],
+                  stats: { ...storedQuestion.stats },
                 }
               : draftQuestion
         );
       }
 
-      note.updatedAt = new Date().toISOString();
-      context.data.saveNotes();
+      note.updatedAt = resolvedAt;
+      syncQuizScore();
+      updateRecordedQuizSession();
+      context.data.saveNotes({ changedNoteIds: [note.id] });
       renderQuizDashboard();
       renderQuizCard({ force: true });
     }
@@ -870,6 +889,9 @@
       const score = syncQuizScore();
       const index = sessions.findIndex((session) => session.id === sessionId);
       if (index < 0) {
+        if (score.total && context.state.quiz.finishedAt) {
+          recordQuizSession();
+        }
         return;
       }
 
@@ -1403,6 +1425,18 @@
           <div class="quiz-session-list">
             ${renderQuizSessionRows(context.state.quiz.questions)}
           </div>
+          ${
+            completed
+              ? renderQuizFinalScore({
+                  correctCount,
+                  wrongCount,
+                  contestedCount,
+                  total: scoredTotal,
+                  percent,
+                  duration,
+                })
+              : ""
+          }
         </div>
       `;
 
@@ -1413,13 +1447,42 @@
       context.mascot?.sync();
     }
 
+    function renderQuizFinalScore({
+      correctCount,
+      wrongCount,
+      contestedCount,
+      total,
+      percent,
+      duration,
+    }) {
+      return `
+        <section class="quiz-session-final-score" aria-label="Score final du quiz">
+          <div class="quiz-session-final-score-main">
+            <span>Score final</span>
+            <strong>${correctCount}/${total}</strong>
+            <small>${percent}% de reussite</small>
+          </div>
+          <div class="quiz-session-final-score-details">
+            <span><strong>${correctCount}</strong> juste(s)</span>
+            <span><strong>${wrongCount}</strong> fausse(s)</span>
+            ${
+              contestedCount
+                ? `<span><strong>${contestedCount}</strong> contestee(s)</span>`
+                : ""
+            }
+            <span><strong>${escapeHtml(duration)}</strong> au total</span>
+          </div>
+        </section>
+      `;
+    }
+
     function renderQuizSessionRows(questions) {
       const completed = Boolean(context.state.quiz.finishedAt);
       const shouldAnimateReveal = completed && Boolean(context.state.quiz.revealPending);
 
       return questions
         .map((question, index) => {
-          const rowClass = question.contested
+          const rowClass = isUnresolvedContest(question)
             ? "is-contested"
             : question.validated
             ? question.isCorrect
@@ -1464,12 +1527,18 @@
                 ${
                   completed
                     ? `<div class="quiz-answer-feedback ${
-                        question.contested ? "is-contested" : question.isCorrect ? "is-correct" : "is-wrong"
+                        isUnresolvedContest(question)
+                          ? "is-contested"
+                          : question.isCorrect
+                            ? "is-correct"
+                            : "is-wrong"
                       }${shouldAnimateReveal ? " quiz-reveal-feedback" : ""}" style="${
                         shouldAnimateReveal ? `--quiz-reveal-delay: ${560 + index * 440}ms;` : ""
                       }">
                           <span>${
-                            question.contested
+                            question.contestedAnswerAccepted
+                              ? "Bonne reponse acceptee"
+                              : question.contested
                               ? "Question contestee"
                               : question.isCorrect
                                 ? "Bonne reponse"
@@ -1479,12 +1548,12 @@
                             question.matchedAnswer || question.acceptedAnswers.join(", ")
                           )}</strong>
                           ${
-                            question.contested
+                            question.contestedAnswerAccepted
+                              ? `<small>Cette reponse compte maintenant comme juste dans le score et les stats.</small>`
+                              : question.contested
                               ? `<small>Cette question ne compte plus dans le score ni dans les stats.</small>
                                 ${
-                                  question.contestedAnswerAccepted
-                                    ? `<small>Reponse ajoutee aux reponses acceptees.</small>`
-                                    : String(question.userAnswer || "").trim()
+                                  String(question.userAnswer || "").trim()
                                       ? `<button type="button" class="quiz-contest-button" data-quiz-accept-contested="${index}">
                                           Accepter ma reponse
                                         </button>`
@@ -1515,17 +1584,19 @@
     }
 
     function renderQuizCompletionSummary(correctCount, total, questions) {
-      const countedQuestions = questions.filter((item) => !item.contested);
+      const countedQuestions = questions.filter((item) => !isUnresolvedContest(item));
       const hard = countedQuestions.filter((item) => item.difficulty === "difficult").length;
       const intermediate = countedQuestions.filter((item) => item.difficulty === "intermediate").length;
       const easy = countedQuestions.filter((item) => item.difficulty === "easy").length;
-      const contested = questions.filter((item) => item.contested).length;
+      const contested = questions.filter(isUnresolvedContest).length;
       const durationSeconds = getSessionDurationSeconds(
         context.state.quiz.startedAt,
         context.state.quiz.finishedAt
       );
       const answerPace = getAverageAnswerSeconds(durationSeconds, total);
-      const wrongRows = questions.filter((item) => item.validated && !item.isCorrect && !item.contested);
+      const wrongRows = questions.filter(
+        (item) => item.validated && !item.isCorrect && !isUnresolvedContest(item)
+      );
 
       return `
         <p class="quiz-summary-line">

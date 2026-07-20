@@ -1285,6 +1285,20 @@ body[data-theme-preset].quiz-view-active .quiz-session-answer:focus {
   transform: none;
 }
 
+body[data-theme-preset].quiz-view-active .quiz-session-final-score-main > span,
+body[data-theme-preset].quiz-view-active .quiz-session-final-score-details > span {
+  color: var(--text-soft);
+}
+
+body[data-theme-preset].quiz-view-active .quiz-session-final-score-main > strong,
+body[data-theme-preset].quiz-view-active .quiz-session-final-score-details strong {
+  color: var(--text);
+}
+
+body[data-theme-preset].quiz-view-active .quiz-session-final-score-main > small {
+  color: var(--theme-secondary-accent);
+}
+
 body[data-theme-preset] .quiz-bank-table input[data-quiz-question-field]:not(:disabled),
 body[data-theme-preset] .quiz-bank-table textarea[data-quiz-question-field]:not(:disabled) {
   -webkit-appearance: none;
