@@ -815,6 +815,17 @@
     context.elements.typeInput.value = draft?.type ?? note.type;
     context.elements.tagsInput.value = draft?.tags ?? note.tags.join(", ");
     context.elements.parentInput.value = draft?.parentId ?? note.parentId ?? "";
+    if (context.elements.directClassifyInput) {
+      if (draft && typeof draft.directClassify === "boolean") {
+        context.elements.directClassifyInput.checked = draft.directClassify;
+      } else if (draft) {
+        const defaultParentId = context.notes.getDefaultParentIdForType(draft.type ?? note.type);
+        context.elements.directClassifyInput.checked =
+          Boolean(draft.parentId) && draft.parentId !== defaultParentId;
+      } else {
+        context.elements.directClassifyInput.checked = false;
+      }
+    }
     context.elements.favoriteInput.checked = draft?.favorite ?? Boolean(note.favorite);
     context.elements.noteHasDate.value = draft
       ? draft.noteDateMode !== "none"
@@ -856,6 +867,7 @@
           }
         : null;
     context.notes.syncNewPageClassificationControls();
+    context.notes.syncPendingNewNoteFromEditor?.();
   }
 
   function renderStructuredFields() {
