@@ -540,6 +540,7 @@
     });
     context.elements.contentInput.addEventListener("click", scheduleEditorViewportFollow);
     context.elements.contentInput.addEventListener("keyup", scheduleEditorViewportFollow);
+    window.visualViewport?.addEventListener("resize", scheduleEditorViewportFollow);
     window.addEventListener("pagehide", context.notes.persistEditorDraft);
     context.elements.formatButtons.forEach((button) => {
       button.addEventListener("click", () => {
@@ -1331,8 +1332,19 @@
       return;
     }
 
+    const isMobile = window.matchMedia?.("(max-width: 780px)").matches;
+    const minimumHeight = isMobile ? 220 : 280;
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    const bottomReserve = isMobile ? 180 : 120;
+    const maximumHeight = Math.max(minimumHeight, Math.floor(viewportHeight - bottomReserve));
+
+    textarea.style.minHeight = `${minimumHeight}px`;
+    textarea.style.maxHeight = `${maximumHeight}px`;
     textarea.style.height = "auto";
-    textarea.style.height = `${Math.max(textarea.scrollHeight, textarea.clientHeight)}px`;
+    const contentHeight = Math.max(textarea.scrollHeight, minimumHeight);
+    const targetHeight = Math.min(contentHeight, maximumHeight);
+    textarea.style.height = `${targetHeight}px`;
+    textarea.style.overflowY = contentHeight > maximumHeight ? "auto" : "hidden";
   }
 
   function keepEditorCaretReadable() {
@@ -1341,56 +1353,19 @@
       return;
     }
 
-    const caretY = getEditorCaretViewportY(textarea);
-    const comfortBottom = window.innerHeight - 150;
-    const comfortTop = 120;
+    const viewport = window.visualViewport;
+    const viewportTop = viewport?.offsetTop || 0;
+    const viewportHeight = viewport?.height || window.innerHeight;
+    const isMobile = window.matchMedia?.("(max-width: 780px)").matches;
+    const comfortTop = viewportTop + 72;
+    const comfortBottom = viewportTop + viewportHeight - (isMobile ? 32 : 96);
+    const editorRect = textarea.getBoundingClientRect();
 
-    if (caretY > comfortBottom) {
-      window.scrollBy({ top: caretY - comfortBottom, behavior: "auto" });
-    } else if (caretY < comfortTop) {
-      window.scrollBy({ top: caretY - comfortTop, behavior: "auto" });
+    if (editorRect.bottom > comfortBottom) {
+      window.scrollBy({ top: editorRect.bottom - comfortBottom, behavior: "auto" });
+    } else if (editorRect.top < comfortTop) {
+      window.scrollBy({ top: editorRect.top - comfortTop, behavior: "auto" });
     }
-  }
-
-  function getEditorCaretViewportY(textarea) {
-    const computed = window.getComputedStyle(textarea);
-    const mirror = document.createElement("div");
-    const marker = document.createElement("span");
-    const caretIndex = textarea.selectionStart ?? textarea.value.length;
-
-    mirror.setAttribute("aria-hidden", "true");
-    mirror.style.cssText = [
-      "position: fixed",
-      "left: -10000px",
-      "top: 0",
-      "visibility: hidden",
-      "pointer-events: none",
-      "white-space: pre-wrap",
-      "overflow-wrap: break-word",
-      "word-break: break-word",
-      `box-sizing: ${computed.boxSizing}`,
-      `width: ${textarea.clientWidth}px`,
-      `padding: ${computed.padding}`,
-      `font: ${computed.font}`,
-      `letter-spacing: ${computed.letterSpacing}`,
-      `line-height: ${computed.lineHeight}`,
-      `tab-size: ${computed.tabSize}`,
-    ].join(";");
-    marker.textContent = "\u200b";
-    mirror.append(
-      document.createTextNode(textarea.value.slice(0, caretIndex)),
-      marker,
-      document.createTextNode(textarea.value.slice(caretIndex))
-    );
-    document.body.appendChild(mirror);
-
-    const textareaRect = textarea.getBoundingClientRect();
-    const mirrorRect = mirror.getBoundingClientRect();
-    const markerRect = marker.getBoundingClientRect();
-    const caretY = textareaRect.top + markerRect.top - mirrorRect.top - textarea.scrollTop;
-    mirror.remove();
-
-    return Number.isFinite(caretY) ? caretY : textareaRect.top;
   }
 
   function renderActiveTabContent() {
