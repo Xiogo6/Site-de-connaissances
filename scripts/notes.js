@@ -481,7 +481,8 @@
       return;
     }
 
-    note.title = context.elements.titleInput.value.trim() || "Sans titre";
+    // Keep the draft title empty until the page is actually saved.
+    note.title = context.elements.titleInput.value.trim();
     note.type = context.elements.typeInput.value;
     note.tags = parseTags(context.elements.tagsInput.value);
     note.parentId = getEditorParentId(note);
@@ -919,9 +920,10 @@
 
   function handleEditorTitleChange() {
     const note = getActiveNote();
-    const title = context.elements.titleInput.value.trim() || note?.title || "Sans titre";
+    const typedTitle = context.elements.titleInput.value.trim();
+    const title = typedTitle || (isPendingNewNote(note) ? "" : note?.title || "Sans titre");
 
-    syncMarkdownHeadingWithTitle(title);
+    syncMarkdownHeadingWithTitle(title || "Sans titre");
     context.renderers.renderLivePreview();
     persistEditorDraft();
   }

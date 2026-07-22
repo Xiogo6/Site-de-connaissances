@@ -1341,19 +1341,56 @@
       return;
     }
 
-    const computed = window.getComputedStyle(textarea);
-    const lineHeight = Number.parseFloat(computed.lineHeight) || 22;
-    const textBeforeCaret = textarea.value.slice(0, textarea.selectionStart);
-    const caretLine = textBeforeCaret.split("\n").length - 1;
-    const caretY = textarea.getBoundingClientRect().top + caretLine * lineHeight - textarea.scrollTop;
+    const caretY = getEditorCaretViewportY(textarea);
     const comfortBottom = window.innerHeight - 150;
     const comfortTop = 120;
 
     if (caretY > comfortBottom) {
-      window.scrollBy({ top: caretY - comfortBottom, behavior: "smooth" });
+      window.scrollBy({ top: caretY - comfortBottom, behavior: "auto" });
     } else if (caretY < comfortTop) {
-      window.scrollBy({ top: caretY - comfortTop, behavior: "smooth" });
+      window.scrollBy({ top: caretY - comfortTop, behavior: "auto" });
     }
+  }
+
+  function getEditorCaretViewportY(textarea) {
+    const computed = window.getComputedStyle(textarea);
+    const mirror = document.createElement("div");
+    const marker = document.createElement("span");
+    const caretIndex = textarea.selectionStart ?? textarea.value.length;
+
+    mirror.setAttribute("aria-hidden", "true");
+    mirror.style.cssText = [
+      "position: fixed",
+      "left: -10000px",
+      "top: 0",
+      "visibility: hidden",
+      "pointer-events: none",
+      "white-space: pre-wrap",
+      "overflow-wrap: break-word",
+      "word-break: break-word",
+      `box-sizing: ${computed.boxSizing}`,
+      `width: ${textarea.clientWidth}px`,
+      `padding: ${computed.padding}`,
+      `font: ${computed.font}`,
+      `letter-spacing: ${computed.letterSpacing}`,
+      `line-height: ${computed.lineHeight}`,
+      `tab-size: ${computed.tabSize}`,
+    ].join(";");
+    marker.textContent = "\u200b";
+    mirror.append(
+      document.createTextNode(textarea.value.slice(0, caretIndex)),
+      marker,
+      document.createTextNode(textarea.value.slice(caretIndex))
+    );
+    document.body.appendChild(mirror);
+
+    const textareaRect = textarea.getBoundingClientRect();
+    const mirrorRect = mirror.getBoundingClientRect();
+    const markerRect = marker.getBoundingClientRect();
+    const caretY = textareaRect.top + markerRect.top - mirrorRect.top - textarea.scrollTop;
+    mirror.remove();
+
+    return Number.isFinite(caretY) ? caretY : textareaRect.top;
   }
 
   function renderActiveTabContent() {
