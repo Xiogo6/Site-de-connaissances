@@ -811,7 +811,9 @@
 
     const metadata = note.metadata || {};
     const draft = context.data.loadEditorDraft(note.id);
-    context.elements.titleInput.value = draft?.title ?? note.title;
+    const isPendingNewNote = context.state.pendingNewNoteId === note.id;
+    context.elements.titleInput.value =
+      draft?.title ?? (isPendingNewNote ? "" : note.title);
     context.elements.typeInput.value = draft?.type ?? note.type;
     context.elements.tagsInput.value = draft?.tags ?? note.tags.join(", ");
     context.elements.parentInput.value = draft?.parentId ?? note.parentId ?? "";

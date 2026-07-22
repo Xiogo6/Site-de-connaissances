@@ -317,6 +317,7 @@
       const trimmed = line.trim();
 
       if (!trimmed) {
+        // An empty line means two consecutive line breaks; one line break stays in the same paragraph.
         flushParagraph();
         flushList();
         return;

@@ -463,6 +463,8 @@
         "- garder le titre principal en # Titre",
         "- utiliser des sous-titres en ## si cela aide",
         "- utiliser des puces pour les listes reelles ou les points importants quand cela aide a lire plus vite",
+        "- pour chaque puce Markdown, utiliser uniquement le marqueur - suivi d un espace : - element",
+        "- ne jamais utiliser * suivi d un espace comme marqueur de puce",
         "- mettre en gras les termes importants avec **...**",
         "- utiliser l'italique *...* seulement pour nuancer",
         "- utiliser des liens wiki [[Nom de page]] quand une autre page pertinente existe",
