@@ -467,6 +467,14 @@ body[data-theme="dark"] .tab.is-active {
   margin-top: 14px;
 }
 
+.editor-metadata-panel {
+  display: contents;
+}
+
+.editor-metadata-reveal {
+  display: none;
+}
+
 .helper-grid {
   grid-template-columns: repeat(2, 1fr);
   margin-top: 16px;

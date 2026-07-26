@@ -296,6 +296,31 @@
     context.state.settings.lastEditedNoteId = noteId;
   }
 
+  function extractEditorBody(content) {
+    const lines = String(content || "").replace(/\r\n/g, "\n").split("\n");
+    const headingIndex = lines.findIndex((line) => line.trim().length > 0);
+
+    if (headingIndex >= 0 && lines[headingIndex].trimStart().startsWith("# ")) {
+      lines.splice(headingIndex, 1);
+      if (lines[headingIndex]?.trim() === "") {
+        lines.splice(headingIndex, 1);
+      }
+    }
+
+    return lines.join("\n").replace(/^\n+/, "");
+  }
+
+  function getEditorComposedContent(titleOverride = null) {
+    const title =
+      String(titleOverride ?? context.elements.titleInput.value).trim() || "Sans titre";
+    const body = context.elements.contentInput.value.replace(/^\n+/, "").trimEnd();
+    return body ? `# ${title}\n\n${body}` : `# ${title}`;
+  }
+
+  function setEditorComposedContent(content) {
+    context.elements.contentInput.value = extractEditorBody(content);
+  }
+
   function isEditorUsingAutoTemplate() {
     const seed = context.state.editorTemplateSeed;
     if (!seed) {
@@ -307,31 +332,10 @@
 
   function applyEditorTemplate(type, title) {
     const content = context.data.buildTemplateContent(type, title || "Sans titre");
-    context.elements.contentInput.value = content;
-    rememberEditorTemplateSeed(type, title || "Sans titre", content);
+    const body = extractEditorBody(content);
+    context.elements.contentInput.value = body;
+    rememberEditorTemplateSeed(type, title || "Sans titre", body);
     context.renderers.renderLivePreview();
-  }
-
-  function syncMarkdownHeadingWithTitle(nextTitle) {
-    const content = context.elements.contentInput.value;
-    if (!content) {
-      context.elements.contentInput.value = `# ${nextTitle || "Sans titre"}`;
-      return;
-    }
-
-    const lines = content.split("\n");
-    const headingIndex = lines.findIndex((line) => line.trim().length > 0);
-    if (headingIndex === -1) {
-      context.elements.contentInput.value = `# ${nextTitle || "Sans titre"}`;
-      return;
-    }
-
-    if (!lines[headingIndex].startsWith("# ")) {
-      return;
-    }
-
-    lines[headingIndex] = `# ${nextTitle || "Sans titre"}`;
-    context.elements.contentInput.value = lines.join("\n");
   }
 
   function getBacklinks(title, excludedId) {
@@ -689,14 +693,13 @@
     const previousTitle = current.title;
     const previousParentId = current.parentId;
     const nextTitle = context.elements.titleInput.value.trim() || "Sans titre";
-    syncMarkdownHeadingWithTitle(nextTitle);
 
     current.title = nextTitle;
     current.type = context.elements.typeInput.value;
     current.tags = parseTags(context.elements.tagsInput.value);
     current.parentId = getEditorParentId(current);
     current.favorite = context.elements.favoriteInput.checked;
-    current.content = context.elements.contentInput.value.trim();
+    current.content = getEditorComposedContent(nextTitle);
     current.quizQuestions = context.data.mergeQuizQuestionCollectionStats(
       context.state.editorQuizQuestions,
       current.quizQuestions,
@@ -919,11 +922,6 @@
   }
 
   function handleEditorTitleChange() {
-    const note = getActiveNote();
-    const typedTitle = context.elements.titleInput.value.trim();
-    const title = typedTitle || (isPendingNewNote(note) ? "" : note?.title || "Sans titre");
-
-    syncMarkdownHeadingWithTitle(title || "Sans titre");
     context.renderers.renderLivePreview();
     persistEditorDraft();
   }
@@ -931,18 +929,6 @@
   function handleEditorContentChange() {
     if (!isEditorUsingAutoTemplate()) {
       clearEditorTemplateSeed();
-    }
-
-    const firstMeaningfulLine = context.elements.contentInput.value
-      .split("\n")
-      .map((line) => line.trim())
-      .find((line) => line.length > 0);
-
-    if (firstMeaningfulLine?.startsWith("# ")) {
-      const nextTitle = firstMeaningfulLine.slice(2).trim() || "Sans titre";
-      if (context.elements.titleInput.value !== nextTitle) {
-        context.elements.titleInput.value = nextTitle;
-      }
     }
 
     persistEditorDraft();
@@ -970,7 +956,7 @@
       noteDateSingle: context.elements.noteDateSingle.value,
       noteDateStart: context.elements.noteDateStart.value,
       noteDateEnd: context.elements.noteDateEnd.value,
-      content: context.elements.contentInput.value,
+      content: getEditorComposedContent(),
       quizQuestions: structuredClone(context.state.editorQuizQuestions || []),
     });
     syncPendingNewNoteFromEditor({ touchUpdatedAt: true });
@@ -1557,6 +1543,9 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     handleEditorContentChange,
     handleEditorTitleChange,
     handleEditorTypeChange,
+    extractEditorBody,
+    getEditorComposedContent,
+    setEditorComposedContent,
     syncPendingNewNoteFromEditor,
     isFolderCollapsed,
     isNoteDue,

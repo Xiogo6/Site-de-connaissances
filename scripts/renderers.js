@@ -291,8 +291,15 @@
     const aiStatus = context.state.aiStatus || context.ai?.getDefaultStatus?.() || {};
     const hasRewriteBackup = context.ai?.hasRewriteBackup?.();
     context.elements.knowledgeWorkspace.classList.toggle("is-editing", isEditing);
+    document.body.classList.toggle("note-editor-active", isEditing);
     if (!isEditing) {
-      document.body.classList.remove("editor-writing", "quiz-question-writing");
+      document.body.classList.remove(
+        "note-editor-active",
+        "editor-writing",
+        "quiz-question-writing"
+      );
+      document.documentElement.style.removeProperty("--editor-viewport-top");
+      document.documentElement.style.removeProperty("--editor-viewport-height");
     }
     setActionButtonLabel(
       context.elements.noteModeToggle,
@@ -849,7 +856,7 @@
       draft?.noteDateStart ?? (metadata.startDate ? formatFlexibleDate(metadata.startDate) : "");
     context.elements.noteDateEnd.value =
       draft?.noteDateEnd ?? (metadata.endDate ? formatFlexibleDate(metadata.endDate) : "");
-    context.elements.contentInput.value = draft?.content ?? note.content;
+    context.notes.setEditorComposedContent(draft?.content ?? note.content);
     context.elements.contentInput.dataset.hydratedNoteId = note.id;
     context.elements.contentInput.dataset.editorDirty = draft ? "true" : "false";
     if (context.state.editorQuizQuestionsNoteId !== note.id) {
@@ -865,7 +872,7 @@
         ? {
             type: note.type,
             title: note.title || "Sans titre",
-            content: templateContent,
+            content: context.notes.extractEditorBody(templateContent),
           }
         : null;
     context.notes.syncNewPageClassificationControls();
@@ -910,9 +917,6 @@
       return;
     }
 
-    const preservedScrollX = window.scrollX;
-    const preservedScrollY = window.scrollY;
-
     const draftNote = {
       ...activeNote,
       title: context.elements.titleInput.value.trim() || "Sans titre",
@@ -921,23 +925,13 @@
       parentId: context.notes.getEditorParentId(activeNote),
       favorite: context.elements.favoriteInput.checked,
       metadata: context.notes.collectMetadataFromInputs(),
-      content: context.elements.contentInput.value,
+      content: context.notes.getEditorComposedContent(),
       quizQuestions: context.state.editorQuizQuestions,
     };
 
     renderPreview(draftNote, true);
     renderConnections(draftNote);
     renderStats(draftNote);
-
-    window.requestAnimationFrame(() => {
-      if (window.scrollX !== preservedScrollX || window.scrollY !== preservedScrollY) {
-        window.scrollTo({
-          left: preservedScrollX,
-          top: preservedScrollY,
-          behavior: "auto",
-        });
-      }
-    });
   }
 
   function renderTemplateEditor() {

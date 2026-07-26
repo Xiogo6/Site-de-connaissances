@@ -279,6 +279,7 @@
     return escaped
       .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
       .replace(/(^|[\s(])\*([^*]+)\*(?=[\s).,!?:;]|$)/g, "$1<em>$2</em>")
+      .replace(/\+\+([^+]+)\+\+/g, "<u>$1</u>")
       .replace(/\[\[([^[\]]+)\]\]/g, (_, title) => {
         const safeTitle = escapeHtml(title.trim());
         return `<a class="note-link" data-link-title="${safeTitle}">${safeTitle}</a>`;
