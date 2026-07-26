@@ -94,17 +94,26 @@
 }
 
 .text-input:focus,
-.select-input:focus,
-.editor:focus {
+.select-input:focus {
   border-color: rgba(191, 91, 44, 0.48);
   box-shadow: 0 0 0 4px rgba(191, 91, 44, 0.12);
   transform: translateY(-1px);
 }
 
+.editor:focus {
+  border-color: rgba(191, 91, 44, 0.58);
+  box-shadow: 0 0 0 3px rgba(191, 91, 44, 0.12);
+}
+
 .editor {
   font-family: var(--content-font);
+  height: clamp(360px, 52vh, 620px);
+  line-height: 1.62;
   min-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   resize: vertical;
+  scrollbar-gutter: stable;
 }
 
 .panel-editor .editor {
@@ -646,10 +655,15 @@ body[data-theme="dark"] #knowledge-list .note-type-icon-folder + .knowledge-item
 }
 
 .editor-mini-actions {
+  align-items: center;
   display: flex;
   gap: 14px;
   justify-content: flex-start;
   margin-bottom: 10px;
+}
+
+.editor-writing-close {
+  display: none;
 }
 
 .section-actions {
@@ -2548,11 +2562,26 @@ body[data-theme="dark"] .toggle-row-editor {
   }
 
   .panel-editor .editor {
-    min-height: 460px;
+    height: clamp(320px, 52svh, 460px);
+    min-height: 320px;
+    resize: none;
   }
 
   .editor-toolbar {
     gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    padding-bottom: 3px;
+    scrollbar-width: none;
+  }
+
+  .editor-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .editor-toolbar .button {
+    flex: 0 0 auto;
   }
 
   .button-mobile-icon {

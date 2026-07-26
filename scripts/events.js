@@ -13,6 +13,8 @@
     ready: false,
   };
   let feedShuffleLocked = false;
+  let editorPreviewTimer = null;
+  let editorViewportTicking = false;
   let sidebarSwipe = {
     active: false,
     horizontal: false,
@@ -327,7 +329,7 @@
       context.state.noteViewMode = "edit";
       context.renderers.renderKnowledgeMode();
       if (context.state.noteViewMode === "edit") {
-        context.elements.contentInput.focus();
+        focusEditorSurface("content");
       }
     });
     context.elements.cancelNoteButton.addEventListener("click", () => {
@@ -356,8 +358,7 @@
       closeSidebarDrawer();
       context.data.saveNotes({ skipRemote: true });
       context.renderers.renderEverything();
-      context.elements.titleInput.focus();
-      context.elements.titleInput.select();
+      focusEditorSurface("title", { select: true });
     });
     context.elements.templateType?.addEventListener("change", (event) => {
       context.state.activeTemplateType = event.target.value;
@@ -518,31 +519,42 @@
     });
     bindEnterFocusFlow([
       context.elements.titleInput,
+      context.elements.contentInput,
       context.elements.typeInput,
       context.elements.tagsInput,
       context.elements.noteDateMode,
       context.elements.noteDateSingle,
       context.elements.noteDateStart,
       context.elements.noteDateEnd,
-      context.elements.contentInput,
     ]);
     context.elements.contentInput.addEventListener("input", () => {
       context.notes.handleEditorContentChange();
-      context.renderers.renderLivePreview();
-      scheduleEditorViewportFollow();
+      scheduleEditorLivePreview();
     });
-    context.elements.contentInput.addEventListener("focus", () => {
-      setEditorWritingMode(true);
-      scheduleEditorViewportFollow();
+    context.elements.panelEditor?.addEventListener("focusin", (event) => {
+      if (event.target.matches("input, textarea, select")) {
+        setEditorWritingMode(true);
+      }
     });
-    context.elements.contentInput.addEventListener("blur", () => {
-      window.setTimeout(() => setEditorWritingMode(false), 120);
+    context.elements.panelEditor?.addEventListener("focusout", () => {
+      window.setTimeout(() => {
+        if (!context.elements.panelEditor?.contains(document.activeElement)) {
+          setEditorWritingMode(false);
+        }
+      }, 120);
     });
-    context.elements.contentInput.addEventListener("click", scheduleEditorViewportFollow);
-    context.elements.contentInput.addEventListener("keyup", scheduleEditorViewportFollow);
-    window.visualViewport?.addEventListener("resize", scheduleEditorViewportFollow);
+    context.elements.contentInput.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        context.elements.contentInput.blur();
+      }
+    });
+    window.visualViewport?.addEventListener("resize", scheduleEditorViewportSync);
+    window.visualViewport?.addEventListener("scroll", scheduleEditorViewportSync);
     window.addEventListener("pagehide", context.notes.persistEditorDraft);
     context.elements.formatButtons.forEach((button) => {
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+      });
       button.addEventListener("click", () => {
         applyEditorFormat(button.dataset.formatAction);
       });
@@ -1293,8 +1305,19 @@
         }
 
         event.preventDefault();
+        if (
+          control === context.elements.titleInput &&
+          nextControl === context.elements.contentInput
+        ) {
+          focusEditorSurface("content");
+          return;
+        }
+
         nextControl.focus();
-        if (typeof nextControl.select === "function" && nextControl.tagName !== "SELECT") {
+        if (
+          typeof nextControl.select === "function" &&
+          !["SELECT", "TEXTAREA"].includes(nextControl.tagName)
+        ) {
           nextControl.select();
         }
       });
@@ -1311,61 +1334,85 @@
   }
 
   function setEditorWritingMode(isWriting) {
+    const activeElement = document.activeElement;
     const shouldHideBars =
       isWriting &&
       context.state.activeTab === "knowledge" &&
       context.state.noteViewMode === "edit" &&
-      document.activeElement === context.elements.contentInput;
+      context.elements.panelEditor?.contains(activeElement) &&
+      activeElement?.matches("input, textarea, select");
     document.body.classList.toggle("editor-writing", shouldHideBars);
+
+    if (shouldHideBars) {
+      scheduleEditorViewportSync();
+      return;
+    }
+
+    document.documentElement.style.removeProperty("--editor-viewport-top");
+    document.documentElement.style.removeProperty("--editor-viewport-height");
   }
 
-  function scheduleEditorViewportFollow() {
+  function focusEditorSurface(target = "content", options = {}) {
+    const control =
+      target === "title" ? context.elements.titleInput : context.elements.contentInput;
+    if (!control) {
+      return;
+    }
+
     window.requestAnimationFrame(() => {
-      resizeEditorToContent();
-      keepEditorCaretReadable();
+      control.focus({ preventScroll: true });
+      if (options.select && typeof control.select === "function") {
+        control.select();
+      }
+
+      if (!window.matchMedia?.("(max-width: 780px)").matches) {
+        return;
+      }
+
+      window.requestAnimationFrame(() => {
+        const panel = context.elements.panelEditor;
+        const titleField = context.elements.editorTitleField;
+        const headerHeight = context.elements.editorPanelHeader?.offsetHeight || 0;
+        if (!panel || !titleField) {
+          return;
+        }
+
+        panel.scrollTop = Math.max(0, titleField.offsetTop - headerHeight - 8);
+      });
     });
   }
 
-  function resizeEditorToContent() {
-    const textarea = context.elements.contentInput;
-    if (!textarea || document.activeElement !== textarea) {
-      return;
-    }
-
-    const isMobile = window.matchMedia?.("(max-width: 780px)").matches;
-    const minimumHeight = isMobile ? 220 : 280;
-    const viewportHeight = window.visualViewport?.height || window.innerHeight;
-    const bottomReserve = isMobile ? 180 : 120;
-    const maximumHeight = Math.max(minimumHeight, Math.floor(viewportHeight - bottomReserve));
-
-    textarea.style.minHeight = `${minimumHeight}px`;
-    textarea.style.maxHeight = `${maximumHeight}px`;
-    textarea.style.height = "auto";
-    const contentHeight = Math.max(textarea.scrollHeight, minimumHeight);
-    const targetHeight = Math.min(contentHeight, maximumHeight);
-    textarea.style.height = `${targetHeight}px`;
-    textarea.style.overflowY = contentHeight > maximumHeight ? "auto" : "hidden";
+  function scheduleEditorLivePreview() {
+    window.clearTimeout(editorPreviewTimer);
+    editorPreviewTimer = window.setTimeout(() => {
+      editorPreviewTimer = null;
+      if (context.state.noteViewMode === "edit") {
+        context.renderers.renderLivePreview();
+      }
+    }, 160);
   }
 
-  function keepEditorCaretReadable() {
-    const textarea = context.elements.contentInput;
-    if (!textarea || document.activeElement !== textarea) {
+  function scheduleEditorViewportSync() {
+    if (editorViewportTicking || !document.body.classList.contains("editor-writing")) {
       return;
     }
 
-    const viewport = window.visualViewport;
-    const viewportTop = viewport?.offsetTop || 0;
-    const viewportHeight = viewport?.height || window.innerHeight;
-    const isMobile = window.matchMedia?.("(max-width: 780px)").matches;
-    const comfortTop = viewportTop + 72;
-    const comfortBottom = viewportTop + viewportHeight - (isMobile ? 32 : 96);
-    const editorRect = textarea.getBoundingClientRect();
+    editorViewportTicking = true;
+    window.requestAnimationFrame(() => {
+      editorViewportTicking = false;
+      const viewport = window.visualViewport;
+      const viewportTop = Math.max(0, viewport?.offsetTop || 0);
+      const viewportHeight = Math.max(280, viewport?.height || window.innerHeight);
 
-    if (editorRect.bottom > comfortBottom) {
-      window.scrollBy({ top: editorRect.bottom - comfortBottom, behavior: "auto" });
-    } else if (editorRect.top < comfortTop) {
-      window.scrollBy({ top: editorRect.top - comfortTop, behavior: "auto" });
-    }
+      document.documentElement.style.setProperty(
+        "--editor-viewport-top",
+        `${Math.round(viewportTop)}px`
+      );
+      document.documentElement.style.setProperty(
+        "--editor-viewport-height",
+        `${Math.round(viewportHeight)}px`
+      );
+    });
   }
 
   function renderActiveTabContent() {
@@ -1785,7 +1832,7 @@
       context.state[menuStateKey] = null;
       context.renderers.renderEverything();
       window.requestAnimationFrame(() => {
-        context.elements.contentInput.focus();
+        focusEditorSurface("content");
       });
       return;
     }
@@ -1996,7 +2043,7 @@
     note.content = lines.join("\n");
     note.updatedAt = new Date().toISOString();
     context.state.settings.lastEditedNoteId = note.id;
-    context.elements.contentInput.value = note.content;
+    context.notes.setEditorComposedContent(note.content);
     context.data.saveNotes();
     context.renderers.renderEverything();
   }
@@ -2031,6 +2078,10 @@
     } else if (action === "italic") {
       replacement = `*${selection || "texte"}*`;
       nextStart = start + 1;
+      nextEnd = nextStart + (selection || "texte").length;
+    } else if (action === "underline") {
+      replacement = `++${selection || "texte"}++`;
+      nextStart = start + 2;
       nextEnd = nextStart + (selection || "texte").length;
     } else if (action === "bullet") {
       const lines = (selection || "Point cle").split("\n");
@@ -2072,6 +2123,7 @@
     textarea.setRangeText(replacement, start, end, "end");
     textarea.focus();
     textarea.setSelectionRange(nextStart, nextEnd);
+    context.notes.handleEditorContentChange();
     context.renderers.renderLivePreview();
   }
 

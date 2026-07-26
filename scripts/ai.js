@@ -272,7 +272,9 @@
         noteSnapshot: cloneValue(note),
         editorSnapshot: {
           title: context.elements.titleInput?.value.trim() || note.title || "Sans titre",
-          content: context.elements.contentInput?.value || note.content || "",
+          content: context.notes.getEditorComposedContent
+            ? context.notes.getEditorComposedContent()
+            : context.elements.contentInput?.value || note.content || "",
           type: context.elements.typeInput?.value || note.type || "concept",
           tags: context.helpers.parseTags
             ? context.helpers.parseTags(context.elements.tagsInput?.value || "")
@@ -370,7 +372,11 @@
         : "";
       context.notes.syncNewPageClassificationControls?.();
       context.renderers.renderStructuredFields?.();
-      context.elements.contentInput.value = restoredContent;
+      if (context.notes.setEditorComposedContent) {
+        context.notes.setEditorComposedContent(restoredContent);
+      } else {
+        context.elements.contentInput.value = restoredContent;
+      }
       context.state.editorQuizQuestions = cloneValue(
         snapshot.quizQuestions || backup.noteSnapshot?.quizQuestions || note.quizQuestions || []
       );
@@ -511,11 +517,18 @@
         "",
         "Regles de questions :",
         "- une question par point cle quand c est pertinent",
+        "- chaque question doit se suffire a elle-meme et rester comprehensible sans voir la note, son titre ou les autres questions",
+        "- n utilise jamais une reference sans contexte comme ce sport, cette personne, cet evenement, ce pays, il ou elle",
+        "- quand la reponse n est pas le titre, nomme clairement dans la question le sujet concerne : ecris par exemple Qui a cree le judo ? et non Qui a cree ce sport ?",
+        "- le titre de la note peut lui-meme etre la reponse attendue",
+        "- quand le titre est la reponse, fais deviner ce concept sans le nommer, a partir d une definition, de son role, de ses caracteristiques ou d indices suffisamment precis",
+        "- evite de demander Quel est le titre de la note ? et evite toute formulation qui suppose que le lecteur connait deja le contexte",
         "- tu peux proposer des variantes de bonne reponse",
         "- chaque reponse doit tenir en 3 mots maximum",
         "- utilise plusieurs orthographes ou formulations proches dans le tableau answers",
         "- si une info est absente ou trop incertaine, n invente rien",
         "- si un autre sujet partage la meme reponse, une double reference est autorisee",
+        "- avant de rendre le JSON, verifie que chaque question contient tout le contexte necessaire pour identifier sans ambiguite ce dont elle parle",
         "",
         "Contraintes de sortie :",
         '- retourne uniquement un JSON valide, sans markdown ni commentaire',
@@ -640,7 +653,11 @@
     function applyRewriteResult(note, rewrittenContent, fallbackTitle) {
       const nextContent = ensureLeadingHeading(rewrittenContent, fallbackTitle || note.title);
 
-      context.elements.contentInput.value = nextContent;
+      if (context.notes.setEditorComposedContent) {
+        context.notes.setEditorComposedContent(nextContent);
+      } else {
+        context.elements.contentInput.value = nextContent;
+      }
       context.notes.handleEditorContentChange();
       context.notes.saveCurrentNote({ stayInEdit: true });
     }
