@@ -2244,6 +2244,501 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   }
 }
 
+.sport-workspace-panel {
+  gap: 18px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.sport-workspace-header {
+  align-items: center;
+  border-bottom: 1px solid rgba(86, 70, 48, 0.14);
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 20px 22px 17px;
+}
+
+.sport-workspace-title h3 {
+  margin: 2px 0 0;
+}
+
+.sport-workspace-title > p:last-child {
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  margin: 5px 0 0;
+}
+
+.sport-header-actions {
+  align-items: flex-end;
+  display: grid;
+  flex: 0 0 auto;
+  gap: 8px;
+  justify-items: end;
+}
+
+.sport-mode-switcher {
+  background: rgba(86, 70, 48, 0.08);
+  border: 1px solid rgba(86, 70, 48, 0.12);
+  border-radius: 9px;
+  display: inline-flex;
+  padding: 3px;
+}
+
+.sport-mode-switcher button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text-soft);
+  cursor: pointer;
+  font: 700 0.84rem/1 var(--font-body);
+  min-height: 34px;
+  padding: 0 14px;
+}
+
+.sport-mode-switcher button.is-active {
+  background: var(--surface);
+  box-shadow: 0 1px 4px rgba(47, 36, 24, 0.12);
+  color: var(--text);
+}
+
+.sport-workspace-panel > .sport-table-panel {
+  padding: 0 22px 22px;
+}
+
+.sport-workspace-panel .sport-mass-entry-card {
+  background: rgba(255, 253, 249, 0.46);
+  border-radius: 10px;
+  gap: 18px;
+  grid-template-columns: minmax(150px, 0.42fr) minmax(0, 1.58fr);
+  padding: 16px;
+}
+
+.sport-workspace-panel .sport-mass-entry-copy p {
+  margin: 4px 0 0;
+}
+
+.sport-workspace-panel .sport-mass-summary {
+  gap: 8px;
+}
+
+.sport-workspace-panel .sport-mass-metric {
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.sport-sheet-toolbar {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  min-height: 38px;
+}
+
+.sport-sheet-toolbar > div {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sport-sheet-toolbar strong {
+  font-size: 0.96rem;
+}
+
+.sport-sheet-toolbar span,
+.sport-sheet-hint {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+
+.sport-add-row-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(86, 70, 48, 0.18);
+  border-radius: 7px;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font: 700 0.8rem/1 var(--font-body);
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.sport-add-row-button:hover,
+.sport-add-row-button:focus-visible {
+  border-color: rgba(191, 91, 44, 0.46);
+  color: var(--accent-strong);
+  outline: none;
+}
+
+.sport-add-row-button > span {
+  color: currentColor;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.sport-exercise-assist {
+  align-items: center;
+  background: rgba(191, 91, 44, 0.055);
+  border: 1px solid rgba(191, 91, 44, 0.16);
+  border-radius: 9px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 48px;
+  padding: 7px 9px 7px 12px;
+}
+
+.sport-exercise-assist[hidden],
+.sport-last-performance[hidden],
+.sport-row-menu[hidden] {
+  display: none;
+}
+
+.sport-assist-suggestions {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sport-assist-suggestions > span {
+  color: var(--text-soft);
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sport-exercise-suggestions {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sport-exercise-suggestions::-webkit-scrollbar {
+  display: none;
+}
+
+.sport-exercise-suggestions button,
+.sport-last-performance button {
+  background: rgba(255, 253, 249, 0.7);
+  border: 1px solid rgba(86, 70, 48, 0.16);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: 650 0.78rem/1 var(--font-body);
+  min-height: 30px;
+  padding: 0 10px;
+}
+
+.sport-exercise-suggestions button:hover,
+.sport-exercise-suggestions button:focus-visible,
+.sport-last-performance button:hover,
+.sport-last-performance button:focus-visible {
+  border-color: rgba(191, 91, 44, 0.42);
+  outline: none;
+}
+
+.sport-last-performance {
+  align-items: center;
+  border-left: 1px solid rgba(86, 70, 48, 0.14);
+  display: flex;
+  gap: 10px;
+  padding-left: 12px;
+}
+
+.sport-last-performance > div {
+  display: grid;
+  gap: 2px;
+}
+
+.sport-last-performance span {
+  color: var(--text-soft);
+  font-size: 0.68rem;
+}
+
+.sport-last-performance strong {
+  font-size: 0.79rem;
+  white-space: nowrap;
+}
+
+.sport-workspace-panel .sport-table-shell {
+  border-radius: 9px;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: rgba(86, 70, 48, 0.28) transparent;
+  scrollbar-width: thin;
+}
+
+.sport-workspace-panel .sport-performance-table {
+  min-width: 830px;
+}
+
+.sport-handle-column,
+.sport-handle-header,
+.sport-handle-cell {
+  width: 38px;
+}
+
+.sport-workspace-panel .sport-date-column,
+.sport-workspace-panel .sport-date-header,
+.sport-workspace-panel .sport-date-cell {
+  width: 126px;
+}
+
+.sport-workspace-panel .sport-exercise-column {
+  width: 205px;
+}
+
+.sport-workspace-panel .sport-sets-column,
+.sport-workspace-panel .sport-reps-column {
+  width: 62px;
+}
+
+.sport-workspace-panel .sport-weight-column,
+.sport-workspace-panel .sport-rest-column {
+  width: 72px;
+}
+
+.sport-comment-column {
+  width: 190px;
+}
+
+.sport-performance-table th {
+  font-size: 0.69rem;
+  letter-spacing: 0.035em;
+  padding: 8px 9px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.sport-performance-table td {
+  height: 46px;
+}
+
+.sport-performance-table .sport-input {
+  height: 46px;
+  padding: 0 9px;
+}
+
+.sport-performance-table .sport-number-input {
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.sport-performance-table .sport-input::placeholder {
+  color: var(--text-soft);
+  opacity: 0.52;
+}
+
+.sport-performance-table .sport-handle-header,
+.sport-performance-table .sport-handle-cell {
+  border-right-color: rgba(86, 70, 48, 0.2);
+  left: 0;
+  position: sticky;
+  z-index: 4;
+}
+
+.sport-performance-table .sport-handle-cell {
+  background: rgba(249, 244, 236, 0.98);
+  padding: 0;
+  text-align: center;
+}
+
+.sport-performance-table tr:nth-child(even) .sport-handle-cell {
+  background: rgba(244, 238, 228, 0.98);
+}
+
+.sport-row-handle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: grab;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  touch-action: pan-x pan-y;
+  transition: background 130ms ease, transform 130ms ease;
+  width: 28px;
+}
+
+.sport-row-handle > span {
+  background: var(--text-soft);
+  border-radius: 50%;
+  height: 3px;
+  opacity: 0.58;
+  width: 3px;
+}
+
+.sport-row-handle.is-pressing {
+  background: rgba(191, 91, 44, 0.11);
+  transform: scale(0.94);
+}
+
+.sport-row-handle.is-active {
+  background: rgba(191, 91, 44, 0.16);
+}
+
+.sport-sheet-hint {
+  margin: -2px 0 0;
+}
+
+.sport-row-menu {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid rgba(86, 70, 48, 0.2);
+  border-radius: 10px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  box-shadow: 0 14px 38px rgba(47, 36, 24, 0.22);
+  display: flex;
+  gap: 4px;
+  left: 50%;
+  max-width: calc(100vw - 24px);
+  padding: 5px;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 120;
+}
+
+.sport-row-menu > span {
+  color: var(--text-soft);
+  font-size: 0.7rem;
+  font-weight: 750;
+  padding: 0 7px;
+  white-space: nowrap;
+}
+
+.sport-row-menu button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  font: 650 0.76rem/1.1 var(--font-body);
+  min-height: 34px;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+.sport-row-menu button:hover,
+.sport-row-menu button:focus-visible {
+  background: rgba(86, 70, 48, 0.08);
+  outline: none;
+}
+
+.sport-row-menu button.is-danger {
+  color: #a63e32;
+}
+
+@media (max-width: 680px) {
+  .sport-workspace-panel {
+    border-left: 0;
+    border-radius: 0;
+    border-right: 0;
+    margin-inline: -14px;
+  }
+
+  .sport-workspace-header {
+    align-items: flex-start;
+    padding: 15px 14px 13px;
+  }
+
+  .sport-workspace-title > p:last-child {
+    display: none;
+  }
+
+  .sport-header-actions {
+    gap: 6px;
+  }
+
+  .sport-mode-switcher button {
+    min-height: 32px;
+    padding: 0 11px;
+  }
+
+  .sport-save-status {
+    font-size: 0.69rem;
+  }
+
+  .sport-save-status::before {
+    height: 6px;
+    width: 6px;
+  }
+
+  .sport-workspace-panel > .sport-table-panel {
+    padding: 0 14px 18px;
+  }
+
+  .sport-sheet-toolbar > div span {
+    display: none;
+  }
+
+  .sport-exercise-assist {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+    padding: 8px;
+  }
+
+  .sport-assist-suggestions {
+    padding-left: 3px;
+  }
+
+  .sport-last-performance {
+    border-left: 0;
+    border-top: 1px solid rgba(86, 70, 48, 0.14);
+    justify-content: space-between;
+    padding: 8px 2px 0;
+  }
+
+  .sport-workspace-panel .sport-performance-table {
+    min-width: 790px;
+  }
+
+  .sport-workspace-panel .sport-exercise-column {
+    width: 185px;
+  }
+
+  .sport-comment-column {
+    width: 170px;
+  }
+
+  .sport-sheet-hint {
+    line-height: 1.35;
+  }
+
+  .sport-row-menu {
+    bottom: calc(78px + env(safe-area-inset-bottom));
+    flex-wrap: wrap;
+    justify-content: center;
+    width: calc(100vw - 24px);
+  }
+
+  .sport-row-menu > span {
+    width: 100%;
+  }
+
+  .sport-row-menu button {
+    flex: 1 1 auto;
+  }
+
+  .sport-workspace-panel .sport-mass-entry-card {
+    grid-template-columns: 1fr;
+  }
+}
+
 #template-editor {
   min-height: 460px;
 }
@@ -2430,6 +2925,52 @@ body[data-theme="dark"] .sport-table tr:nth-child(even) td {
 body[data-theme="dark"] .sport-table td:focus-within {
   background: rgba(50, 44, 39, 0.82);
   box-shadow: inset 0 0 0 2px rgba(208, 122, 76, 0.42);
+}
+
+:root[data-theme="dark"] .sport-workspace-header,
+body[data-theme="dark"] .sport-workspace-header {
+  border-color: rgba(215, 201, 185, 0.14);
+}
+
+:root[data-theme="dark"] .sport-mode-switcher,
+body[data-theme="dark"] .sport-mode-switcher {
+  background: rgba(215, 201, 185, 0.08);
+  border-color: rgba(215, 201, 185, 0.12);
+}
+
+:root[data-theme="dark"] .sport-mode-switcher button.is-active,
+body[data-theme="dark"] .sport-mode-switcher button.is-active {
+  background: rgba(15, 18, 21, 0.86);
+}
+
+:root[data-theme="dark"] .sport-exercise-assist,
+body[data-theme="dark"] .sport-exercise-assist {
+  background: rgba(208, 122, 76, 0.08);
+  border-color: rgba(208, 122, 76, 0.22);
+}
+
+:root[data-theme="dark"] .sport-exercise-suggestions button,
+:root[data-theme="dark"] .sport-last-performance button,
+body[data-theme="dark"] .sport-exercise-suggestions button,
+body[data-theme="dark"] .sport-last-performance button {
+  background: rgba(15, 18, 21, 0.7);
+  border-color: rgba(215, 201, 185, 0.16);
+}
+
+:root[data-theme="dark"] .sport-performance-table .sport-handle-cell,
+body[data-theme="dark"] .sport-performance-table .sport-handle-cell {
+  background: rgba(18, 26, 23, 0.98);
+}
+
+:root[data-theme="dark"] .sport-performance-table tr:nth-child(even) .sport-handle-cell,
+body[data-theme="dark"] .sport-performance-table tr:nth-child(even) .sport-handle-cell {
+  background: rgba(31, 36, 42, 0.98);
+}
+
+:root[data-theme="dark"] .sport-row-menu,
+body[data-theme="dark"] .sport-row-menu {
+  border-color: rgba(215, 201, 185, 0.2);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.42);
 }
 
 :root[data-theme="dark"] .insight-card p,

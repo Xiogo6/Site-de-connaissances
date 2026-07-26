@@ -15,6 +15,9 @@
   let feedShuffleLocked = false;
   let editorPreviewTimer = null;
   let editorViewportTicking = false;
+  let sportRowPress = null;
+  let sportMenuIndex = null;
+  let sportActiveExerciseInput = null;
   let sidebarSwipe = {
     active: false,
     horizontal: false,
@@ -764,19 +767,30 @@
     context.elements.sportModeButtons?.forEach((button) => {
       button.addEventListener("click", () => {
         context.state.sportMode = button.dataset.sportMode || "mass";
+        closeSportRowMenu();
         context.renderers.renderSportTracker();
       });
     });
     context.elements.sportMassEntryForm?.addEventListener("submit", handleSportMassSubmit);
     context.elements.addSportPerformanceRowButton?.addEventListener("click", () =>
-      addSportRow("performance")
+      addSportRow("performance", { focusField: "exercise" })
     );
     context.elements.sportMassBody?.addEventListener("click", handleSportDelete);
-    context.elements.sportPerformanceBody?.addEventListener("click", handleSportDelete);
     context.elements.sportMassBody?.addEventListener("input", handleSportInput);
     context.elements.sportMassBody?.addEventListener("change", handleSportInput);
     context.elements.sportPerformanceBody?.addEventListener("input", handleSportInput);
     context.elements.sportPerformanceBody?.addEventListener("change", handleSportInput);
+    context.elements.sportPerformanceBody?.addEventListener("focusin", handleSportFocusIn);
+    context.elements.sportPerformanceBody?.addEventListener("keydown", handleSportKeydown);
+    context.elements.sportPerformanceBody?.addEventListener("pointerdown", handleSportRowPointerDown);
+    context.elements.sportPerformanceBody?.addEventListener("pointermove", handleSportRowPointerMove);
+    context.elements.sportPerformanceBody?.addEventListener("pointerup", handleSportRowPointerUp);
+    context.elements.sportPerformanceBody?.addEventListener("pointercancel", cancelSportRowPress);
+    context.elements.sportPerformanceBody?.addEventListener("click", handleSportPerformanceClick);
+    context.elements.sportExerciseSuggestions?.addEventListener("click", handleSportAssistClick);
+    context.elements.sportLastPerformance?.addEventListener("click", handleSportAssistClick);
+    context.elements.sportRowMenu?.addEventListener("click", handleSportRowMenuAction);
+    document.addEventListener("click", handleSportOutsideClick);
 
     context.elements.previewContent.addEventListener("click", handleRenderedLinkClick);
     context.elements.previewContent.addEventListener("change", handleChecklistToggle);
@@ -2240,22 +2254,26 @@
     return context.state.settings.sport;
   }
 
-  function addSportRow(table) {
+  function addSportRow(table, options = {}) {
     const sport = getSportSettings();
     if (table === "performance") {
       sport.performanceEntries.push({
-        date: getPreviousPerformanceDate() || getTodayInputDate(),
+        date: options.date || getPreviousPerformanceDate() || getTodayInputDate(),
         exercise: "",
         sets: "",
         reps: "",
         weight: "",
         rest: "",
+        comment: "",
       });
       context.state.sportMode = "performance";
     }
 
     saveSportChanges();
     context.renderers.renderSportTracker();
+    if (table === "performance" && options.focusField) {
+      focusSportCell(sport.performanceEntries.length - 1, options.focusField);
+    }
   }
 
   function handleSportMassSubmit(event) {
@@ -2312,9 +2330,391 @@
     }
 
     saveSportChanges();
+    if (table === "performance") {
+      updateSportExerciseAssist(input);
+    }
     if (table === "mass" && event.type === "change") {
       context.renderers.renderSportTracker();
     }
+  }
+
+  function handleSportFocusIn(event) {
+    const input = event.target.closest('[data-sport-table="performance"][data-sport-index]');
+    if (!input) {
+      return;
+    }
+
+    const row = input.closest("tr");
+    sportActiveExerciseInput = row?.querySelector('[data-sport-field="exercise"]') || null;
+    updateSportExerciseAssist(input);
+  }
+
+  function handleSportKeydown(event) {
+    const input = event.target.closest('[data-sport-table="performance"][data-sport-index]');
+    if (!input || (event.key !== "Enter" && event.key !== "Tab")) {
+      return;
+    }
+
+    const fields = ["date", "exercise", "sets", "reps", "weight", "rest", "comment"];
+    const field = input.dataset.sportField;
+    const fieldIndex = fields.indexOf(field);
+    const rowIndex = Number(input.dataset.sportIndex);
+    const sport = getSportSettings();
+    const isLastField = fieldIndex === fields.length - 1;
+    const isLastRow = rowIndex >= sport.performanceEntries.length - 1;
+
+    if (event.key === "Tab" && (!isLastField || !isLastRow || event.shiftKey)) {
+      return;
+    }
+
+    event.preventDefault();
+    if (!isLastField) {
+      focusSportCell(rowIndex, fields[fieldIndex + 1]);
+      return;
+    }
+
+    if (!isLastRow) {
+      focusSportCell(rowIndex + 1, "exercise");
+      return;
+    }
+
+    const currentDate = sport.performanceEntries[rowIndex]?.date || getTodayInputDate();
+    addSportRow("performance", { date: currentDate, focusField: "exercise" });
+  }
+
+  function focusSportCell(index, field) {
+    window.requestAnimationFrame(() => {
+      const input = context.elements.sportPerformanceBody?.querySelector(
+        `[data-sport-index="${index}"][data-sport-field="${field}"]`
+      );
+      input?.focus({ preventScroll: true });
+      input?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      if (typeof input?.select === "function" && field !== "date") {
+        input.select();
+      }
+    });
+  }
+
+  function normalizeExerciseName(value) {
+    return String(value || "")
+      .trim()
+      .toLocaleLowerCase("fr")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function getKnownExercises(entries, currentIndex) {
+    const seen = new Set();
+    const exercises = [];
+    for (let index = entries.length - 1; index >= 0; index -= 1) {
+      if (index === currentIndex) {
+        continue;
+      }
+      const label = String(entries[index]?.exercise || "").trim();
+      const normalized = normalizeExerciseName(label);
+      if (!normalized || seen.has(normalized)) {
+        continue;
+      }
+      seen.add(normalized);
+      exercises.push(label);
+    }
+    return exercises;
+  }
+
+  function updateSportExerciseAssist(sourceInput = sportActiveExerciseInput) {
+    const panel = context.elements.sportExerciseAssist;
+    const suggestionsContainer = context.elements.sportExerciseSuggestions;
+    const lastContainer = context.elements.sportLastPerformance;
+    if (!panel || !suggestionsContainer || !lastContainer) {
+      return;
+    }
+
+    const row = sourceInput?.closest("tr");
+    const exerciseInput =
+      row?.querySelector('[data-sport-field="exercise"]') || sportActiveExerciseInput;
+    if (!exerciseInput?.isConnected) {
+      panel.hidden = true;
+      return;
+    }
+
+    sportActiveExerciseInput = exerciseInput;
+    const entries = getSportSettings().performanceEntries;
+    const rowIndex = Number(exerciseInput.dataset.sportIndex);
+    const draft = String(exerciseInput.value || "").trim();
+    const normalizedDraft = normalizeExerciseName(draft);
+    const knownExercises = getKnownExercises(entries, rowIndex);
+    const suggestions = knownExercises
+      .filter((exercise) => {
+        const normalized = normalizeExerciseName(exercise);
+        return !normalizedDraft || normalized.includes(normalizedDraft);
+      })
+      .slice(0, 5);
+
+    suggestionsContainer.replaceChildren();
+    suggestions.forEach((exercise) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.sportExerciseSuggestion = exercise;
+      button.dataset.sportTargetIndex = String(rowIndex);
+      button.textContent = exercise;
+      suggestionsContainer.appendChild(button);
+    });
+    if (context.elements.sportAssistLabel) {
+      context.elements.sportAssistLabel.textContent = draft ? "Suggestions" : "Exercices recents";
+    }
+
+    const exactExercise = knownExercises.find(
+      (exercise) => normalizeExerciseName(exercise) === normalizedDraft
+    );
+    const previousMatch = exactExercise
+      ? [...entries]
+          .map((entry, index) => ({ entry, index }))
+          .reverse()
+          .find(
+            ({ entry, index }) =>
+              index !== rowIndex &&
+              normalizeExerciseName(entry.exercise) === normalizeExerciseName(exactExercise)
+          )
+      : null;
+    const previous = previousMatch?.entry || null;
+
+    lastContainer.replaceChildren();
+    if (previous) {
+      const copy = document.createElement("div");
+      const label = document.createElement("span");
+      const stats = document.createElement("strong");
+      label.textContent = `Derniere fois${previous.date ? ` · ${formatSportEntryDate(previous.date)}` : ""}`;
+      stats.textContent = [
+        previous.sets ? `${previous.sets} ser.` : "",
+        previous.reps ? `${previous.reps} rep.` : "",
+        previous.weight ? `${previous.weight} kg` : "",
+        previous.rest ? `${previous.rest} s` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ") || "Aucune statistique renseignee";
+      copy.append(label, stats);
+
+      const reuseButton = document.createElement("button");
+      reuseButton.type = "button";
+      reuseButton.dataset.sportReusePrevious = "true";
+      reuseButton.dataset.sportTargetIndex = String(rowIndex);
+      reuseButton.dataset.sportPreviousIndex = String(previousMatch.index);
+      reuseButton.textContent = "Reprendre";
+      lastContainer.append(copy, reuseButton);
+      lastContainer.hidden = false;
+    } else {
+      lastContainer.hidden = true;
+    }
+
+    panel.hidden = suggestions.length === 0 && !previous;
+  }
+
+  function formatSportEntryDate(value) {
+    const date = new Date(`${value}T12:00:00`);
+    return Number.isNaN(date.getTime())
+      ? value
+      : new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(date);
+  }
+
+  function handleSportAssistClick(event) {
+    const suggestion = event.target.closest("[data-sport-exercise-suggestion]");
+    if (suggestion) {
+      const targetIndex = Number(suggestion.dataset.sportTargetIndex);
+      const targetInput = context.elements.sportPerformanceBody?.querySelector(
+        `[data-sport-index="${targetIndex}"][data-sport-field="exercise"]`
+      );
+      if (!targetInput) {
+        return;
+      }
+      sportActiveExerciseInput = targetInput;
+      targetInput.value = suggestion.dataset.sportExerciseSuggestion || "";
+      targetInput.dispatchEvent(new Event("input", { bubbles: true }));
+      targetInput.focus();
+      return;
+    }
+
+    const reuseButton = event.target.closest("[data-sport-reuse-previous]");
+    if (!reuseButton) {
+      return;
+    }
+
+    const rowIndex = Number(reuseButton.dataset.sportTargetIndex);
+    const previousIndex = Number(reuseButton.dataset.sportPreviousIndex);
+    const entries = getSportSettings().performanceEntries;
+    const previous = entries[previousIndex];
+    const targetInput = context.elements.sportPerformanceBody?.querySelector(
+      `[data-sport-index="${rowIndex}"][data-sport-field="exercise"]`
+    );
+    if (!previous || !targetInput) {
+      return;
+    }
+
+    sportActiveExerciseInput = targetInput;
+    const row = targetInput.closest("tr");
+    ["sets", "reps", "weight", "rest"].forEach((field) => {
+      const input = row?.querySelector(`[data-sport-field="${field}"]`);
+      if (input) {
+        input.value = previous[field] || "";
+        entries[rowIndex][field] = input.value;
+      }
+    });
+    saveSportChanges();
+    updateSportExerciseAssist(sportActiveExerciseInput);
+    focusSportCell(rowIndex, "sets");
+  }
+
+  function handleSportRowPointerDown(event) {
+    const handle = event.target.closest("[data-sport-row-handle][data-sport-index]");
+    if (!handle || event.button > 0) {
+      return;
+    }
+
+    cancelSportRowPress();
+    sportRowPress = {
+      button: handle,
+      index: Number(handle.dataset.sportIndex),
+      startX: event.clientX,
+      startY: event.clientY,
+      long: false,
+      timer: window.setTimeout(() => {
+        if (!sportRowPress) {
+          return;
+        }
+        sportRowPress.long = true;
+        openSportRowMenu(sportRowPress.index, sportRowPress.button);
+        navigator.vibrate?.(20);
+      }, 520),
+    };
+    handle.classList.add("is-pressing");
+  }
+
+  function handleSportRowPointerMove(event) {
+    if (
+      !sportRowPress ||
+      Math.hypot(event.clientX - sportRowPress.startX, event.clientY - sportRowPress.startY) <= 9
+    ) {
+      return;
+    }
+    cancelSportRowPress();
+  }
+
+  function handleSportRowPointerUp() {
+    if (!sportRowPress) {
+      return;
+    }
+    window.clearTimeout(sportRowPress.timer);
+    sportRowPress.button?.classList.remove("is-pressing");
+  }
+
+  function cancelSportRowPress() {
+    if (!sportRowPress) {
+      return;
+    }
+    window.clearTimeout(sportRowPress.timer);
+    sportRowPress.button?.classList.remove("is-pressing");
+    sportRowPress = null;
+  }
+
+  function handleSportPerformanceClick(event) {
+    const handle = event.target.closest("[data-sport-row-handle][data-sport-index]");
+    if (!handle) {
+      return;
+    }
+
+    event.preventDefault();
+    if (sportRowPress?.long) {
+      sportRowPress = null;
+      return;
+    }
+    openSportRowMenu(Number(handle.dataset.sportIndex), handle);
+    sportRowPress = null;
+  }
+
+  function openSportRowMenu(index, handle) {
+    const menu = context.elements.sportRowMenu;
+    if (!menu || !Number.isInteger(index)) {
+      return;
+    }
+
+    context.elements.sportPerformanceBody
+      ?.querySelectorAll(".sport-row-handle.is-active")
+      .forEach((button) => button.classList.remove("is-active"));
+    handle?.classList.add("is-active");
+    sportMenuIndex = index;
+    if (context.elements.sportRowMenuLabel) {
+      context.elements.sportRowMenuLabel.textContent = `Ligne ${index + 1}`;
+    }
+    menu.hidden = false;
+  }
+
+  function closeSportRowMenu() {
+    context.elements.sportRowMenu?.setAttribute("hidden", "");
+    context.elements.sportPerformanceBody
+      ?.querySelectorAll(".sport-row-handle.is-active")
+      .forEach((button) => button.classList.remove("is-active"));
+    sportMenuIndex = null;
+  }
+
+  function handleSportOutsideClick(event) {
+    if (
+      context.elements.sportRowMenu?.hidden ||
+      event.target.closest("#sport-row-menu") ||
+      event.target.closest("[data-sport-row-handle]")
+    ) {
+      return;
+    }
+    closeSportRowMenu();
+  }
+
+  function handleSportRowMenuAction(event) {
+    const button = event.target.closest("[data-sport-row-action]");
+    if (!button || !Number.isInteger(sportMenuIndex)) {
+      return;
+    }
+
+    const sport = getSportSettings();
+    const entries = sport.performanceEntries;
+    const index = sportMenuIndex;
+    const existing = entries[index] || null;
+    const inheritedDate =
+      existing?.date || getPreviousPerformanceDate(index + 1) || getTodayInputDate();
+    let focusIndex = index;
+
+    if (button.dataset.sportRowAction === "insert-before") {
+      entries.splice(index, 0, createSportPerformanceEntry(inheritedDate));
+    } else if (button.dataset.sportRowAction === "insert-after") {
+      focusIndex = index + 1;
+      entries.splice(focusIndex, 0, createSportPerformanceEntry(inheritedDate));
+    } else if (button.dataset.sportRowAction === "duplicate" && existing) {
+      focusIndex = index + 1;
+      entries.splice(focusIndex, 0, { ...existing });
+    } else if (button.dataset.sportRowAction === "delete" && existing) {
+      entries.splice(index, 1);
+      focusIndex = Math.min(index, entries.length - 1);
+    } else {
+      closeSportRowMenu();
+      return;
+    }
+
+    closeSportRowMenu();
+    sportActiveExerciseInput = null;
+    saveSportChanges();
+    context.renderers.renderSportTracker();
+    if (focusIndex >= 0) {
+      focusSportCell(focusIndex, "exercise");
+    }
+  }
+
+  function createSportPerformanceEntry(date = "") {
+    return {
+      date,
+      exercise: "",
+      sets: "",
+      reps: "",
+      weight: "",
+      rest: "",
+      comment: "",
+    };
   }
 
   function handleSportDelete(event) {
@@ -2347,7 +2747,7 @@
     while (entries.length <= index) {
       entries.push(
         table === "performance"
-          ? { date: "", exercise: "", sets: "", reps: "", weight: "", rest: "" }
+          ? createSportPerformanceEntry()
           : { date: "", mass: "", fasted: false }
       );
     }

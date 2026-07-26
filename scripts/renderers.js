@@ -2119,9 +2119,7 @@
       ? massEntries.map(({ entry, index }) => buildSportMassRow(entry, index)).join("")
       : buildEmptySportMassRow();
     context.elements.sportPerformanceBody.innerHTML = performanceEntries
-      .map((entry, index) =>
-        buildSportPerformanceRow(entry, index, performanceEntries, index < sport.performanceEntries.length)
-      )
+      .map((entry, index) => buildSportPerformanceRow(entry, index))
       .join("");
   }
 
@@ -2130,7 +2128,7 @@
   }
 
   function createEmptySportPerformanceEntry() {
-    return { date: "", exercise: "", sets: "", reps: "", weight: "", rest: "" };
+    return { date: "", exercise: "", sets: "", reps: "", weight: "", rest: "", comment: "" };
   }
 
   function getMassEntryTimestamp({ entry, index }) {
@@ -2187,11 +2185,10 @@
       ? "ready"
       : "saved";
     context.elements.sportMassSaveStatus.textContent = Number.isNaN(timestamp)
-      ? "Sauvegarde automatique active sur cet appareil."
-      : `Sauvegarde locale effectuee a ${new Intl.DateTimeFormat("fr-FR", {
+      ? "Enregistrement automatique"
+      : `Enregistre a ${new Intl.DateTimeFormat("fr-FR", {
           hour: "2-digit",
           minute: "2-digit",
-          second: "2-digit",
         }).format(new Date(timestamp))}`;
   }
 
@@ -2258,50 +2255,43 @@
     `;
   }
 
-  function buildSportPerformanceRow(entry, index, entries, canDelete) {
-    const datalistId = `sport-exercises-${index}`;
-    const suggestions = unique(
-      entries
-        .slice(0, index)
-        .map((item) => String(item.exercise || "").trim())
-        .filter(Boolean)
-    );
-
+  function buildSportPerformanceRow(entry, index) {
     return `
-      <tr>
-        <td class="sport-delete-cell">
+      <tr data-sport-row-index="${index}">
+        <td class="sport-handle-cell">
           <button
-            class="sport-delete-button"
+            class="sport-row-handle"
             type="button"
-            data-delete-sport-row="performance"
+            data-sport-row-handle
             data-sport-index="${index}"
-            aria-label="Supprimer la ligne de performance"
-            title="Supprimer"
-            ${canDelete ? "" : "disabled"}
+            aria-label="Actions de la ligne ${index + 1}"
+            title="Appui long pour gerer la ligne"
           >
-            <span aria-hidden="true">&times;</span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
           </button>
         </td>
         <td class="sport-date-cell">
-          <input class="sport-input sport-date-input" type="date" value="${escapeHtml(entry.date || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="date" />
+          <input class="sport-input sport-date-input" aria-label="Date, ligne ${index + 1}" type="date" value="${escapeHtml(entry.date || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="date" />
         </td>
         <td>
-          <input class="sport-input sport-exercise-input" type="text" value="${escapeHtml(entry.exercise || "")}" list="${datalistId}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="exercise" />
-          <datalist id="${datalistId}">
-            ${suggestions.map((exercise) => `<option value="${escapeHtml(exercise)}"></option>`).join("")}
-          </datalist>
+          <input class="sport-input sport-exercise-input" aria-label="Exercice, ligne ${index + 1}" type="text" value="${escapeHtml(entry.exercise || "")}" placeholder="Nom de l'exercice" autocapitalize="sentences" autocomplete="off" enterkeyhint="next" data-sport-table="performance" data-sport-index="${index}" data-sport-field="exercise" />
         </td>
         <td>
-          <input class="sport-input" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(entry.sets || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="sets" />
+          <input class="sport-input sport-number-input" aria-label="Series, ligne ${index + 1}" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(entry.sets || "")}" placeholder="-" enterkeyhint="next" data-sport-table="performance" data-sport-index="${index}" data-sport-field="sets" />
         </td>
         <td>
-          <input class="sport-input" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(entry.reps || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="reps" />
+          <input class="sport-input sport-number-input" aria-label="Repetitions, ligne ${index + 1}" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(entry.reps || "")}" placeholder="-" enterkeyhint="next" data-sport-table="performance" data-sport-index="${index}" data-sport-field="reps" />
         </td>
         <td>
-          <input class="sport-input" type="text" inputmode="decimal" value="${escapeHtml(entry.weight || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="weight" />
+          <input class="sport-input sport-number-input" aria-label="Masse en kilogrammes, ligne ${index + 1}" type="text" inputmode="decimal" value="${escapeHtml(entry.weight || "")}" placeholder="-" enterkeyhint="next" data-sport-table="performance" data-sport-index="${index}" data-sport-field="weight" />
         </td>
         <td>
-          <input class="sport-input" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(entry.rest || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="rest" />
+          <input class="sport-input sport-number-input" aria-label="Repos en secondes, ligne ${index + 1}" type="text" inputmode="numeric" pattern="[0-9]*" value="${escapeHtml(entry.rest || "")}" placeholder="-" enterkeyhint="next" data-sport-table="performance" data-sport-index="${index}" data-sport-field="rest" />
+        </td>
+        <td>
+          <input class="sport-input sport-comment-input" aria-label="Note, ligne ${index + 1}" type="text" value="${escapeHtml(entry.comment || "")}" placeholder="Facultatif" autocomplete="off" enterkeyhint="next" data-sport-table="performance" data-sport-index="${index}" data-sport-field="comment" />
         </td>
       </tr>
     `;

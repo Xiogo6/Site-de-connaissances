@@ -80,7 +80,7 @@
       quizView: "play",
       quizStatsDrilldown: null,
       quizReturnActive: false,
-      sportMode: "mass",
+      sportMode: "performance",
       editorQuizQuestions: [],
       editorQuizQuestionsNoteId: null,
       aiRewriteBackup: null,
