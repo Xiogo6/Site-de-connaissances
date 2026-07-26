@@ -290,6 +290,12 @@
     const aiConfig = context.ai?.getConfig?.() || context.state.aiConfig || {};
     const aiStatus = context.state.aiStatus || context.ai?.getDefaultStatus?.() || {};
     const hasRewriteBackup = context.ai?.hasRewriteBackup?.();
+    const shouldShowAiStatus = Boolean(
+      aiStatus.busy ||
+        aiStatus.error ||
+        aiStatus.message ||
+        ["error", "success"].includes(aiStatus.type)
+    );
     context.elements.knowledgeWorkspace.classList.toggle("is-editing", isEditing);
     document.body.classList.toggle("note-editor-active", isEditing);
     if (!isEditing) {
@@ -315,7 +321,7 @@
       "is-hidden",
       !isEditing || !context.state.activeNoteId
     );
-    aiWrapper?.classList.toggle("is-hidden", !isEditing || readOnly);
+    aiWrapper?.classList.toggle("is-hidden", !isEditing || readOnly || !shouldShowAiStatus);
     if (context.elements.aiAssistButton) {
       const isBusy = Boolean(aiStatus.busy);
       const label = isBusy ? "Gemini en cours..." : "Reformuler";
@@ -445,6 +451,7 @@
       context.elements.noteDateStart,
       context.elements.noteDateEnd,
       ...context.elements.formatButtons,
+      context.elements.editorQuestionsButton,
       context.elements.contentInput,
       context.elements.deleteActiveNoteButton,
       context.elements.aiAssistButton,
@@ -798,8 +805,27 @@
     `;
   }
 
+  function renderEditorUpdatedAt(note = context.notes.getActiveNote()) {
+    if (!context.elements.editorUpdatedAt) {
+      return;
+    }
+
+    const updatedAt = note?.updatedAt ? new Date(note.updatedAt) : null;
+    const formatted =
+      updatedAt && !Number.isNaN(updatedAt.getTime())
+        ? new Intl.DateTimeFormat("fr-FR", {
+            dateStyle: "medium",
+            timeStyle: "short",
+          }).format(updatedAt)
+        : "inconnue";
+    context.elements.editorUpdatedAt.textContent = note
+      ? `Dernière mise à jour : ${formatted}`
+      : "";
+  }
+
   function hydrateEditorFromActiveNote() {
     const note = context.notes.getActiveNote();
+    renderEditorUpdatedAt(note);
     if (!note) {
       context.state.editorTemplateSeed = null;
       context.state.editorQuizQuestions = [];
@@ -2108,6 +2134,7 @@
       "is-hidden",
       context.state.sportMode !== "performance"
     );
+    renderSportTableZoom();
 
     if (context.elements.sportMassDate && !context.elements.sportMassDate.value) {
       context.elements.sportMassDate.value = getTodayInputDate();
@@ -2206,6 +2233,43 @@
       : new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(date);
   }
 
+  function formatSportPerformanceDate(value) {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+      return value || "";
+    }
+
+    const [, year, month, day] = match;
+    return Number(year) === new Date().getFullYear()
+      ? `${day}/${month}`
+      : `${day}/${month}/${year.slice(-2)}`;
+  }
+
+  function renderSportTableZoom() {
+    const table = context.elements.sportPerformanceTable;
+    if (!table) {
+      return;
+    }
+
+    if (!Number.isFinite(context.state.sportTableZoom)) {
+      context.state.sportTableZoom = window.matchMedia("(max-width: 680px)").matches ? 0.56 : 1;
+    }
+
+    const zoom = Math.min(1, Math.max(0.56, context.state.sportTableZoom));
+    context.state.sportTableZoom = zoom;
+    table.style.zoom = String(zoom);
+    table.dataset.sportCompact = zoom <= 0.56 ? "true" : "false";
+    if (context.elements.sportZoomLabel) {
+      context.elements.sportZoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+    }
+    if (context.elements.sportZoomOut) {
+      context.elements.sportZoomOut.disabled = zoom <= 0.56;
+    }
+    if (context.elements.sportZoomIn) {
+      context.elements.sportZoomIn.disabled = zoom >= 1;
+    }
+  }
+
   function getTodayInputDate() {
     const now = new Date();
     const year = now.getFullYear();
@@ -2273,7 +2337,7 @@
           </button>
         </td>
         <td class="sport-date-cell">
-          <input class="sport-input sport-date-input" aria-label="Date, ligne ${index + 1}" type="date" value="${escapeHtml(entry.date || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="date" />
+          <input class="sport-input sport-date-input" aria-label="Date, ligne ${index + 1}" type="text" inputmode="numeric" maxlength="8" value="${escapeHtml(formatSportPerformanceDate(entry.date))}" placeholder="jj/mm" enterkeyhint="next" data-sport-date-value="${escapeHtml(entry.date || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="date" />
         </td>
         <td>
           <input class="sport-input sport-exercise-input" aria-label="Exercice, ligne ${index + 1}" type="text" value="${escapeHtml(entry.exercise || "")}" placeholder="Nom de l'exercice" autocapitalize="sentences" autocomplete="off" enterkeyhint="next" data-sport-table="performance" data-sport-index="${index}" data-sport-field="exercise" />
@@ -2470,7 +2534,7 @@
           }));
 
         return folderOptions.length
-          ? [{ value: "", label: "Choisir un dossier" }, ...folderOptions]
+          ? [{ value: "", label: "Aucun dossier (racine)" }, ...folderOptions]
           : [{ value: "", label: "Aucun dossier disponible" }];
       })(),
       context.notes.getActiveNote()?.parentId || ""
@@ -2517,6 +2581,7 @@
     renderKnowledgeList,
     renderKnowledgeMode,
     renderLivePreview,
+    renderEditorUpdatedAt,
     renderOrganization,
     renderOrganizationDropzone,
     renderPreview,
@@ -2530,6 +2595,7 @@
     renderSidebarTabs,
     renderStats,
     renderSportSaveStatus,
+    renderSportTableZoom,
     renderSportTracker,
     renderStructuredFields,
     renderTagSuggestions,

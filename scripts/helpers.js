@@ -291,6 +291,7 @@
     const lines = content.split("\n");
     let listBuffer = [];
     let paragraphBuffer = [];
+    let blankLineCount = 0;
 
     const flushList = () => {
       if (!listBuffer.length) {
@@ -314,15 +315,28 @@
       paragraphBuffer = [];
     };
 
+    const flushBlankSpacing = () => {
+      if (blankLineCount > 1) {
+        blocks.push(
+          `<div class="note-blank-space" style="--note-blank-lines: ${
+            blankLineCount - 1
+          }" aria-hidden="true"></div>`
+        );
+      }
+      blankLineCount = 0;
+    };
+
     lines.forEach((line, lineIndex) => {
       const trimmed = line.trim();
 
       if (!trimmed) {
-        // An empty line means two consecutive line breaks; one line break stays in the same paragraph.
         flushParagraph();
         flushList();
+        blankLineCount += 1;
         return;
       }
+
+      flushBlankSpacing();
 
       const checklistMatch = trimmed.match(/^-\s+\[( |x|X)\]\s+(.*)$/);
       if (checklistMatch) {
@@ -362,6 +376,7 @@
 
     flushParagraph();
     flushList();
+    flushBlankSpacing();
     return blocks.join("");
   }
 

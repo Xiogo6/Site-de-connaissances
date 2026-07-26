@@ -1093,6 +1093,11 @@ body[data-theme="dark"] .preview-note-card {
   margin-top: 1.15rem;
 }
 
+.rendered-note .note-blank-space {
+  height: calc(var(--note-blank-lines, 1) * 1.42em);
+  pointer-events: none;
+}
+
 .rendered-note ul {
   padding-left: 1.5rem;
 }
@@ -2342,6 +2347,59 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   min-width: 0;
 }
 
+.sport-sheet-actions {
+  align-items: center !important;
+  flex: 0 0 auto;
+  gap: 7px !important;
+}
+
+.sport-zoom-controls {
+  align-items: center;
+  background: rgba(86, 70, 48, 0.06);
+  border: 1px solid rgba(86, 70, 48, 0.14);
+  border-radius: 7px;
+  display: inline-flex;
+  height: 32px;
+  overflow: hidden;
+}
+
+.sport-zoom-controls button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  font: 700 1rem/1 var(--font-body);
+  height: 100%;
+  justify-content: center;
+  padding: 0;
+  width: 30px;
+}
+
+.sport-zoom-controls button:hover:not(:disabled),
+.sport-zoom-controls button:focus-visible {
+  background: rgba(86, 70, 48, 0.08);
+  outline: none;
+}
+
+.sport-zoom-controls button:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+.sport-zoom-controls span {
+  border-left: 1px solid rgba(86, 70, 48, 0.12);
+  border-right: 1px solid rgba(86, 70, 48, 0.12);
+  color: var(--text);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  line-height: 30px;
+  min-width: 39px;
+  text-align: center;
+}
+
 .sport-sheet-toolbar strong {
   font-size: 0.96rem;
 }
@@ -2528,6 +2586,12 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
 .sport-performance-table .sport-input {
   height: 46px;
   padding: 0 9px;
+  pointer-events: auto;
+  position: relative;
+  touch-action: manipulation;
+  -webkit-user-select: text;
+  user-select: text;
+  z-index: 1;
 }
 
 .sport-performance-table .sport-number-input {
@@ -2538,6 +2602,59 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
 .sport-performance-table .sport-input::placeholder {
   color: var(--text-soft);
   opacity: 0.52;
+}
+
+.sport-performance-table[data-sport-compact="true"] {
+  min-width: 570px;
+}
+
+.sport-performance-table[data-sport-compact="true"] .sport-handle-column {
+  width: 36px;
+}
+
+.sport-performance-table[data-sport-compact="true"] .sport-date-column {
+  width: 112px;
+}
+
+.sport-performance-table[data-sport-compact="true"] .sport-exercise-column {
+  width: 175px;
+}
+
+.sport-performance-table[data-sport-compact="true"] .sport-sets-column,
+.sport-performance-table[data-sport-compact="true"] .sport-reps-column {
+  width: 55px;
+}
+
+.sport-performance-table[data-sport-compact="true"] .sport-weight-column,
+.sport-performance-table[data-sport-compact="true"] .sport-rest-column {
+  width: 62px;
+}
+
+.sport-performance-table[data-sport-compact="true"] .sport-comment-column,
+.sport-performance-table[data-sport-compact="true"] th:last-child,
+.sport-performance-table[data-sport-compact="true"] td:last-child {
+  display: none;
+}
+
+.sport-performance-table[data-sport-compact="true"] th {
+  font-size: 0.82rem;
+  padding-block: 11px;
+}
+
+.sport-performance-table[data-sport-compact="true"] td,
+.sport-performance-table[data-sport-compact="true"] .sport-input {
+  font-size: 1rem;
+  height: 66px;
+}
+
+.sport-performance-table[data-sport-compact="true"] .sport-row-handle {
+  height: 54px;
+  width: 38px;
+}
+
+.sport-performance-table[data-sport-compact="true"] .sport-row-handle > span {
+  height: 5px;
+  width: 5px;
 }
 
 .sport-performance-table .sport-handle-header,
@@ -2682,7 +2799,7 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
     padding: 0 14px 18px;
   }
 
-  .sport-sheet-toolbar > div span {
+  .sport-sheet-toolbar > div:first-child > span {
     display: none;
   }
 
@@ -2705,6 +2822,14 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
 
   .sport-workspace-panel .sport-performance-table {
     min-width: 790px;
+  }
+
+  .sport-workspace-panel .sport-performance-table[data-sport-compact="true"] {
+    min-width: 570px;
+  }
+
+  .sport-performance-table .sport-input {
+    font-size: 16px;
   }
 
   .sport-workspace-panel .sport-exercise-column {

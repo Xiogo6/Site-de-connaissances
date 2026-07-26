@@ -3736,63 +3736,75 @@ body.graph-view-active .graph-panel {
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    padding: 0 0 calc(78px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 0 0 calc(150px + env(safe-area-inset-bottom, 0px)) !important;
     position: fixed;
     right: 0;
+    scroll-padding-bottom: calc(138px + env(safe-area-inset-bottom, 0px));
     scroll-padding-top: 58px;
     top: var(--editor-viewport-top, 0px);
     z-index: 200;
   }
 
   body.note-editor-active .panel-editor > .panel-header {
-    -webkit-backdrop-filter: blur(18px) saturate(1.25);
-    backdrop-filter: blur(18px) saturate(1.25);
-    background: color-mix(in srgb, var(--theme-page-surface, var(--surface)) 90%, transparent);
-    border-bottom: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+    background: transparent;
+    border: 0;
     flex: 0 0 auto;
-    min-height: 56px;
+    min-height: 0;
     order: 0;
-    padding:
-      max(8px, env(safe-area-inset-top, 0px))
-      16px
-      8px;
-    position: sticky;
-    top: 0;
-    z-index: 225;
+    padding: 0;
+    position: static;
   }
 
-  body.note-editor-active .panel-editor > .panel-header > :first-child,
-  body.note-editor-active #delete-active-note-button {
+  body.note-editor-active .panel-editor > .panel-header > :first-child {
     display: none;
   }
 
   body.note-editor-active .panel-editor > .panel-header .inline-actions {
     align-items: center;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
     display: flex;
-    justify-content: space-between;
-    width: 100%;
+    gap: 8px;
+    justify-content: flex-end;
+    position: fixed;
+    right: 12px;
+    width: auto;
+    z-index: 245;
+  }
+
+  body.note-editor-active .editor-document-actions .button {
+    align-items: center;
+    border-radius: 14px;
+    box-shadow: 0 8px 22px color-mix(in srgb, #000 16%, transparent);
+    display: inline-flex;
+    height: 46px;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0;
+    width: 46px;
+  }
+
+  body.note-editor-active .editor-document-actions .button-label {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
   }
 
   body.note-editor-active #cancel-note-button {
     order: 1;
   }
 
-  body.note-editor-active #save-button {
-    border-radius: 999px;
-    min-width: 0;
+  body.note-editor-active #delete-active-note-button {
+    display: inline-flex;
     order: 2;
-    padding: 0 15px;
-    width: auto;
   }
 
-  body.note-editor-active #save-button .button-label {
-    clip: auto;
-    clip-path: none;
-    height: auto;
-    margin: 0;
-    overflow: visible;
-    position: static;
-    width: auto;
+  body.note-editor-active #save-button {
+    order: 3;
+    width: 50px;
   }
 
   body.note-editor-active .editor-metadata-panel {
@@ -3807,12 +3819,11 @@ body.graph-view-active .graph-panel {
 
   body.note-editor-active .editor-metadata-reveal {
     align-items: center;
-    color: var(--text-soft);
-    display: grid;
-    gap: 4px;
+    display: flex;
     justify-items: center;
-    padding: 0 0 4px;
-    text-align: center;
+    justify-content: center;
+    min-height: 8px;
+    padding: 0;
   }
 
   body.note-editor-active .editor-metadata-reveal > span {
@@ -3820,17 +3831,7 @@ body.graph-view-active .graph-panel {
     border-radius: 999px;
     display: block;
     height: 4px;
-    margin-bottom: 4px;
     width: 38px;
-  }
-
-  body.note-editor-active .editor-metadata-reveal strong {
-    color: var(--text);
-    font-size: 0.82rem;
-  }
-
-  body.note-editor-active .editor-metadata-reveal small {
-    font-size: 0.72rem;
   }
 
   body.note-editor-active .editor-metadata-panel .form-grid-meta {
@@ -3841,6 +3842,16 @@ body.graph-view-active .graph-panel {
   }
 
   body.note-editor-active .editor-metadata-panel .note-detail-panel {
+    margin: 0;
+  }
+
+  body.note-editor-active .editor-metadata-panel .editor-parent-field {
+    grid-column: 1 / -1;
+  }
+
+  body.note-editor-active .editor-updated-at {
+    color: var(--text-soft);
+    font-size: 0.78rem;
     margin: 0;
   }
 
@@ -3891,9 +3902,46 @@ body.graph-view-active .graph-panel {
     padding: 0 22px;
   }
 
-  body.note-editor-active .editor-label > .field-label,
-  body.note-editor-active .editor-mini-actions {
+  body.note-editor-active .editor-label > .field-label {
     display: none;
+  }
+
+  body.note-editor-active .editor-mini-actions {
+    align-items: center;
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    gap: 8px;
+    left: 12px;
+    position: fixed;
+    z-index: 245;
+  }
+
+  body.note-editor-active .editor-mini-actions .button {
+    align-items: center;
+    background: color-mix(in srgb, var(--theme-button-surface, var(--surface)) 94%, transparent);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 8px 22px color-mix(in srgb, #000 14%, transparent);
+    display: inline-flex;
+    height: 46px;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0;
+    width: 46px;
+  }
+
+  body.note-editor-active .editor-mini-actions .button.is-hidden {
+    display: none;
+  }
+
+  body.note-editor-active .editor-mini-actions .button-label {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
   }
 
   body[data-theme-preset].note-editor-active .editor,
@@ -3910,7 +3958,7 @@ body.graph-view-active .graph-panel {
     max-height: none;
     min-height: calc(var(--editor-viewport-height, 100dvh) - 204px);
     overflow: hidden;
-    padding: 10px 0 48px;
+    padding: 10px 0 calc(170px + env(safe-area-inset-bottom, 0px));
     resize: none;
     scrollbar-gutter: auto;
     transform: none;
@@ -3924,7 +3972,7 @@ body.graph-view-active .graph-panel {
 
   body.note-editor-active .editor-toolbar {
     align-items: center;
-    background: color-mix(in srgb, var(--theme-nav-background, var(--surface)) 94%, transparent);
+    background: var(--theme-page-surface, var(--surface)) !important;
     border: 0;
     border-top: 1px solid var(--line);
     border-radius: 0;
@@ -4022,9 +4070,60 @@ body.graph-view-active .graph-panel {
     font-weight: 750;
   }
 
-  body.note-editor-active .editor-secondary-actions,
+  body.note-editor-active #editor-questions-button::before {
+    content: "Q";
+    font-size: 0.95rem !important;
+    font-weight: 800;
+  }
+
+  body.note-editor-active .editor-secondary-actions:not(.is-hidden) {
+    bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    left: 12px;
+    pointer-events: none;
+    position: fixed;
+    right: 12px;
+    z-index: 246;
+  }
+
+  body.note-editor-active .editor-secondary-actions.is-hidden {
+    display: none !important;
+  }
+
+  body.note-editor-active .editor-secondary-actions .pill {
+    box-shadow: 0 8px 22px color-mix(in srgb, #000 14%, transparent);
+    max-width: min(70vw, 360px);
+  }
+
   body.note-editor-active .quiz-bank-panel {
-    display: none;
+    background: color-mix(in srgb, var(--theme-section-surface, var(--surface)) 92%, transparent);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    display: grid;
+    flex: 0 0 auto;
+    margin: 18px 14px 24px;
+    order: 4;
+    padding: 16px;
+    scroll-margin-top: 12px;
+  }
+
+  body.note-editor-active .quiz-bank-panel .section-heading {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  body.note-editor-active .quiz-bank-panel .section-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  body.note-editor-active .quiz-bank-panel .section-actions .button {
+    min-height: 40px;
+  }
+
+  body.note-editor-active .quiz-bank-panel .quiz-bank-shell {
+    overflow-x: auto;
   }
 
   @supports not (field-sizing: content) {
