@@ -839,6 +839,7 @@
                 "reps",
                 "weight",
                 "rest",
+                "comment",
               ])
             )
           : [],
