@@ -42,7 +42,7 @@
       utilityDrawer: document.querySelector("#utility-drawer"),
       utilityLinks: [...document.querySelectorAll("[data-utility-tab]")],
       themeToggleButton: document.querySelector("#theme-toggle-button"),
-      themePresetButtons: [...document.querySelectorAll("[data-theme-preset]")],
+      themePresetButtons: [...document.querySelectorAll("button[data-theme-preset]")],
       themePreferenceStatus: document.querySelector("#theme-preference-status"),
       themeSettingsPanel: document.querySelector("#theme-settings-panel"),
       panels: {

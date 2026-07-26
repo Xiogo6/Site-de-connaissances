@@ -2257,7 +2257,8 @@
 
     const zoom = Math.min(1, Math.max(0.56, context.state.sportTableZoom));
     context.state.sportTableZoom = zoom;
-    table.style.zoom = String(zoom);
+    table.style.removeProperty("zoom");
+    table.dataset.sportZoom = String(Math.round(zoom * 100));
     table.dataset.sportCompact = zoom <= 0.56 ? "true" : "false";
     if (context.elements.sportZoomLabel) {
       context.elements.sportZoomLabel.textContent = `${Math.round(zoom * 100)}%`;

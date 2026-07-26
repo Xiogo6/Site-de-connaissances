@@ -798,6 +798,7 @@
     context.elements.sportPerformanceBody?.addEventListener("pointerdown", handleSportRowPointerDown);
     context.elements.sportPerformanceBody?.addEventListener("pointermove", handleSportRowPointerMove);
     context.elements.sportPerformanceBody?.addEventListener("pointerup", handleSportRowPointerUp);
+    context.elements.sportPerformanceBody?.addEventListener("pointerup", handleSportCellPointerUp);
     context.elements.sportPerformanceBody?.addEventListener("pointercancel", cancelSportRowPress);
     context.elements.sportPerformanceBody?.addEventListener("click", handleSportPerformanceClick);
     context.elements.sportExerciseSuggestions?.addEventListener("click", handleSportAssistClick);
@@ -2857,6 +2858,19 @@
     sportRowPress.button?.classList.remove("is-pressing");
   }
 
+  function handleSportCellPointerUp(event) {
+    const input =
+      event.target.closest('[data-sport-table="performance"][data-sport-field]') ||
+      event.target
+        .closest("td")
+        ?.querySelector('[data-sport-table="performance"][data-sport-field]');
+    if (!input || event.target.closest("[data-sport-row-handle]")) {
+      return;
+    }
+
+    input.focus({ preventScroll: true });
+  }
+
   function cancelSportRowPress() {
     if (!sportRowPress) {
       return;
@@ -2871,8 +2885,8 @@
     if (!handle) {
       const cell = event.target.closest("td");
       const input = cell?.querySelector('[data-sport-table="performance"][data-sport-field]');
-      if (input && event.target !== input) {
-        input.focus();
+      if (input) {
+        input.focus({ preventScroll: true });
       }
       return;
     }
