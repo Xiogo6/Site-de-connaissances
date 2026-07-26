@@ -63,7 +63,7 @@
       })();
     </script>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=71" />
+    <link rel="stylesheet" href="./styles.css?v=76" />
   </head>
   <body>
     <div class="shell">
@@ -333,8 +333,13 @@
                 <div>
                   <p class="eyebrow">Edition</p>
                 </div>
-                <div class="inline-actions">
-                  <button id="delete-active-note-button" class="button button-danger button-mobile-icon" type="button">
+                <div class="inline-actions editor-document-actions" aria-label="Actions de la page">
+                  <button
+                    id="delete-active-note-button"
+                    class="button button-danger button-mobile-icon"
+                    type="button"
+                    title="Supprimer la page"
+                  >
                     <span class="button-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" role="presentation">
                         <path d="M4 7h16" />
@@ -345,7 +350,12 @@
                     </span>
                     <span class="button-label">Supprimer</span>
                   </button>
-                  <button id="save-button" class="button button-primary button-mobile-icon" type="button">
+                  <button
+                    id="save-button"
+                    class="button button-primary button-mobile-icon"
+                    type="button"
+                    title="Enregistrer"
+                  >
                     <span class="button-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" role="presentation">
                         <path d="M6 5h10l2 2v12H6z" />
@@ -355,7 +365,12 @@
                     </span>
                     <span class="button-label">Enregistrer</span>
                   </button>
-                  <button id="cancel-note-button" class="button button-ghost button-mobile-icon is-hidden" type="button">
+                  <button
+                    id="cancel-note-button"
+                    class="button button-ghost button-mobile-icon is-hidden"
+                    type="button"
+                    title="Annuler les modifications"
+                  >
                     <span class="button-icon" aria-hidden="true">
                       <svg viewBox="0 0 24 24" role="presentation">
                         <path d="M6 6l12 12M18 6L6 18" />
@@ -383,8 +398,6 @@
               <div id="editor-metadata-panel" class="editor-metadata-panel">
                 <div class="editor-metadata-reveal" aria-hidden="true">
                   <span></span>
-                  <strong>Informations de la page</strong>
-                  <small>Tirez vers le bas pour les afficher</small>
                 </div>
 
                 <div class="form-grid form-grid-meta">
@@ -480,16 +493,39 @@
                   </div>
                 </div>
                 </div>
+                <p id="editor-updated-at" class="editor-updated-at"></p>
               </div>
 
               <section class="editor-label" aria-labelledby="note-content-label">
                 <span id="note-content-label" class="field-label">Contenu</span>
                 <div class="editor-mini-actions">
-                  <button id="ai-assist-button" class="button button-inline button-flat" type="button">
-                    Reformuler
+                  <button
+                    id="ai-assist-button"
+                    class="button button-inline button-flat"
+                    type="button"
+                    title="Reformuler avec Gemini"
+                  >
+                    <span class="button-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" role="presentation">
+                        <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z" />
+                        <path d="M18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />
+                      </svg>
+                    </span>
+                    <span class="button-label">Reformuler</span>
                   </button>
-                  <button id="ai-undo-button" class="button button-inline button-flat is-hidden" type="button">
-                    Annuler reformulation
+                  <button
+                    id="ai-undo-button"
+                    class="button button-inline button-flat is-hidden"
+                    type="button"
+                    title="Annuler la reformulation"
+                  >
+                    <span class="button-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" role="presentation">
+                        <path d="M9 7H5v-4" />
+                        <path d="M5 7c2-2.5 4.5-3.7 7.5-3.5A8 8 0 1 1 6 16" />
+                      </svg>
+                    </span>
+                    <span class="button-label">Annuler reformulation</span>
                   </button>
                 </div>
                 <div class="editor-toolbar" role="toolbar" aria-label="Mise en forme">
@@ -519,6 +555,14 @@
                   </button>
                   <button class="button button-inline" data-format-action="today" type="button" title="Date">
                     Date
+                  </button>
+                  <button
+                    id="editor-questions-button"
+                    class="button button-inline"
+                    type="button"
+                    title="Questions de la page"
+                  >
+                    Questions
                   </button>
                 </div>
                 <textarea
@@ -1308,15 +1352,22 @@
                     <strong>Ma seance</strong>
                     <span>Entree passe a la case suivante</span>
                   </div>
-                  <button
-                    id="add-sport-performance-row"
-                    class="sport-add-row-button"
-                    type="button"
-                    aria-label="Ajouter une ligne"
-                  >
-                    <span aria-hidden="true">+</span>
-                    Ligne
-                  </button>
+                  <div class="sport-sheet-actions">
+                    <div class="sport-zoom-controls" aria-label="Zoom du tableau">
+                      <button id="sport-zoom-out" type="button" aria-label="Dezoomer le tableau">−</button>
+                      <span id="sport-zoom-label">100%</span>
+                      <button id="sport-zoom-in" type="button" aria-label="Zoomer le tableau">+</button>
+                    </div>
+                    <button
+                      id="add-sport-performance-row"
+                      class="sport-add-row-button"
+                      type="button"
+                      aria-label="Ajouter une ligne"
+                    >
+                      <span aria-hidden="true">+</span>
+                      Ligne
+                    </button>
+                  </div>
                 </div>
 
                 <div id="sport-exercise-assist" class="sport-exercise-assist" hidden>
@@ -1567,17 +1618,17 @@
       </div>
     </div>
 
-    <script src="./scripts/config.js?v=70"></script>
-    <script src="./scripts/dom.js?v=71"></script>
-    <script src="./scripts/helpers.js?v=70"></script>
-    <script src="./scripts/data.js?v=71"></script>
-    <script src="./scripts/ai.js?v=70"></script>
-    <script src="./scripts/notes.js?v=70"></script>
-    <script src="./scripts/graph.js?v=70"></script>
-    <script src="./scripts/quiz.js?v=70"></script>
-    <script src="./scripts/mascot.js?v=70"></script>
-    <script src="./scripts/renderers.js?v=71"></script>
-    <script src="./scripts/events.js?v=71"></script>
-    <script src="./app.js?v=71"></script>
+    <script src="./scripts/config.js?v=76"></script>
+    <script src="./scripts/dom.js?v=76"></script>
+    <script src="./scripts/helpers.js?v=76"></script>
+    <script src="./scripts/data.js?v=76"></script>
+    <script src="./scripts/ai.js?v=76"></script>
+    <script src="./scripts/notes.js?v=76"></script>
+    <script src="./scripts/graph.js?v=76"></script>
+    <script src="./scripts/quiz.js?v=76"></script>
+    <script src="./scripts/mascot.js?v=76"></script>
+    <script src="./scripts/renderers.js?v=76"></script>
+    <script src="./scripts/events.js?v=76"></script>
+    <script src="./app.js?v=76"></script>
   </body>
 </html>

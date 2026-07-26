@@ -475,6 +475,12 @@ body[data-theme="dark"] .tab.is-active {
   display: none;
 }
 
+.editor-updated-at {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
 .helper-grid {
   grid-template-columns: repeat(2, 1fr);
   margin-top: 16px;

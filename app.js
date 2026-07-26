@@ -81,6 +81,7 @@
       quizStatsDrilldown: null,
       quizReturnActive: false,
       sportMode: "performance",
+      sportTableZoom: null,
       editorQuizQuestions: [],
       editorQuizQuestionsNoteId: null,
       aiRewriteBackup: null,

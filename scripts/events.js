@@ -15,6 +15,7 @@
   let feedShuffleLocked = false;
   let editorPreviewTimer = null;
   let editorViewportTicking = false;
+  let editorCaretTicking = false;
   let sportRowPress = null;
   let sportMenuIndex = null;
   let sportActiveExerciseInput = null;
@@ -533,7 +534,10 @@
     context.elements.contentInput.addEventListener("input", () => {
       context.notes.handleEditorContentChange();
       scheduleEditorLivePreview();
+      scheduleEditorCaretVisibility();
     });
+    context.elements.contentInput.addEventListener("click", scheduleEditorCaretVisibility);
+    context.elements.contentInput.addEventListener("keyup", scheduleEditorCaretVisibility);
     context.elements.panelEditor?.addEventListener("focusin", (event) => {
       if (event.target.matches("input, textarea, select")) {
         setEditorWritingMode(true);
@@ -546,13 +550,11 @@
         }
       }, 120);
     });
-    context.elements.contentInput.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        context.elements.contentInput.blur();
-      }
-    });
+    context.elements.contentInput.addEventListener("keydown", handleEditorContentKeydown);
     window.visualViewport?.addEventListener("resize", scheduleEditorViewportSync);
     window.visualViewport?.addEventListener("scroll", scheduleEditorViewportSync);
+    window.visualViewport?.addEventListener("resize", scheduleEditorCaretVisibility);
+    window.visualViewport?.addEventListener("scroll", scheduleEditorCaretVisibility);
     window.addEventListener("pagehide", context.notes.persistEditorDraft);
     context.elements.formatButtons.forEach((button) => {
       button.addEventListener("pointerdown", (event) => {
@@ -771,10 +773,21 @@
         context.renderers.renderSportTracker();
       });
     });
+    context.elements.editorQuestionsButton?.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+    });
+    context.elements.editorQuestionsButton?.addEventListener("click", () => {
+      context.elements.quizBankPanel?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
     context.elements.sportMassEntryForm?.addEventListener("submit", handleSportMassSubmit);
     context.elements.addSportPerformanceRowButton?.addEventListener("click", () =>
       addSportRow("performance", { focusField: "exercise" })
     );
+    context.elements.sportZoomOut?.addEventListener("click", () => adjustSportTableZoom(-1));
+    context.elements.sportZoomIn?.addEventListener("click", () => adjustSportTableZoom(1));
     context.elements.sportMassBody?.addEventListener("click", handleSportDelete);
     context.elements.sportMassBody?.addEventListener("input", handleSportInput);
     context.elements.sportMassBody?.addEventListener("change", handleSportInput);
@@ -1392,6 +1405,9 @@
         }
 
         panel.scrollTop = Math.max(0, titleField.offsetTop - headerHeight - 8);
+        if (control === context.elements.contentInput) {
+          scheduleEditorCaretVisibility();
+        }
       });
     });
   }
@@ -1427,6 +1443,94 @@
         `${Math.round(viewportHeight)}px`
       );
     });
+  }
+
+  function scheduleEditorCaretVisibility() {
+    if (
+      editorCaretTicking ||
+      document.activeElement !== context.elements.contentInput ||
+      !window.matchMedia?.("(max-width: 780px)").matches
+    ) {
+      return;
+    }
+
+    editorCaretTicking = true;
+    window.requestAnimationFrame(() => {
+      editorCaretTicking = false;
+      keepEditorCaretAboveControls();
+    });
+  }
+
+  function keepEditorCaretAboveControls() {
+    const textarea = context.elements.contentInput;
+    const panel = context.elements.panelEditor;
+    const toolbar = textarea?.closest(".editor-label")?.querySelector(".editor-toolbar");
+    if (!textarea || !panel || !toolbar || document.activeElement !== textarea) {
+      return;
+    }
+
+    const textareaStyle = window.getComputedStyle(textarea);
+    const mirror = document.createElement("div");
+    const marker = document.createElement("span");
+    const copiedProperties = [
+      "borderLeftWidth",
+      "borderRightWidth",
+      "boxSizing",
+      "fontFamily",
+      "fontSize",
+      "fontStyle",
+      "fontWeight",
+      "letterSpacing",
+      "lineHeight",
+      "paddingLeft",
+      "paddingRight",
+      "paddingTop",
+      "textTransform",
+      "wordBreak",
+    ];
+
+    Object.assign(mirror.style, {
+      left: "-100000px",
+      overflowWrap: "break-word",
+      position: "fixed",
+      top: "0",
+      visibility: "hidden",
+      whiteSpace: "pre-wrap",
+      width: `${textarea.clientWidth}px`,
+    });
+    copiedProperties.forEach((property) => {
+      mirror.style[property] = textareaStyle[property];
+    });
+    mirror.textContent = textarea.value.slice(0, textarea.selectionStart);
+    marker.textContent = "\u200b";
+    mirror.appendChild(marker);
+    document.body.appendChild(mirror);
+
+    const textareaRect = textarea.getBoundingClientRect();
+    const toolbarRect = toolbar.getBoundingClientRect();
+    const documentActionsRect =
+      context.elements.editorPanelHeader
+        ?.querySelector(".editor-document-actions")
+        ?.getBoundingClientRect() || null;
+    const aiActionsRect =
+      context.elements.aiAssistButton
+        ?.closest(".editor-mini-actions")
+        ?.getBoundingClientRect() || null;
+    const controlTops = [toolbarRect.top, documentActionsRect?.top, aiActionsRect?.top].filter(
+      Number.isFinite
+    );
+    const availableBottom = Math.min(...controlTops) - 14;
+    const lineHeight = Number.parseFloat(textareaStyle.lineHeight) || 26;
+    const caretTop = textareaRect.top + marker.offsetTop - textarea.scrollTop;
+    const caretBottom = caretTop + lineHeight;
+    mirror.remove();
+
+    if (caretBottom > availableBottom) {
+      panel.scrollBy({
+        top: caretBottom - availableBottom,
+        behavior: "auto",
+      });
+    }
   }
 
   function renderActiveTabContent() {
@@ -1572,6 +1676,7 @@
     active.updatedAt = new Date().toISOString();
     context.data.saveNotes();
     context.notes.persistEditorDraft();
+    context.renderers.renderEditorUpdatedAt?.(active);
   }
 
   function isQuizQuestionDraftField(element) {
@@ -2071,6 +2176,51 @@
     context.notes.openOrCreateNote(chip.dataset.linkTitle);
   }
 
+  function handleEditorContentKeydown(event) {
+    const textarea = context.elements.contentInput;
+    if (event.key === "Escape") {
+      textarea.blur();
+      return;
+    }
+
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey ||
+      event.isComposing ||
+      textarea.selectionStart !== textarea.selectionEnd
+    ) {
+      return;
+    }
+
+    const cursor = textarea.selectionStart;
+    const lineStart = textarea.value.lastIndexOf("\n", cursor - 1) + 1;
+    const currentLine = textarea.value.slice(lineStart, cursor);
+    const checklistMatch = currentLine.match(/^(\s*)-\s+\[( |x|X)\]\s*(.*)$/);
+    const bulletMatch = currentLine.match(/^(\s*)-\s+(.*)$/);
+    const match = checklistMatch || bulletMatch;
+    if (!match) {
+      return;
+    }
+
+    event.preventDefault();
+    const indent = match[1] || "";
+    const itemText = checklistMatch ? checklistMatch[3] : bulletMatch[2];
+
+    if (!itemText.trim()) {
+      textarea.setRangeText("\n", lineStart, cursor, "end");
+    } else {
+      const marker = checklistMatch ? `${indent}- [ ] ` : `${indent}- `;
+      textarea.setRangeText(`\n${marker}`, cursor, cursor, "end");
+    }
+
+    context.notes.handleEditorContentChange();
+    scheduleEditorLivePreview();
+    scheduleEditorCaretVisibility();
+  }
+
   function applyEditorFormat(action) {
     const textarea = context.elements.contentInput;
     if (!textarea) {
@@ -2082,33 +2232,40 @@
     const value = textarea.value;
     const selection = value.slice(start, end);
     let replacement = selection;
-    let nextStart = start;
-    let nextEnd = end;
+    const hasSelection = start !== end;
+    let nextCaret = end;
 
     if (action === "bold") {
-      replacement = `**${selection || "texte important"}**`;
-      nextStart = start + 2;
-      nextEnd = nextStart + (selection || "texte important").length;
+      replacement = hasSelection ? `**${selection}**` : "****";
+      nextCaret = hasSelection ? start + replacement.length : start + 2;
     } else if (action === "italic") {
-      replacement = `*${selection || "texte"}*`;
-      nextStart = start + 1;
-      nextEnd = nextStart + (selection || "texte").length;
+      replacement = hasSelection ? `*${selection}*` : "**";
+      nextCaret = hasSelection ? start + replacement.length : start + 1;
     } else if (action === "underline") {
-      replacement = `++${selection || "texte"}++`;
-      nextStart = start + 2;
-      nextEnd = nextStart + (selection || "texte").length;
+      replacement = hasSelection ? `++${selection}++` : "++++";
+      nextCaret = hasSelection ? start + replacement.length : start + 2;
     } else if (action === "bullet") {
-      const lines = (selection || "Point cle").split("\n");
-      replacement = lines.map((line) => `- ${line.replace(/^- /, "")}`).join("\n");
-      nextStart = start;
-      nextEnd = start + replacement.length;
+      if (hasSelection) {
+        replacement = selection
+          .split("\n")
+          .map((line) => `- ${line.replace(/^- /, "")}`)
+          .join("\n");
+      } else {
+        const prefix = start > 0 && value[start - 1] !== "\n" ? "\n" : "";
+        replacement = `${prefix}- `;
+      }
+      nextCaret = start + replacement.length;
     } else if (action === "checklist") {
-      const lines = (selection || "Action").split("\n");
-      replacement = lines
-        .map((line) => `- [ ] ${line.replace(/^-\s+\[[ xX]\]\s+/, "").replace(/^- /, "")}`)
-        .join("\n");
-      nextStart = start;
-      nextEnd = start + replacement.length;
+      if (hasSelection) {
+        replacement = selection
+          .split("\n")
+          .map((line) => `- [ ] ${line.replace(/^-\s+\[[ xX]\]\s+/, "").replace(/^- /, "")}`)
+          .join("\n");
+      } else {
+        const prefix = start > 0 && value[start - 1] !== "\n" ? "\n" : "";
+        replacement = `${prefix}- [ ] `;
+      }
+      nextCaret = start + replacement.length;
     } else if (action === "today") {
       const today = new Intl.DateTimeFormat("fr-FR", {
         day: "2-digit",
@@ -2118,27 +2275,26 @@
       const prefix = start > 0 && value[start - 1] !== "\n" ? "\n" : "";
       const suffix = end < value.length && value[end] !== "\n" ? "\n" : "";
       replacement = `${prefix}${today}${suffix}`;
-      nextStart = start + prefix.length;
-      nextEnd = nextStart + today.length;
+      nextCaret = start + replacement.length;
     } else if (action === "heading-1") {
-      replacement = `# ${selection || "Titre"}`;
-      nextStart = start + 2;
-      nextEnd = nextStart + (selection || "Titre").length;
+      const prefix = !hasSelection && start > 0 && value[start - 1] !== "\n" ? "\n" : "";
+      replacement = hasSelection ? `# ${selection}` : `${prefix}# `;
+      nextCaret = start + replacement.length;
     } else if (action === "heading-2") {
-      replacement = `## ${selection || "Sous-titre"}`;
-      nextStart = start + 3;
-      nextEnd = nextStart + (selection || "Sous-titre").length;
+      const prefix = !hasSelection && start > 0 && value[start - 1] !== "\n" ? "\n" : "";
+      replacement = hasSelection ? `## ${selection}` : `${prefix}## `;
+      nextCaret = start + replacement.length;
     } else if (action === "link") {
-      replacement = `[[${selection || "Nom de page"}]]`;
-      nextStart = start + 2;
-      nextEnd = nextStart + (selection || "Nom de page").length;
+      replacement = hasSelection ? `[[${selection}]]` : "[[]]";
+      nextCaret = hasSelection ? start + replacement.length : start + 2;
     }
 
     textarea.setRangeText(replacement, start, end, "end");
-    textarea.focus();
-    textarea.setSelectionRange(nextStart, nextEnd);
+    textarea.focus({ preventScroll: true });
+    textarea.setSelectionRange(nextCaret, nextCaret);
     context.notes.handleEditorContentChange();
     context.renderers.renderLivePreview();
+    scheduleEditorCaretVisibility();
   }
 
   function handleSuggestedLinkClick(event) {
@@ -2318,14 +2474,34 @@
       table === "performance" ? sport.performanceEntries : sport.massEntries;
     ensureSportEntry(entries, table, index);
     const entry = entries[index];
-    entry[field] = input.type === "checkbox" ? input.checked : input.value;
+    if (table === "performance" && field === "date") {
+      const normalizedDate = parseSportDateInput(input.value, entry.date);
+      if (!input.value.trim()) {
+        entry.date = "";
+        input.dataset.sportDateValue = "";
+        input.setCustomValidity("");
+      } else if (normalizedDate) {
+        entry.date = normalizedDate;
+        input.dataset.sportDateValue = normalizedDate;
+        input.setCustomValidity("");
+      } else {
+        input.setCustomValidity("Utilisez le format jj/mm ou jj/mm/aa.");
+        if (event.type === "change") {
+          input.reportValidity();
+        }
+        return;
+      }
+    } else {
+      entry[field] = input.type === "checkbox" ? input.checked : input.value;
+    }
 
     if (table === "performance" && field === "exercise" && input.value.trim() && !entry.date) {
       entry.date = getPreviousPerformanceDate(index) || getTodayInputDate();
       const row = input.closest("tr");
       const dateInput = row?.querySelector('[data-sport-field="date"]');
       if (dateInput) {
-        dateInput.value = entry.date;
+        dateInput.value = formatSportDateForCell(entry.date);
+        dateInput.dataset.sportDateValue = entry.date;
       }
     }
 
@@ -2355,7 +2531,10 @@
       return;
     }
 
-    const fields = ["date", "exercise", "sets", "reps", "weight", "rest", "comment"];
+    const fields =
+      context.elements.sportPerformanceTable?.dataset.sportCompact === "true"
+        ? ["date", "exercise", "sets", "reps", "weight", "rest"]
+        : ["date", "exercise", "sets", "reps", "weight", "rest", "comment"];
     const field = input.dataset.sportField;
     const fieldIndex = fields.indexOf(field);
     const rowIndex = Number(input.dataset.sportIndex);
@@ -2393,6 +2572,78 @@
         input.select();
       }
     });
+  }
+
+  function adjustSportTableZoom(direction) {
+    const zoomSteps = [0.56, 0.72, 0.86, 1];
+    const current = Number.isFinite(context.state.sportTableZoom)
+      ? context.state.sportTableZoom
+      : window.matchMedia("(max-width: 680px)").matches
+        ? 0.56
+        : 1;
+    const closestIndex = zoomSteps.reduce(
+      (bestIndex, value, index) =>
+        Math.abs(value - current) < Math.abs(zoomSteps[bestIndex] - current) ? index : bestIndex,
+      0
+    );
+    const nextIndex = Math.min(
+      zoomSteps.length - 1,
+      Math.max(0, closestIndex + Math.sign(direction))
+    );
+    context.state.sportTableZoom = zoomSteps[nextIndex];
+    context.renderers.renderSportTableZoom();
+  }
+
+  function parseSportDateInput(value, fallbackDate = "") {
+    const trimmed = String(value || "").trim();
+    const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) {
+      return isValidSportDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]))
+        ? trimmed
+        : "";
+    }
+
+    const shortMatch = trimmed.match(/^(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2}|\d{4}))?$/);
+    if (!shortMatch) {
+      return "";
+    }
+
+    const fallbackYear = Number(String(fallbackDate).slice(0, 4));
+    const yearPart = shortMatch[3];
+    const year = yearPart
+      ? yearPart.length === 2
+        ? 2000 + Number(yearPart)
+        : Number(yearPart)
+      : Number.isInteger(fallbackYear) && fallbackYear > 1900
+        ? fallbackYear
+        : new Date().getFullYear();
+    const month = Number(shortMatch[2]);
+    const day = Number(shortMatch[1]);
+    if (!isValidSportDate(year, month, day)) {
+      return "";
+    }
+
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  function isValidSportDate(year, month, day) {
+    const date = new Date(year, month - 1, day);
+    return (
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+    );
+  }
+
+  function formatSportDateForCell(value) {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+      return value || "";
+    }
+    const [, year, month, day] = match;
+    return Number(year) === new Date().getFullYear()
+      ? `${day}/${month}`
+      : `${day}/${month}/${year.slice(-2)}`;
   }
 
   function normalizeExerciseName(value) {
@@ -2618,6 +2869,11 @@
   function handleSportPerformanceClick(event) {
     const handle = event.target.closest("[data-sport-row-handle][data-sport-index]");
     if (!handle) {
+      const cell = event.target.closest("td");
+      const input = cell?.querySelector('[data-sport-table="performance"][data-sport-field]');
+      if (input && event.target !== input) {
+        input.focus();
+      }
       return;
     }
 

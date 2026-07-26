@@ -470,7 +470,10 @@
     const directClassify = Boolean(context.elements.directClassifyInput?.checked);
 
     context.elements.directClassifyToggle?.classList.toggle("is-hidden", !pending);
-    context.elements.parentField?.classList.toggle("is-hidden", !pending || !directClassify);
+    context.elements.parentField?.classList.toggle(
+      "is-hidden",
+      !active || (pending && !directClassify)
+    );
 
     if (pending && !directClassify) {
       context.elements.parentInput.value =
