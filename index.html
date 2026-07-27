@@ -963,6 +963,42 @@
           </div>
         </section>
 
+        <section id="todos-tab" class="tab-panel">
+          <div class="todo-page-layout">
+            <section class="panel todo-page-panel">
+              <div class="panel-header todo-page-header">
+                <div>
+                  <p class="eyebrow">Liste personnelle</p>
+                  <h2>Toutes les tâches</h2>
+                  <p class="helper-copy">Une ligne saisie ou collée crée automatiquement une case.</p>
+                </div>
+                <div class="todo-page-summary">
+                  <strong id="todo-page-count">Tout est fait</strong>
+                  <button id="todo-clear-completed" class="button button-ghost is-hidden" type="button">
+                    Effacer les terminées
+                  </button>
+                </div>
+              </div>
+
+              <form id="todo-page-form" class="todo-page-entry-form">
+                <textarea
+                  id="todo-page-input"
+                  class="text-input todo-input"
+                  rows="2"
+                  maxlength="4000"
+                  placeholder="Écrire une tâche ou coller une liste…"
+                  aria-label="Nouvelles tâches sur la page"
+                ></textarea>
+                <button id="todo-page-add-button" class="button button-primary" type="submit">
+                  Ajouter
+                </button>
+              </form>
+
+              <ul id="todo-page-list" class="todo-list todo-page-list" aria-live="polite"></ul>
+            </section>
+          </div>
+        </section>
+
         <section id="settings-tab" class="tab-panel">
           <div class="templates-layout">
             <section id="theme-settings-panel" class="panel theme-settings-panel">
@@ -1505,9 +1541,6 @@
         <section class="todo-panel" aria-label="Liste des tâches">
           <div class="todo-summary">
             <strong id="todo-count">Tout est fait</strong>
-            <button id="todo-clear-completed" class="todo-clear is-hidden" type="button">
-              Effacer les terminées
-            </button>
           </div>
 
           <form id="todo-form" class="todo-entry-form">
@@ -1527,7 +1560,11 @@
             </div>
           </form>
 
-          <ul id="todo-list" class="todo-list" aria-live="polite"></ul>
+          <ul id="todo-list" class="todo-list todo-quick-list" aria-live="polite"></ul>
+
+          <button class="button button-ghost todo-open-list" data-utility-tab="todos" type="button">
+            Voir toute la liste
+          </button>
         </section>
 
         <section class="utility-theme-picker" aria-labelledby="quick-theme-title">
@@ -1647,7 +1684,7 @@
     </div>
 
     <script src="./scripts/config.js?v=76"></script>
-    <script src="./scripts/dom.js?v=84"></script>
+    <script src="./scripts/dom.js?v=85"></script>
     <script src="./scripts/helpers.js?v=76"></script>
     <script src="./scripts/data.js?v=84"></script>
     <script src="./scripts/ai.js?v=76"></script>
@@ -1655,8 +1692,8 @@
     <script src="./scripts/graph.js?v=76"></script>
     <script src="./scripts/quiz.js?v=76"></script>
     <script src="./scripts/mascot.js?v=76"></script>
-    <script src="./scripts/todos.js?v=84"></script>
-    <script src="./scripts/renderers.js?v=84"></script>
+    <script src="./scripts/todos.js?v=85"></script>
+    <script src="./scripts/renderers.js?v=85"></script>
     <script src="./scripts/events.js?v=78"></script>
     <script src="./app.js?v=84"></script>
   </body>
