@@ -43,6 +43,12 @@
       utilityLinks: [...document.querySelectorAll("[data-utility-tab]")],
       themeToggleButton: document.querySelector("#theme-toggle-button"),
       themePresetButtons: [...document.querySelectorAll("button[data-theme-preset]")],
+      todoForm: document.querySelector("#todo-form"),
+      todoInput: document.querySelector("#todo-input"),
+      todoAddButton: document.querySelector("#todo-add-button"),
+      todoList: document.querySelector("#todo-list"),
+      todoCount: document.querySelector("#todo-count"),
+      todoClearCompleted: document.querySelector("#todo-clear-completed"),
       themePreferenceStatus: document.querySelector("#theme-preference-status"),
       themeSettingsPanel: document.querySelector("#theme-settings-panel"),
       panels: {

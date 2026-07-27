@@ -119,6 +119,7 @@
   context.graph = AtlasApp.createGraphModule(context);
   context.quiz = AtlasApp.createQuizModule(context);
   context.mascot = AtlasApp.createMascotModule(context);
+  context.todos = AtlasApp.createTodosModule(context);
   context.renderers = AtlasApp.createRenderersModule(context);
   context.events = AtlasApp.createEventsModule(context);
 
@@ -153,6 +154,7 @@
       null;
     context.renderers.syncDynamicControls();
     context.events.bindEvents();
+    context.todos.bindEvents();
     context.renderers.renderEverything();
     context.mascot.start();
     context.data.registerServiceWorker();

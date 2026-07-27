@@ -44,6 +44,7 @@
     renderAiSettings();
     renderPublishCenter();
     renderQuickCapture();
+    context.todos?.render();
     renderSidebarRecap();
     renderOrganization();
     renderTagSettings();
