@@ -760,6 +760,7 @@
           performanceEntries: [],
           lastSavedAt: null,
         },
+        todos: [],
       };
     }
 
@@ -936,6 +937,44 @@
         : [];
     }
 
+    function normalizeTodoItems(rawTodoItems = []) {
+      if (!Array.isArray(rawTodoItems)) {
+        return [];
+      }
+
+      const seen = new Set();
+      return rawTodoItems
+        .map((item, index) => {
+          const label = typeof item?.label === "string" ? item.label.trim().slice(0, 500) : "";
+          const id =
+            typeof item?.id === "string" && item.id.trim()
+              ? item.id.trim()
+              : `todo-${index}-${label.toLowerCase().replace(/\s+/g, "-").slice(0, 40)}`;
+
+          if (!label || seen.has(id)) {
+            return null;
+          }
+
+          seen.add(id);
+          return {
+            id,
+            label,
+            completed: Boolean(item?.completed),
+            createdAt:
+              typeof item?.createdAt === "string" ? item.createdAt : new Date().toISOString(),
+            updatedAt:
+              typeof item?.updatedAt === "string"
+                ? item.updatedAt
+                : typeof item?.createdAt === "string"
+                ? item.createdAt
+                : new Date().toISOString(),
+            order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index,
+          };
+        })
+        .filter(Boolean)
+        .sort((left, right) => left.order - right.order);
+    }
+
     function normalizeSettings(rawSettings = {}) {
       const themePreset = normalizeThemePreset(rawSettings?.themePreset, rawSettings?.theme);
       const theme = themePresets?.[themePreset]?.mode === "light" ? "light" : "dark";
@@ -964,6 +1003,7 @@
           typeof rawSettings?.lastEditedNoteId === "string" ? rawSettings.lastEditedNoteId : null,
         quizPlayerStats: normalizeQuizPlayerStats(rawSettings?.quizPlayerStats),
         sport: normalizeSportSettings(rawSettings?.sport),
+        todos: normalizeTodoItems(rawSettings?.todos),
       };
     }
 
@@ -1013,6 +1053,7 @@
           lastEditedNoteId: context.state.settings.lastEditedNoteId || null,
           quizPlayerStats: normalizeQuizPlayerStats(context.state.settings.quizPlayerStats),
           sport: context.state.settings.sport || { massEntries: [], performanceEntries: [] },
+          todos: normalizeTodoItems(context.state.settings.todos),
         },
         notes: context.state.notes.map((note) => ({
           id: note.id,

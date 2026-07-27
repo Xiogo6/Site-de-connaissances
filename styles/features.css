@@ -3171,6 +3171,135 @@ body.utility-drawer-open .quick-capture-toggle {
   align-items: flex-start;
 }
 
+.todo-panel {
+  background: var(--theme-section-surface, rgba(255, 255, 255, 0.48));
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.todo-summary,
+.todo-entry-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.todo-summary strong {
+  font-size: 0.9rem;
+}
+
+.todo-clear {
+  background: transparent;
+  border: 0;
+  color: var(--text-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  padding: 4px 0;
+}
+
+.todo-entry-form {
+  display: grid;
+  gap: 8px;
+}
+
+.todo-input {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.todo-entry-actions small {
+  color: var(--text-soft);
+  font-size: 0.7rem;
+}
+
+.todo-entry-actions .button {
+  min-height: 38px;
+  padding: 8px 14px;
+}
+
+.todo-list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  max-height: min(42vh, 390px);
+  overflow-y: auto;
+  padding: 0 2px 0 0;
+}
+
+.todo-item {
+  align-items: center;
+  background: var(--theme-item-background, rgba(255, 255, 255, 0.62));
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: 24px minmax(0, 1fr) 30px;
+  min-height: 46px;
+  padding: 5px 6px 5px 9px;
+}
+
+.todo-checkbox {
+  accent-color: var(--accent);
+  height: 20px;
+  margin: 0;
+  width: 20px;
+}
+
+.todo-item-label {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  min-width: 0;
+  outline: 0;
+  padding: 7px 2px;
+  width: 100%;
+}
+
+.todo-item:focus-within {
+  border-color: var(--theme-accent-line, var(--accent));
+}
+
+.todo-item.is-completed .todo-item-label {
+  color: var(--text-soft);
+  text-decoration: line-through;
+}
+
+.todo-remove {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: flex;
+  font-size: 1.35rem;
+  height: 30px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 30px;
+}
+
+.todo-remove:hover,
+.todo-clear:hover {
+  color: var(--accent-strong);
+}
+
+.todo-empty {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  padding: 12px 4px 4px;
+  text-align: center;
+}
+
 .utility-link {
   align-items: center;
   background:
