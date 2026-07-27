@@ -80,7 +80,9 @@
       button.classList.toggle("is-active", button.dataset.utilityTab === context.state.activeTab);
     });
 
-    const utilityActive = ["settings", "publish", "sport"].includes(context.state.activeTab);
+    const utilityActive = ["settings", "publish", "sport", "todos"].includes(
+      context.state.activeTab
+    );
     context.elements.utilityDrawerOpen.classList.toggle("is-active", utilityActive);
     context.elements.utilityDrawerOpen.setAttribute(
       "aria-expanded",
