@@ -13,7 +13,7 @@ Objectif :
 Contraintes de redaction :
 
 - ecris en francais clair et simple
-- une idee par ligne ou par puce quand c est pertinent
+- une idee par ligne ou par puce quand c est pertinent et ne pas mettre de puce si ce n est pas necessaire 
 - n invente aucune information absente
 - ne pas fabriquer de nouveaux faits incertains
 - si une information manque, laisse simplement la section plus legere
@@ -48,9 +48,9 @@ Format attendu :
 - Definitions courtes si utiles
 - Sous-parties si le sujet est dense
 - une idee par ligne ou par puce quand c est plus clair
+- ne pas mettre de puce si le contenu est court
 
 Sortie attendue :
 
 - renvoie uniquement la note reecrite
 - conserve le titre de depart
-- n ajoute aucune explication sur ton travail
