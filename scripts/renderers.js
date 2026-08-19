@@ -68,9 +68,6 @@
     renderQuickCapture();
     context.todos?.render();
     renderSidebarRecap();
-    if (isTabVisible("organisation")) {
-      renderOrganization();
-    }
     renderTagSettings();
     context.mascot?.sync(true);
   }
@@ -1502,49 +1499,6 @@
     );
   }
 
-  function renderOrganization() {
-    renderOrganizationDropzone();
-    renderHierarchyTree(context.elements.organizationTree, context.notes.buildHierarchyForest(), 0, {
-      variant: "flat",
-      allowDrag: true,
-      rootAttr: "data-root-organization-note",
-    });
-    renderInsightList(
-      context.elements.organizationOrphans,
-      context.state.notes
-        .filter((note) => context.notes.isOrphanNote(note))
-        .slice(0, 8)
-        .map((note) => ({ title: note.title, body: "Aucun parent et peu de connexions" })),
-      "Aucune page isolee"
-    );
-    renderInsightList(
-      context.elements.organizationRecent,
-      [...context.state.notes]
-        .sort((left, right) => Date.parse(right.updatedAt || "") - Date.parse(left.updatedAt || ""))
-        .slice(0, 8)
-        .map((note) => ({
-          title: note.title,
-          body: `Maj ${context.helpers.formatDate(note.updatedAt)}`,
-        })),
-      "Aucune page recente"
-    );
-    renderInsightList(
-      context.elements.organizationTopLinks,
-      context.notes.getMostConnectedNotes().map((note) => ({
-        title: note.title,
-        body: `${context.notes.getConnectionCount(note)} lien(s) detecte(s)`,
-      })),
-      "Pas encore de connexions fortes"
-    );
-  }
-
-  function renderOrganizationDropzone() {
-    context.elements.organizationRootDrop.classList.toggle(
-      "is-over",
-      context.state.dragState.dropToRoot
-    );
-  }
-
   function renderHierarchyTree(container, nodes, depth, options = {}) {
     container.innerHTML = "";
 
@@ -1573,7 +1527,7 @@
       item.classList.toggle("is-dragging", context.state.dragState.noteId === node.id);
       item.innerHTML = interactive
         ? buildCompactNoteItem(node, {
-            menuState: options.menuState ?? context.state.organizationMenuNoteId,
+            menuState: options.menuState ?? null,
             openAttr: options.openAttr || "data-open-organization-note",
             editAttr: options.editAttr || "data-edit-organization-note",
             toggleAttr: options.toggleAttr || "data-toggle-organization-menu",
@@ -2610,8 +2564,6 @@
     renderKnowledgeMode,
     renderLivePreview,
     renderEditorUpdatedAt,
-    renderOrganization,
-    renderOrganizationDropzone,
     renderPreview,
     renderPublishCenter,
     renderQuickCapture,

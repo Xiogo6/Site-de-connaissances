@@ -22,7 +22,6 @@
       tagSuggestionTarget: null,
       sidebarTab: "library",
       explorerMenuNoteId: null,
-      organizationMenuNoteId: null,
       filter: "",
       typeFilter: "all",
       tagFilter: "all",

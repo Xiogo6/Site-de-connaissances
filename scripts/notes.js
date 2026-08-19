@@ -628,7 +628,6 @@
     context.data.saveNotes();
     context.renderers.renderKnowledgeList();
     context.renderers.renderSidebarRecap();
-    context.renderers.renderOrganization();
   }
 
   function collapseSidebarFolders() {
@@ -660,7 +659,6 @@
     context.state.settings.collapsedFolders = nextCollapsedFolders;
     context.data.saveNotes({ skipRemote: true });
     context.renderers.renderSidebarRecap();
-    context.renderers.renderOrganization();
   }
 
   function getMostConnectedNotes() {

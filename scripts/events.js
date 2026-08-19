@@ -235,7 +235,6 @@
     });
 
     context.elements.knowledgeList.addEventListener("click", handleKnowledgeListClick);
-    context.elements.organizationTree.addEventListener("click", handleOrganizationListClick);
     context.elements.feedList?.addEventListener("click", handleFeedClick);
     context.elements.feedModeButtons?.forEach((button) => {
       button.addEventListener("click", () => {
@@ -580,23 +579,11 @@
       "click",
       context.data.restoreLatestSnapshot
     );
-    context.elements.newFolderButton.addEventListener(
-      "click",
-      context.notes.createFolderFromOrganization
-    );
     context.elements.knowledgeList.addEventListener("dragstart", handleOrganizationDragStart);
     context.elements.knowledgeList.addEventListener("dragend", handleOrganizationDragEnd);
     context.elements.knowledgeList.addEventListener("dragover", handleKnowledgeListDragOver);
     context.elements.knowledgeList.addEventListener("dragleave", handleKnowledgeListDragLeave);
     context.elements.knowledgeList.addEventListener("drop", handleKnowledgeListDrop);
-    context.elements.organizationTree.addEventListener("dragstart", handleOrganizationDragStart);
-    context.elements.organizationTree.addEventListener("dragend", handleOrganizationDragEnd);
-    context.elements.organizationTree.addEventListener("dragover", handleOrganizationDragOver);
-    context.elements.organizationTree.addEventListener("dragleave", handleOrganizationDragLeave);
-    context.elements.organizationTree.addEventListener("drop", handleOrganizationDrop);
-    context.elements.organizationRootDrop.addEventListener("dragover", handleRootDragOver);
-    context.elements.organizationRootDrop.addEventListener("dragleave", handleRootDragLeave);
-    context.elements.organizationRootDrop.addEventListener("drop", handleRootDrop);
 
     context.elements.utilityDrawerOpen.addEventListener("click", () => {
       closeSidebarDrawer();
@@ -872,14 +859,6 @@
       ) {
         context.state.explorerMenuNoteId = null;
         context.renderers.renderKnowledgeList();
-      }
-
-      if (
-        context.state.organizationMenuNoteId &&
-        !context.elements.organizationTree.contains(event.target)
-      ) {
-        context.state.organizationMenuNoteId = null;
-        context.renderers.renderOrganization();
       }
 
       if (
@@ -1542,11 +1521,6 @@
       return;
     }
 
-    if (context.state.activeTab === "organisation") {
-      context.renderers.renderOrganization();
-      return;
-    }
-
     if (
       context.state.activeTab === "graph" ||
       (context.state.activeTab === "visualization" && context.state.visualizationMode === "graph")
@@ -1903,31 +1877,6 @@
         remove: "deleteNote",
       },
       context.renderers.renderKnowledgeList
-    );
-  }
-
-  function handleOrganizationListClick(event) {
-    const toggleFolderButton = event.target.closest("[data-toggle-folder]");
-    if (toggleFolderButton) {
-      event.stopPropagation();
-      animateFolderToggle(toggleFolderButton, () =>
-        context.notes.toggleFolderCollapse(toggleFolderButton.dataset.toggleFolder)
-      );
-      return;
-    }
-
-    handleCompactListClick(
-      event,
-      "organizationMenuNoteId",
-      {
-        open: "openOrganizationNote",
-        edit: "editOrganizationNote",
-        toggle: "toggleOrganizationMenu",
-        root: "rootOrganizationNote",
-        duplicate: "duplicateOrganizationNote",
-        remove: "deleteOrganizationNote",
-      },
-      () => context.renderers.renderOrganization()
     );
   }
 
@@ -3086,7 +3035,6 @@
     context.notes.resetDragState();
     context.notes.clearOrganizationDropHighlights();
     context.renderers.renderKnowledgeList();
-    context.renderers.renderOrganization();
   }
 
   function handleOrganizationDragOver(event) {
@@ -3127,13 +3075,6 @@
     context.elements.knowledgeList.classList.add("is-root-drop-target");
   }
 
-  function handleOrganizationDragLeave(event) {
-    if (!event.currentTarget.contains(event.relatedTarget)) {
-      context.state.dragState.dropTargetId = null;
-      context.notes.clearOrganizationDropHighlights();
-    }
-  }
-
   function handleKnowledgeListDragLeave(event) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       context.state.dragState.dropTargetId = null;
@@ -3162,36 +3103,6 @@
     context.elements.knowledgeList.classList.remove("is-root-drop-target");
     if (node) {
       handleOrganizationDrop(event);
-      return;
-    }
-
-    event.preventDefault();
-    context.notes.moveNoteToParent(context.state.dragState.noteId, null);
-  }
-
-  function handleRootDragOver(event) {
-    if (!context.state.dragState.noteId || context.data.isReadOnlyMode()) {
-      return;
-    }
-
-    event.preventDefault();
-    context.state.dragState.dropTargetId = null;
-    context.state.dragState.dropToRoot = true;
-    context.notes.clearOrganizationDropHighlights();
-    context.elements.organizationRootDrop.classList.add("is-over");
-  }
-
-  function handleRootDragLeave(event) {
-    if (event.relatedTarget && context.elements.organizationRootDrop.contains(event.relatedTarget)) {
-      return;
-    }
-
-    context.state.dragState.dropToRoot = false;
-    context.elements.organizationRootDrop.classList.remove("is-over");
-  }
-
-  function handleRootDrop(event) {
-    if (!context.state.dragState.noteId || context.data.isReadOnlyMode()) {
       return;
     }
 
