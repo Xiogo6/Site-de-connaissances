@@ -48,7 +48,7 @@
     renderPreview();
     renderQuizQuestionBank();
     renderConnections();
-    renderStats();
+    renderQuizScopeFields();
     renderDueReviewList();
     if (isTabVisible("graph")) {
       context.graph.drawGraph();
@@ -62,12 +62,11 @@
     if (isTabVisible("sport")) {
       renderSportTracker();
     }
-    renderTemplateEditor();
+    renderTypeSettingsList();
     renderAiSettings();
     renderPublishCenter();
     renderQuickCapture();
     context.todos?.render();
-    renderSidebarRecap();
     renderTagSettings();
     context.mascot?.sync(true);
   }
@@ -481,15 +480,11 @@
       context.elements.aiAssistButton,
       context.elements.aiQuestionsButton,
       context.elements.aiUndoButton,
-      context.elements.templateType,
       context.elements.aiApiKeyInput,
       context.elements.aiModelInput,
       context.elements.aiSaveButton,
       context.elements.aiClearButton,
       context.elements.aiTestButton,
-      context.elements.templateEditor,
-      context.elements.saveTemplateButton,
-      context.elements.resetTemplateButton,
       context.elements.saveButton,
       context.elements.cancelNoteButton,
       context.elements.quickCaptureToggle,
@@ -981,19 +976,7 @@
 
     renderPreview(draftNote, true);
     renderConnections(draftNote);
-    renderStats(draftNote);
-  }
-
-  function renderTemplateEditor() {
-    renderTypeSettingsList();
-    if (!context.elements.templateEditor) {
-      return;
-    }
-
-    const templates = context.data.getTemplates();
-    const draft = context.state.templateDrafts[context.state.activeTemplateType];
-    context.elements.templateEditor.value =
-      typeof draft === "string" ? draft : templates[context.state.activeTemplateType] || "";
+    renderQuizScopeFields();
   }
 
   function renderTypeSettingsList() {
@@ -1381,7 +1364,9 @@
     });
   }
 
-  function renderStats(draftNote = null) {
+  // Ne pilote plus que la visibilite des champs de portee du quiz : les
+  // compteurs qu'elle alimentait n'existent plus dans l'interface.
+  function renderQuizScopeFields() {
     if (context.elements.quizFolderWrapper) {
       context.elements.quizFolderWrapper.classList.toggle(
         "is-hidden",
@@ -1395,21 +1380,6 @@
       );
     }
 
-    const sourceNotes = draftNote
-      ? context.state.notes.map((note) => (note.id === draftNote.id ? draftNote : note))
-      : context.state.notes;
-    const totalLinks = sourceNotes.reduce((count, note) => {
-      return count + unique(extractLinks(note.content)).length;
-    }, 0);
-    const orphanNotes = sourceNotes.filter((note) => context.notes.isOrphanNote(note, sourceNotes)).length;
-
-    setOptionalText(context.elements.pageTotalCount, String(sourceNotes.length));
-    setOptionalText(context.elements.linkCount, String(totalLinks));
-    setOptionalText(context.elements.orphanCount, String(orphanNotes));
-    const quizQuestions = sourceNotes.reduce((count, note) => {
-      return count + (Array.isArray(note.quizQuestions) ? note.quizQuestions.length : 0);
-    }, 0);
-    setOptionalText(context.elements.quizCount, String(quizQuestions));
   }
 
   function setOptionalText(element, value) {
@@ -1470,33 +1440,6 @@
       });
       context.elements.dueReviewList.appendChild(button);
     });
-  }
-
-  function renderSidebarRecap() {
-    if (!context.elements.sidebarOverview || !context.elements.sidebarHierarchy) {
-      return;
-    }
-
-    const orphanCount = context.state.notes.filter((note) => context.notes.isOrphanNote(note)).length;
-    const rootCount = context.state.notes.filter((note) => !note.parentId).length;
-    const favoritesCount = context.state.notes.filter((note) => note.favorite).length;
-
-    renderInsightList(
-      context.elements.sidebarOverview,
-      [
-        { title: "Pages racines", body: `${rootCount} page(s) sans parent` },
-        { title: "Pages isolees", body: `${orphanCount} page(s) sans liens ni parent` },
-        { title: "Favoris", body: `${favoritesCount} page(s) marquees importantes` },
-      ],
-      "Aucun recap pour le moment"
-    );
-
-    renderHierarchyTree(
-      context.elements.sidebarHierarchy,
-      context.notes.buildHierarchyForest().slice(0, 8),
-      0,
-      { interactive: false, collapsible: false, variant: "flat" }
-    );
   }
 
   function renderHierarchyTree(container, nodes, depth, options = {}) {
@@ -2429,17 +2372,6 @@
       context.elements.quickType?.value || "concept"
     );
 
-    if (context.elements.templateType) {
-      populateSelect(
-        context.elements.templateType,
-        context.data.getNoteTypeEntries().map((entry) => ({
-          value: entry.id,
-          label: entry.label,
-        })),
-        context.state.activeTemplateType
-      );
-    }
-
     populateSelect(
       context.elements.typeFilter,
       [
@@ -2527,9 +2459,6 @@
     }
     context.elements.graphFocusMode.value = context.state.graphFocusMode;
     context.elements.graphShowTags.checked = context.state.graphShowTags;
-    if (context.elements.templateType) {
-      context.elements.templateType.value = context.state.activeTemplateType;
-    }
     if (context.elements.timelineScope) {
       context.elements.timelineScope.value = context.state.timeline.scope;
     }
@@ -2571,17 +2500,16 @@
     renderQuizQuestionBank,
     renderVisualizationMode,
     renderSidebarDrawer,
-    renderSidebarRecap,
     renderSidebarTabs,
-    renderStats,
+    renderQuizScopeFields,
     renderSportSaveStatus,
     renderSportTableZoom,
     renderSportTracker,
     renderStructuredFields,
     renderTagSuggestions,
     renderTabs,
-    renderTemplateEditor,
     renderTimelineView,
+    renderTypeSettingsList,
     renderWorkspaceBanner,
     syncDynamicControls,
     syncEditorAvailability,

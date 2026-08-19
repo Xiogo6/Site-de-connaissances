@@ -10,8 +10,6 @@
       settings: {},
       snapshots: [],
       activeNoteId: null,
-      activeTemplateType: "concept",
-      templateDrafts: {},
       editorTemplateSeed: null,
       noteViewMode: "read",
       pendingNewNoteId: null,

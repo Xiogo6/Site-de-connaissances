@@ -363,10 +363,6 @@
       context.renderers.renderEverything();
       focusEditorSurface("title", { select: true });
     });
-    context.elements.templateType?.addEventListener("change", (event) => {
-      context.state.activeTemplateType = event.target.value;
-      context.renderers.renderTemplateEditor();
-    });
 
     context.elements.visualizationModeButtons?.forEach((button) => {
       button.addEventListener("click", () => {
@@ -377,9 +373,6 @@
         renderActiveTabContent();
         scrollToTop();
       });
-    });
-    context.elements.templateEditor?.addEventListener("input", (event) => {
-      context.state.templateDrafts[context.state.activeTemplateType] = event.target.value;
     });
     context.elements.aiAssistButton?.addEventListener("click", handleAiRewriteClick);
     context.elements.aiQuestionsButton?.addEventListener("click", handleAiQuestionsClick);
@@ -436,8 +429,6 @@
         });
       });
     });
-    context.elements.saveTemplateButton?.addEventListener("click", context.notes.saveTemplate);
-    context.elements.resetTemplateButton?.addEventListener("click", context.notes.resetTemplate);
     context.elements.addTypeButton?.addEventListener("click", context.notes.addCustomType);
     context.elements.tagRenameSource?.addEventListener("change", () => {
       if (!context.elements.tagRenameTarget || context.elements.tagRenameTarget.value.trim()) {
@@ -690,20 +681,20 @@
         "is-hidden",
         context.elements.quizScope.value !== "tag"
       );
-      context.renderers.renderStats();
+      context.renderers.renderQuizScopeFields();
       context.quiz.renderQuizDashboard();
     });
 
     context.elements.quizFolder.addEventListener("change", () => {
-      context.renderers.renderStats();
+      context.renderers.renderQuizScopeFields();
       context.quiz.renderQuizDashboard();
     });
     context.elements.quizTag.addEventListener("input", () => {
-      context.renderers.renderStats();
+      context.renderers.renderQuizScopeFields();
       context.quiz.renderQuizDashboard();
     });
     context.elements.quizMode.addEventListener("change", () => {
-      context.renderers.renderStats();
+      context.renderers.renderQuizScopeFields();
       context.quiz.renderQuizDashboard();
     });
     context.elements.quizViewButtons?.forEach((button) => {
@@ -1547,7 +1538,7 @@
     }
 
     if (context.state.activeTab === "settings") {
-      context.renderers.renderTemplateEditor();
+      context.renderers.renderTypeSettingsList();
       context.renderers.renderPublishCenter();
       return;
     }

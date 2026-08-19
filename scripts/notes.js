@@ -627,7 +627,6 @@
 
     context.data.saveNotes();
     context.renderers.renderKnowledgeList();
-    context.renderers.renderSidebarRecap();
   }
 
   function collapseSidebarFolders() {
@@ -658,7 +657,6 @@
 
     context.state.settings.collapsedFolders = nextCollapsedFolders;
     context.data.saveNotes({ skipRemote: true });
-    context.renderers.renderSidebarRecap();
   }
 
   function getMostConnectedNotes() {
@@ -785,38 +783,6 @@
     context.renderers.renderEverything();
   }
 
-  function saveTemplate() {
-    if (context.data.isReadOnlyMode()) {
-      return;
-    }
-
-    const value =
-      context.state.templateDrafts[context.state.activeTemplateType] ??
-      context.elements.templateEditor.value;
-    context.state.settings.templates = {
-      ...context.data.getTemplates(),
-      [context.state.activeTemplateType]: value,
-    };
-    context.state.templateDrafts[context.state.activeTemplateType] = value;
-    context.data.saveNotes();
-  }
-
-  function resetTemplate() {
-    if (context.data.isReadOnlyMode()) {
-      return;
-    }
-
-    context.state.settings.templates = {
-      ...context.data.getTemplates(),
-      [context.state.activeTemplateType]:
-        context.data.getDefaultTemplateForType(context.state.activeTemplateType),
-    };
-    context.state.templateDrafts[context.state.activeTemplateType] =
-      context.state.settings.templates[context.state.activeTemplateType];
-    context.data.saveNotes();
-    context.renderers.renderTemplateEditor();
-  }
-
   function addCustomType() {
     if (context.data.isReadOnlyMode()) {
       return;
@@ -907,7 +873,6 @@
       context.state.settings.typeLabels = typeLabels;
     }
 
-    delete context.state.templateDrafts[type];
 
     context.data.saveNotes();
     context.renderers.renderEverything();
@@ -1579,12 +1544,10 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     discardPendingNewNote,
     removeWikiLinkLine,
     resetDragState,
-    resetTemplate,
     sanitizeParentId,
     saveCurrentNote,
     persistEditorDraft,
     saveQuickCapture,
-    saveTemplate,
     syncNewPageClassificationControls,
     toggleFolderCollapse,
     deleteCustomType,
