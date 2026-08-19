@@ -57,6 +57,7 @@
         finishedAt: null,
         requestedAmount,
         revealPending: false,
+        reviewBaseline: {},
       };
       context.state.quizView = "play";
 
@@ -78,6 +79,7 @@
         finishedAt: null,
         requestedAmount: Number(context.elements.quizAmount.value) || 10,
         revealPending: false,
+        reviewBaseline: {},
       };
 
       renderQuizCard({ force: true });
@@ -608,6 +610,21 @@
       const activeEditorNoteId = context.state.editorQuizQuestionsNoteId;
       const updatedNotes = new Set();
 
+      // Etat de revision d'avant la session, pour que applySessionReviewStates()
+      // reste rejouable si une reponse contestee est acceptee apres coup.
+      const reviewBaseline = {};
+      context.state.quiz.questions.forEach((question) => {
+        if (!question.noteId || reviewBaseline[question.noteId]) {
+          return;
+        }
+
+        const note = context.state.notes.find((candidate) => candidate.id === question.noteId);
+        if (note) {
+          reviewBaseline[question.noteId] = context.data.createReviewState(note.review);
+        }
+      });
+      context.state.quiz.reviewBaseline = reviewBaseline;
+
       context.state.quiz.questions.forEach((question) => {
         const userAnswer = String(question.userAnswer || "").trim();
         const matchedAnswer = findMatchingAcceptedAnswer(userAnswer, question.acceptedAnswers);
@@ -652,6 +669,8 @@
         note.updatedAt = now;
       });
 
+      applySessionReviewStates();
+
       context.state.quiz.validatedCount = context.state.quiz.questions.length;
       syncQuizScore();
       context.state.quiz.finishedAt = Date.now();
@@ -661,6 +680,10 @@
       context.data.saveNotes();
       renderQuizDashboard();
       renderQuizCard({ force: true });
+      // La file de revision vient de changer : sans cela elle restait figee
+      // jusqu'au prochain rechargement de la page.
+      context.renderers?.renderDueReviewList();
+      context.renderers?.renderSidebarRecap();
 
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(finalizeRevealSequence);
@@ -669,6 +692,42 @@
 
     function isUnresolvedContest(question) {
       return Boolean(question?.contested && !question.contestedAnswerAccepted);
+    }
+
+    // C-03 : faire avancer la memoire des pages a partir des reponses du quiz.
+    // Sans cet appel, review.nextReviewAt ne bougeait jamais et toutes les pages
+    // restaient "a revoir" en permanence.
+    function applySessionReviewStates() {
+      const resultByNote = new Map();
+
+      context.state.quiz.questions.forEach((question) => {
+        if (!question.validated || !question.noteId || isUnresolvedContest(question)) {
+          return;
+        }
+
+        const previous = resultByNote.get(question.noteId);
+        const isCorrect = Boolean(question.isCorrect);
+        // Une page interrogee sur plusieurs questions n'est acquise que si
+        // toutes ses questions de la session sont justes.
+        resultByNote.set(
+          question.noteId,
+          typeof previous === "undefined" ? isCorrect : previous && isCorrect
+        );
+      });
+
+      resultByNote.forEach((isCorrect, noteId) => {
+        const note = context.state.notes.find((candidate) => candidate.id === noteId);
+        if (!note) {
+          return;
+        }
+
+        const baseline = context.state.quiz.reviewBaseline?.[noteId];
+        if (baseline) {
+          note.review = context.data.createReviewState(baseline);
+        }
+
+        context.data.updateReviewState(noteId, isCorrect);
+      });
     }
 
     function getCountedQuizQuestions() {
@@ -784,6 +843,9 @@
       }
 
       note.updatedAt = resolvedAt;
+      // La page avait ete penalisee sur une reponse finalement jugee valable :
+      // on rejoue le calcul depuis l'etat d'avant la session.
+      applySessionReviewStates();
       syncQuizScore();
       updateRecordedQuizSession();
       context.data.saveNotes({ changedNoteIds: [note.id] });

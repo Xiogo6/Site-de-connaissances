@@ -108,6 +108,9 @@
     },
   };
 
+  // L'authentification est creee en premier : data.js interroge la session
+  // pour savoir s'il a le droit de parler a Supabase (C-01).
+  context.auth = AtlasApp.createAuthModule(context);
   context.data = AtlasApp.createDataModule(context);
   context.ai = AtlasApp.createAiModule(context);
   context.state.notes = context.data.loadNotes();
@@ -126,6 +129,30 @@
   init();
 
   async function init() {
+    // Reprend la session stockee sur cet appareil. Si elle est encore valable,
+    // aucune saisie n'est demandee et l'application s'ouvre directement.
+    await context.auth.restore();
+    context.auth.bindEvents();
+
+    await loadWorkspace();
+
+    context.renderers.syncDynamicControls();
+    context.events.bindEvents();
+    context.todos.bindEvents();
+    context.renderers.renderEverything();
+    context.mascot.start();
+    context.data.registerServiceWorker();
+  }
+
+  // Rejoue apres une connexion reussie : les evenements sont deja branches,
+  // seules les donnees et le rendu doivent etre refaits.
+  context.onSignedIn = async function onSignedIn() {
+    await loadWorkspace();
+    context.renderers.syncDynamicControls();
+    context.renderers.renderEverything();
+  };
+
+  async function loadWorkspace() {
     await context.data.bootstrapWorkspace();
 
     const shouldSeedDefaultKnowledge =
@@ -152,12 +179,6 @@
       context.state.notes.find((note) => note.type !== "folder")?.id ??
       context.state.notes[0]?.id ??
       null;
-    context.renderers.syncDynamicControls();
-    context.events.bindEvents();
-    context.todos.bindEvents();
-    context.renderers.renderEverything();
-    context.mascot.start();
-    context.data.registerServiceWorker();
   }
 
   function getStartupNoteId() {

@@ -1393,14 +1393,33 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     const now = Date.now();
     return sourceNotes
       .filter((note) => {
+        // Un dossier est un rangement, pas une page a reviser : il encombrait
+        // la file sans jamais pouvoir en sortir.
+        if (note.type === "folder" && !note.quizQuestions?.length) {
+          return false;
+        }
+
         const next = Date.parse(note.review?.nextReviewAt || "");
         return Number.isNaN(next) || next <= now;
       })
       .sort((left, right) => {
-        return (
-          Date.parse(left.review?.nextReviewAt || "") -
-          Date.parse(right.review?.nextReviewAt || "")
-        );
+        // Une page jamais revue n'a pas de date exploitable : la comparaison
+        // donnait NaN et l'ordre etait arbitraire. Elles passent devant,
+        // puis les autres de la plus en retard a la moins en retard.
+        const leftNext = Date.parse(left.review?.nextReviewAt || "");
+        const rightNext = Date.parse(right.review?.nextReviewAt || "");
+        const leftNeverReviewed = Number.isNaN(leftNext);
+        const rightNeverReviewed = Number.isNaN(rightNext);
+
+        if (leftNeverReviewed !== rightNeverReviewed) {
+          return leftNeverReviewed ? -1 : 1;
+        }
+
+        if (leftNeverReviewed) {
+          return 0;
+        }
+
+        return leftNext - rightNext;
       });
   }
 

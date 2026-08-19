@@ -63,7 +63,7 @@
       })();
     </script>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=84" />
+    <link rel="stylesheet" href="./styles.css?v=86" />
   </head>
   <body>
     <div class="shell">
@@ -1175,6 +1175,30 @@
             <section class="panel">
               <div class="panel-header">
                 <div>
+                  <p class="eyebrow">Compte</p>
+                  <h3>Session Supabase</h3>
+                </div>
+                <span id="auth-session-status" class="pill pill-soft"></span>
+              </div>
+
+              <div class="helper-grid">
+                <article class="helper-card">
+                  <h4>Appareil connecte</h4>
+                  <p>
+                    La session reste ouverte tant que tu ne te deconnectes pas.
+                    Se deconnecter demandera de saisir le mot de passe au prochain
+                    lancement, sur cet appareil uniquement.
+                  </p>
+                  <div class="stack-actions compact-actions">
+                    <button id="auth-sign-out" class="button" type="button">Se deconnecter</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
                   <p class="eyebrow">Publication</p>
                   <h3>Centre de publication</h3>
                 </div>
@@ -1683,18 +1707,54 @@
       </div>
     </div>
 
-    <script src="./scripts/config.js?v=76"></script>
-    <script src="./scripts/dom.js?v=85"></script>
-    <script src="./scripts/helpers.js?v=76"></script>
-    <script src="./scripts/data.js?v=84"></script>
-    <script src="./scripts/ai.js?v=76"></script>
-    <script src="./scripts/notes.js?v=76"></script>
-    <script src="./scripts/graph.js?v=76"></script>
-    <script src="./scripts/quiz.js?v=76"></script>
-    <script src="./scripts/mascot.js?v=76"></script>
-    <script src="./scripts/todos.js?v=85"></script>
-    <script src="./scripts/renderers.js?v=85"></script>
-    <script src="./scripts/events.js?v=78"></script>
-    <script src="./app.js?v=84"></script>
+    <section id="auth-gate" class="auth-gate is-hidden" aria-hidden="true">
+      <div class="auth-card">
+        <p class="eyebrow">Atlas de Connaissance</p>
+        <h2>Connexion</h2>
+        <p class="auth-intro">
+          Une seule fois par appareil. La session reste ensuite ouverte.
+        </p>
+        <form id="auth-form" class="auth-form">
+          <label class="auth-field" for="auth-email">
+            <span>Adresse e-mail</span>
+            <input
+              id="auth-email"
+              type="email"
+              name="email"
+              autocomplete="username"
+              inputmode="email"
+              required
+            />
+          </label>
+          <label class="auth-field" for="auth-password">
+            <span>Mot de passe</span>
+            <input
+              id="auth-password"
+              type="password"
+              name="password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+          <p id="auth-error" class="auth-error" role="alert" hidden></p>
+          <button id="auth-submit" class="button button-primary" type="submit">Se connecter</button>
+        </form>
+      </div>
+    </section>
+
+    <script src="./scripts/config.js?v=86"></script>
+    <script src="./scripts/dom.js?v=86"></script>
+    <script src="./scripts/helpers.js?v=86"></script>
+    <script src="./scripts/auth.js?v=86"></script>
+    <script src="./scripts/data.js?v=86"></script>
+    <script src="./scripts/ai.js?v=86"></script>
+    <script src="./scripts/notes.js?v=86"></script>
+    <script src="./scripts/graph.js?v=86"></script>
+    <script src="./scripts/quiz.js?v=86"></script>
+    <script src="./scripts/mascot.js?v=86"></script>
+    <script src="./scripts/todos.js?v=86"></script>
+    <script src="./scripts/renderers.js?v=86"></script>
+    <script src="./scripts/events.js?v=86"></script>
+    <script src="./app.js?v=86"></script>
   </body>
 </html>

@@ -11,6 +11,7 @@ Le projet a ete reorganise pour separer les responsabilites sans ajouter de buil
 - `scripts/config.js` : donnees par defaut et constantes globales
 - `scripts/dom.js` : centralisation des selecteurs DOM
 - `scripts/helpers.js` : helpers purs reutilisables
+- `scripts/auth.js` : session Supabase, connexion, rafraichissement du jeton
 - `scripts/data.js` : persistance locale, snapshots, publication, templates
 - `scripts/notes.js` : logique metier autour des notes, de l'organisation et de la note rapide
 - `scripts/renderers.js` : rendu de l'interface hors graphe et quiz
@@ -34,9 +35,10 @@ Ouvrez simplement `index.html` dans votre navigateur.
 - file de revision avec pages a revoir
 - types de page (concept, hub, procedure, question)
 - mode publie via `knowledge-base.json`
-- quiz generes depuis les definitions, relations, listes et liens
+- quiz en rappel actif, a partir des questions saisies sur chaque page
+  (a la main ou generees par Gemini : une page sans question n'est pas interrogee)
 - sauvegarde locale automatique dans le navigateur
-- snapshots locaux de secours
+- snapshots de secours (les 3 plus recents en local, les autres a la demande)
 - centre de publication GitHub Pages
 - note rapide pour mobile
 - import / export en JSON
@@ -71,9 +73,31 @@ Ouvrez simplement `index.html` dans votre navigateur.
 - `snapshot publie` : lecture seule de la version poussee sur GitHub Pages
 - `note rapide` : creation ultra rapide d'une note depuis mobile ou desktop
 
-## Limite actuelle
+## Connexion
 
-La version actuelle est excellente pour un usage local et pour une consultation mobile publiee, mais elle ne synchronise pas encore automatiquement les modifications entre ordinateur et telephone. Pour une vraie synchro en temps reel, il faudra ajouter un backend ou une base distante.
+Le depot est public : la cle Supabase presente dans `scripts/config.js` est lisible
+par tout le monde. L'acces a l'espace de travail passe donc par une session.
+
+- on saisit son mot de passe **une seule fois par appareil**
+- le jeton est ensuite conserve et renouvele automatiquement
+- l'application s'ouvre directement aux lancements suivants
+- sans session, elle reste en mode local et ne lit ni n'ecrit rien a distance
+- `Parametres` > `Session Supabase` permet de se deconnecter
+
+Pour mettre cela en place la premiere fois :
+
+1. creer le compte proprietaire dans Supabase (`Authentication` > `Users`)
+2. **desactiver l'inscription publique** (`Authentication` > `Sign In / Providers`),
+   sinon n'importe qui peut se creer un compte et l'acces reste ouvert
+3. verifier que la connexion fonctionne
+4. appliquer `20260819122000_require_authenticated_access.sql`
+5. regenerer la cle publiable dans Supabase
+
+## Synchronisation
+
+Supabase fait autorite : au demarrage l'espace de travail est charge depuis la base,
+puis chaque enregistrement y est renvoye. Le `localStorage` sert de cache de travail
+et de secours hors ligne.
 
 ## IA personnelle avec Gemini
 
@@ -106,7 +130,17 @@ Un script est fourni pour cela :
 zsh ./scripts/backup-supabase.sh
 ```
 
-Il cree dans `backups/` :
+Il ecrit desormais **hors du depot**, dans `~/Atlas-backups` par defaut, et refuse
+d'ecrire dans le dossier du projet : celui-ci est public, et une sauvegarde contient
+l'integralite de vos pages. Passez un autre chemin en argument si besoin.
+
+Il faut un jeton d'acces valide depuis la fermeture de l'acces anonyme :
+
+```bash
+SUPABASE_ACCESS_TOKEN="<jeton>" zsh ./scripts/backup-supabase.sh
+```
+
+Il cree :
 
 - un export complet du payload Supabase
 - un export `notes` seul

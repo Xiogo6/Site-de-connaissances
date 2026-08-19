@@ -246,6 +246,14 @@
       quickContent: document.querySelector("#quick-content"),
       quickLinkActive: document.querySelector("#quick-link-active"),
       quickSaveButton: document.querySelector("#quick-save-button"),
+      authGate: document.querySelector("#auth-gate"),
+      authForm: document.querySelector("#auth-form"),
+      authEmail: document.querySelector("#auth-email"),
+      authPassword: document.querySelector("#auth-password"),
+      authSubmit: document.querySelector("#auth-submit"),
+      authError: document.querySelector("#auth-error"),
+      authSignOut: document.querySelector("#auth-sign-out"),
+      authSessionStatus: document.querySelector("#auth-session-status"),
     };
   };
 })(window);

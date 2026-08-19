@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-connaissance-v85";
+const CACHE_NAME = "atlas-connaissance-v86";
 const ASSETS = [
   "./",
   "./index.html",
@@ -8,6 +8,8 @@ const ASSETS = [
   "./scripts/dom.js",
   "./scripts/helpers.js",
   "./scripts/data.js",
+  "./scripts/auth.js",
+  "./scripts/ai.js",
   "./scripts/notes.js",
   "./scripts/graph.js",
   "./scripts/quiz.js",
@@ -74,13 +76,18 @@ self.addEventListener("fetch", (event) => {
             return cached;
           }
 
+          // Seule une navigation peut recevoir index.html en repli.
+          // Servir du HTML a la place d'un script ou d'une feuille de style
+          // transformait un fichier manquant en page blanche (C-04).
           if (event.request.mode === "navigate") {
             return caches.match("./index.html");
           }
 
-          return Promise.reject(new Error("Asset unavailable offline"));
+          return new Response("", {
+            status: 504,
+            statusText: "Ressource indisponible hors ligne",
+          });
         })
       )
-      .catch(() => caches.match("./index.html"))
   );
 });

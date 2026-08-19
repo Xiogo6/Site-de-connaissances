@@ -30,6 +30,11 @@
     const dailySnapshotHour = 3;
     const localDailySnapshotRetentionCount = 15;
     const localActionSnapshotRetentionCount = 15;
+    // I-05 : le navigateur ne garde le contenu que des snapshots les plus recents.
+    // Les autres restent listes (label, date, nombre de pages) et leur contenu se
+    // recupere a la demande depuis Supabase. Sans cela, 30 copies integrales de la
+    // base saturent le quota localStorage vers 180 pages.
+    const localFullSnapshotCount = 3;
     const dayInMs = 24 * 60 * 60 * 1000;
     const pendingRemoteSyncStorageKey = `${appStorageKey}-pending-remote-sync`;
     const remoteIntegrityStorageKey = `${appStorageKey}-remote-integrity`;
@@ -120,22 +125,33 @@
       return (
         remoteConfig.syncEnabled &&
         Boolean(remoteConfig.url) &&
-        Boolean(remoteConfig.publishableKey)
+        Boolean(remoteConfig.publishableKey) &&
+        // C-01 : sans session ouverte, l'application reste en mode local
+        // et n'essaie ni de lire ni d'ecrire dans Supabase.
+        Boolean(context.auth?.isSignedIn())
       );
     }
 
-    function getRemoteHeaders() {
+    // La cle publiable identifie le projet, elle n'autorise plus rien seule.
+    // C'est le jeton de session qui porte le droit d'acces.
+    async function getRemoteHeaders() {
+      const accessToken = (await context.auth?.getAccessToken()) || "";
+      if (!accessToken) {
+        throw new Error("Session Supabase expiree. Reconnecte-toi.");
+      }
+
       return {
         apikey: remoteConfig.publishableKey,
-        Authorization: `Bearer ${remoteConfig.publishableKey}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       };
     }
 
     async function callRemoteRpc(functionName, payload = {}) {
+      const headers = await getRemoteHeaders();
       const response = await fetch(`${remoteConfig.url}/rest/v1/rpc/${functionName}`, {
         method: "POST",
-        headers: getRemoteHeaders(),
+        headers,
         body: JSON.stringify(payload),
       });
 
@@ -633,7 +649,18 @@
     }
 
     function normalizeSnapshot(rawSnapshot) {
+      const notes = Array.isArray(rawSnapshot?.notes)
+        ? normalizeNoteCollection(rawSnapshot.notes)
+        : [];
+      const noteCount = Number(rawSnapshot?.noteCount) || 0;
+
       return {
+        // I-05 : depuis l'allegement du payload, un snapshot peut arriver sans
+        // ses notes. notesLoaded distingue "snapshot vide" de "contenu pas
+        // encore telecharge", et conditionne aussi ce qu'on renvoie au serveur.
+        notesLoaded: notes.length > 0 || noteCount === 0,
+        notes,
+        noteCount,
         id:
           typeof rawSnapshot?.id === "string" && rawSnapshot.id.trim()
             ? rawSnapshot.id
@@ -646,8 +673,6 @@
           typeof rawSnapshot?.createdAt === "string"
             ? rawSnapshot.createdAt
             : new Date().toISOString(),
-        noteCount: Number(rawSnapshot?.noteCount) || 0,
-        notes: Array.isArray(rawSnapshot?.notes) ? normalizeNoteCollection(rawSnapshot.notes) : [],
       };
     }
 
@@ -735,6 +760,12 @@
     }
 
     function shouldSeedDefaultKnowledge() {
+      // Tant que la connexion n'est pas faite, on n'inscrit pas un faux espace
+      // de travail par-dessus ce qui attend dans Supabase.
+      if (context.auth?.isConfigured() && !context.auth.isSignedIn()) {
+        return false;
+      }
+
       return !isReadOnlyMode() && !isRemoteConfigured() && !hasStoredWorkspaceData();
     }
 
@@ -1081,13 +1112,18 @@
       };
 
       if (includeSnapshots) {
-        payload.snapshots = context.state.snapshots.map((snapshot) => ({
-          id: snapshot.id,
-          label: snapshot.label,
-          createdAt: snapshot.createdAt,
-          noteCount: snapshot.noteCount,
-          notes: snapshot.notes,
-        }));
+        // Un snapshot dont les notes ne sont pas chargees localement serait
+        // renvoye avec un tableau vide, ce qui ecraserait son contenu en base.
+        // On ne renvoie que ceux qu'on detient reellement (I-05).
+        payload.snapshots = context.state.snapshots
+          .filter((snapshot) => snapshot.notesLoaded)
+          .map((snapshot) => ({
+            id: snapshot.id,
+            label: snapshot.label,
+            createdAt: snapshot.createdAt,
+            noteCount: snapshot.noteCount,
+            notes: snapshot.notes,
+          }));
       }
 
       return payload;
@@ -1123,10 +1159,48 @@
       return appSaved && notesSaved;
     }
 
+    // Ce qui part dans localStorage : contenu integral pour les plus recents,
+    // metadonnees seules au-dela. La memoire de session, elle, n'est pas touchee.
+    function buildStorableSnapshots(snapshots) {
+      return snapshots.map((snapshot, index) => {
+        if (index < localFullSnapshotCount && snapshot.notesLoaded) {
+          return snapshot;
+        }
+
+        return {
+          id: snapshot.id,
+          label: snapshot.label,
+          createdAt: snapshot.createdAt,
+          noteCount: snapshot.noteCount,
+          notes: [],
+        };
+      });
+    }
+
+    async function loadSnapshotNotes(snapshotId) {
+      if (!isRemoteConfigured()) {
+        return null;
+      }
+
+      const payload = await callRemoteRpc("get_snapshot", { snapshot_id: snapshotId });
+      if (!payload || !Array.isArray(payload.notes) || !payload.notes.length) {
+        return null;
+      }
+
+      const hydrated = normalizeSnapshot(payload);
+      context.state.snapshots = context.state.snapshots.map((snapshot) =>
+        snapshot.id === hydrated.id ? hydrated : snapshot
+      );
+      return hydrated;
+    }
+
     function saveSnapshots(options = {}) {
       const { skipRemote = false } = options;
       const didPrune = pruneExpiredSnapshots();
-      writeLocalStorage(snapshotStorageKey, JSON.stringify(context.state.snapshots));
+      writeLocalStorage(
+        snapshotStorageKey,
+        JSON.stringify(buildStorableSnapshots(context.state.snapshots))
+      );
 
       if (!skipRemote) {
         queueRemoteSync({ includeSnapshots: true });
@@ -1592,9 +1666,29 @@
         return;
       }
 
-      const snapshot = context.state.snapshots.find((item) => item.id === snapshotId);
+      let snapshot = context.state.snapshots.find((item) => item.id === snapshotId);
       if (!snapshot) {
         return;
+      }
+
+      // Le contenu des snapshots anciens n'est plus conserve dans le navigateur :
+      // on le recupere ici, au seul moment ou il sert reellement (I-05).
+      if (!snapshot.notesLoaded) {
+        try {
+          const hydrated = await loadSnapshotNotes(snapshotId);
+          if (!hydrated) {
+            throw new Error("Contenu du snapshot introuvable");
+          }
+          snapshot = hydrated;
+        } catch (error) {
+          setRemoteState({
+            status: "error",
+            lastError:
+              "Contenu du snapshot indisponible. Reconnecte-toi a Supabase pour le restaurer.",
+          });
+          context.renderers?.renderWorkspaceBanner();
+          return;
+        }
       }
 
       const snapshotNotes = normalizeNoteCollection(snapshot.notes);

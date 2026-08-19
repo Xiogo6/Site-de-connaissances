@@ -4425,3 +4425,108 @@ body.graph-view-active .graph-panel {
     padding: 18px;
   }
 }
+
+/* ===========================================================
+   Ecran de connexion (C-01)
+   Le depot etant public, l'acces a Supabase passe par une session.
+   La saisie n'a lieu qu'une fois par appareil.
+   =========================================================== */
+
+/* Le selecteur porte :not(.is-hidden) : a specificite egale, features.css est
+   importe apres base.css et un simple ".auth-gate { display: grid }" gagnerait
+   contre ".is-hidden { display: none }". */
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: none;
+  place-items: center;
+  padding: 24px;
+  background: var(--theme-body-background, #12171b);
+  overflow-y: auto;
+}
+
+.auth-gate:not(.is-hidden) {
+  display: grid;
+}
+
+/* Le fond de l'application ne doit pas defiler derriere l'ecran de connexion. */
+html.has-auth-gate,
+html.has-auth-gate body {
+  overflow: hidden;
+}
+
+.auth-card {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+.auth-card h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.auth-intro {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-field span {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.auth-field input {
+  width: 100%;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 16px; /* sous 16px, iOS zoome automatiquement au focus */
+  color: var(--text);
+  background: var(--theme-field-background, rgba(0, 0, 0, 0.16));
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+}
+
+.auth-field input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.auth-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(191, 91, 44, 0.14);
+  border: 1px solid var(--accent);
+  color: var(--accent-strong);
+  font-size: 0.88rem;
+}
+
+.auth-gate .button-primary {
+  justify-content: center;
+  padding: 13px 16px;
+  font-size: 1rem;
+}

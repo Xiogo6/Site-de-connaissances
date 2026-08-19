@@ -1,0 +1,18 @@
+# Sauvegardes locales : elles contiennent le contenu integral des pages.
+# Le depot est public, elles ne doivent jamais y entrer.
+backups/
+recovered-*.json
+atlas-payload-*.json
+atlas-notes-*.json
+atlas-summary-*.json
+
+# Residus de fusion Git
+*.BASE
+*.LOCAL
+*.REMOTE
+*.orig
+
+# Outils
+supabase/.temp/
+node_modules/
+.DS_Store
