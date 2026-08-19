@@ -13,6 +13,22 @@
       renderNoteHtml,
       unique,
     } = AtlasApp.helpers;
+  // Un panneau masque n'a pas besoin d'etre redessine : renderActiveTabContent()
+  // s'en charge au moment ou l'onglet devient visible, et tous les chemins
+  // d'ouverture y passent. Sans ce filtre, chaque rendu payait le graphe,
+  // l'organisation, la frise et le sport meme invisibles.
+  function isTabVisible(...tabs) {
+    if (tabs.includes(context.state.activeTab)) {
+      return true;
+    }
+
+    // L'onglet Visualisation heberge le graphe ou la frise selon le mode.
+    return (
+      context.state.activeTab === "visualization" &&
+      tabs.includes(context.state.visualizationMode)
+    );
+  }
+
   function renderEverything() {
     syncDynamicControls();
     renderTheme();
@@ -34,19 +50,27 @@
     renderConnections();
     renderStats();
     renderDueReviewList();
-    context.graph.drawGraph();
+    if (isTabVisible("graph")) {
+      context.graph.drawGraph();
+    }
     context.quiz.renderQuizViewMode();
     context.quiz.renderQuizDashboard();
     context.quiz.renderQuizCard();
-    renderTimelineView();
-    renderSportTracker();
+    if (isTabVisible("timeline")) {
+      renderTimelineView();
+    }
+    if (isTabVisible("sport")) {
+      renderSportTracker();
+    }
     renderTemplateEditor();
     renderAiSettings();
     renderPublishCenter();
     renderQuickCapture();
     context.todos?.render();
     renderSidebarRecap();
-    renderOrganization();
+    if (isTabVisible("organisation")) {
+      renderOrganization();
+    }
     renderTagSettings();
     context.mascot?.sync(true);
   }

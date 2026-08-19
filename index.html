@@ -63,7 +63,17 @@
       })();
     </script>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./styles.css?v=86" />
+    <!-- Charge les six feuilles en parallele. Via styles.css et ses @import,
+         le navigateur devait d'abord telecharger et analyser ce fichier avant
+         de decouvrir les six autres : un aller-retour reseau de plus, invisible
+         en local mais bien reel sur un telephone. L'ordre reste celui des
+         @import d'origine, la cascade est identique. -->
+    <link rel="stylesheet" href="./styles/tokens.css?v=86" />
+    <link rel="stylesheet" href="./styles/base.css?v=86" />
+    <link rel="stylesheet" href="./styles/layout.css?v=86" />
+    <link rel="stylesheet" href="./styles/components.css?v=86" />
+    <link rel="stylesheet" href="./styles/features.css?v=86" />
+    <link rel="stylesheet" href="./styles/themes.css?v=86" />
   </head>
   <body>
     <div class="shell">

@@ -14,9 +14,20 @@
       .replaceAll("'", "&#39;");
   }
 
+  let entityDecoder = null;
+
   function decodeHtmlEntities(value) {
+    const text = String(value || "");
+
+    // Sans "&" il n'y a aucune entite a decoder. Ce raccourci couvre la quasi
+    // totalite des appels et evite d'aller jusqu'au DOM, qui coutait tres cher :
+    // normalizeLinkTitle est appele des dizaines de milliers de fois par rendu.
+    if (!text.includes("&")) {
+      return text;
+    }
+
     if (typeof document === "undefined") {
-      return String(value || "")
+      return text
         .replaceAll("&amp;", "&")
         .replaceAll("&lt;", "<")
         .replaceAll("&gt;", ">")
@@ -24,19 +35,37 @@
         .replaceAll("&#39;", "'");
     }
 
-    const textarea = document.createElement("textarea");
-    textarea.innerHTML = String(value || "");
-    return textarea.value;
+    // Un seul element reutilise, au lieu d'un nouveau a chaque appel.
+    entityDecoder = entityDecoder || document.createElement("textarea");
+    entityDecoder.innerHTML = text;
+    return entityDecoder.value;
   }
 
+  const linkTitleCache = new Map();
+
   function normalizeLinkTitle(value) {
-    return decodeHtmlEntities(value)
+    const key = String(value ?? "");
+    const cached = linkTitleCache.get(key);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const normalized = decodeHtmlEntities(key)
       .trim()
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[\u2018\u2019\u201B\u02BC\u00B4\u0060]/g, "'")
       .replace(/\s+/g, " ");
+
+    // La fonction est pure : un titre donne produit toujours le meme resultat,
+    // le cache ne peut donc pas devenir faux. On le borne pour la memoire.
+    if (linkTitleCache.size > 5000) {
+      linkTitleCache.clear();
+    }
+    linkTitleCache.set(key, normalized);
+
+    return normalized;
   }
 
   function clamp(value, min, max) {
