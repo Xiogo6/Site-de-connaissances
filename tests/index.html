@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tests — Atlas de Connaissance</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --fond: #12171b;
+        --carte: #1a2127;
+        --trait: #2a343c;
+        --texte: #e6ebef;
+        --doux: #93a3af;
+        --vert: #5fbf8f;
+        --rouge: #e8776c;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 28px 20px 64px;
+        background: var(--fond);
+        color: var(--texte);
+        font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      }
+      .contenu { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+      h1 { margin: 0; font-size: 1.5rem; }
+      .intro { margin: 0; color: var(--doux); max-width: 62ch; }
+      #resume {
+        border: 1px solid var(--trait); border-radius: 10px; padding: 14px 18px;
+        background: var(--carte); font-variant-numeric: tabular-nums; font-size: 1.05rem;
+      }
+      #resume.ok { border-color: var(--vert); }
+      #resume.ko { border-color: var(--rouge); }
+      .suite { margin-top: 10px; }
+      .suite h2 {
+        font-size: .72rem; text-transform: uppercase; letter-spacing: .12em;
+        color: var(--doux); margin: 0 0 6px; font-weight: 600;
+      }
+      .ligne {
+        display: grid; grid-template-columns: 20px 1fr; gap: 8px;
+        padding: 5px 0; border-bottom: 1px solid var(--trait); align-items: start;
+      }
+      .ligne:last-child { border-bottom: none; }
+      .ok .marque { color: var(--vert); }
+      .ko .marque { color: var(--rouge); }
+      .ko .nom { color: var(--rouge); }
+      .message {
+        grid-column: 2; color: var(--rouge); font-size: .86rem;
+        font-family: ui-monospace, Menlo, monospace; padding-top: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="contenu">
+      <h1>Tests</h1>
+      <p class="intro">
+        Chaque test épingle un comportement qui a déjà cassé une fois, ou qui protège
+        une donnée. Recharger la page relance tout. Aucune dépendance, aucune étape de build.
+      </p>
+      <div id="resume">Exécution…</div>
+      <div id="resultats"></div>
+    </div>
+
+    <script>
+      // Les scripts sont charges dynamiquement avec un parametre unique.
+      // Un lanceur de tests qui lit une version en cache donne un resultat
+      // faux : c'est arrive des le premier essai, le correctif venait d'etre
+      // ecrit et la page testait encore l'ancien fichier.
+      window.__modulesCharges = (async function charger() {
+        const empreinte = Date.now();
+        const fichiers = [
+          "../scripts/config.js", "../scripts/dom.js", "../scripts/helpers.js",
+          "../scripts/auth.js", "../scripts/data.js", "../scripts/ai.js",
+          "../scripts/notes.js", "../scripts/graph.js", "../scripts/quiz.js",
+          "../scripts/mascot.js", "../scripts/todos.js", "../scripts/renderers.js",
+          "../scripts/events.js", "./harness.js", "./tests.js",
+        ];
+
+        for (const chemin of fichiers) {
+          await new Promise((resoudre, rejeter) => {
+            const balise = document.createElement("script");
+            balise.src = `${chemin}?t=${empreinte}`;
+            balise.onload = resoudre;
+            balise.onerror = () => rejeter(new Error(`chargement impossible : ${chemin}`));
+            document.head.appendChild(balise);
+          });
+        }
+      })();
+    </script>
+    <script>
+      (async function lancer() {
+        const resume0 = document.querySelector("#resume");
+        try {
+          await window.__modulesCharges;
+        } catch (error) {
+          resume0.className = "ko";
+          resume0.textContent = error.message;
+          return;
+        }
+        const resultats = document.querySelector("#resultats");
+        const resume = document.querySelector("#resume");
+        const suites = new Map();
+
+        const rendre = (r) => {
+          if (!suites.has(r.suite)) {
+            const bloc = document.createElement("section");
+            bloc.className = "suite";
+            bloc.innerHTML = `<h2></h2>`;
+            bloc.querySelector("h2").textContent = r.suite;
+            resultats.appendChild(bloc);
+            suites.set(r.suite, bloc);
+          }
+          const ligne = document.createElement("div");
+          ligne.className = `ligne ${r.type}`;
+          const marque = document.createElement("span");
+          marque.className = "marque";
+          marque.textContent = r.type === "ok" ? "✓" : "✕";
+          const nom = document.createElement("span");
+          nom.className = "nom";
+          nom.textContent = r.nom;
+          ligne.append(marque, nom);
+          if (r.message) {
+            const msg = document.createElement("div");
+            msg.className = "message";
+            msg.textContent = r.message;
+            ligne.appendChild(msg);
+          }
+          suites.get(r.suite).appendChild(ligne);
+        };
+
+        const bilan = await window.Harnais.executer(rendre);
+        const rate = bilan.echecs.length;
+        resume.className = rate ? "ko" : "ok";
+        resume.textContent = rate
+          ? `${rate} échec(s) sur ${bilan.total} tests`
+          : `${bilan.reussis} tests passés sur ${bilan.total}`;
+        window.__bilanTests = bilan;
+      })();
+    </script>
+  </body>
+</html>

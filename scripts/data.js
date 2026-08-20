@@ -576,7 +576,11 @@
       };
     }
 
-    function normalizeImportedNote(note, existingNotes = context.state.notes) {
+    function normalizeImportedNote(rawNote, existingNotes = context.state.notes) {
+      // Une entree nulle ou d'un autre type ferait echouer tout le chargement.
+      // On repart d'un objet vide : les valeurs par defaut ci-dessous prennent
+      // le relais et l'application demarre au lieu d'afficher une page blanche.
+      const note = rawNote && typeof rawNote === "object" ? rawNote : {};
       const title =
         typeof note.title === "string" && note.title.trim()
           ? decodeHtmlEntities(note.title.trim())
@@ -604,8 +608,18 @@
     }
 
     function normalizeNoteCollection(rawNotes) {
+      if (!Array.isArray(rawNotes)) {
+        return [];
+      }
+
       const normalized = [];
       rawNotes.forEach((note) => {
+        // On ecarte ce qui n'a jamais pu etre une page plutot que de fabriquer
+        // une page fantome "Sans titre" pour chaque octet abime.
+        if (!note || typeof note !== "object") {
+          return;
+        }
+
         normalized.push(normalizeImportedNote(note, normalized));
       });
       return normalized;

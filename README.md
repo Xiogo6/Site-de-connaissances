@@ -113,6 +113,29 @@ et de secours hors ligne.
 
 Les donnees sont stockees dans le `localStorage` du navigateur sous la cle `atlas-connaissance-notes`.
 
+## Tests
+
+Une page a ouvrir, rien a installer :
+
+```
+tests/index.html
+```
+
+Il faut la servir en HTTP (les tests lisent `index.html` et `service-worker.js`),
+donc passer par le meme serveur local que l'application plutot que par `file://`.
+Recharger la page relance tout.
+
+Chaque test epingle quelque chose qui a deja casse une fois. Trois verifient la
+coherence du deploiement et valent d'etre relancees avant chaque publication :
+
+- tout script charge par `index.html` figure dans le cache du service worker
+  (son absence empechait l'application de demarrer hors ligne)
+- toute feuille de style aussi
+- aucun selecteur de `dom.js` ne pointe vers un element disparu
+
+Le harnais a lui-meme ete verifie : trois regressions connues ont ete
+reintroduites volontairement, les trois ont ete detectees et nommees.
+
 ## Sauvegarde robuste
 
 Le point fragile du projet est que l'espace de travail editable vit d'abord dans le navigateur.
