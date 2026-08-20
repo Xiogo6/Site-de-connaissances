@@ -20,8 +20,19 @@
     if (!suiteCourante) {
       throw new Error(`test("${nom}") appele hors d'une suite`);
     }
-    suiteCourante.tests.push({ nom, corps });
+    suiteCourante.tests.push({ nom, corps, http: false });
   }
+
+  // Certains tests lisent les fichiers du projet et ont donc besoin d'une vraie
+  // origine HTTP. Ouvert par double-clic (file://), fetch est bloque par le
+  // navigateur. On les ignore franchement plutot que de les faire echouer :
+  // un echec ferait croire a une regression alors que rien n'a ete verifie.
+  test.surServeur = function testSurServeur(nom, corps) {
+    if (!suiteCourante) {
+      throw new Error(`test.surServeur("${nom}") appele hors d'une suite`);
+    }
+    suiteCourante.tests.push({ nom, corps, http: true });
+  };
 
   function formater(valeur) {
     if (typeof valeur === "string") return JSON.stringify(valeur);
@@ -73,12 +84,28 @@
     },
   });
 
+  function surUnServeur() {
+    return location.protocol === "http:" || location.protocol === "https:";
+  }
+
   async function executer(rendre) {
     let reussis = 0;
+    let ignores = 0;
     const echecs = [];
 
     for (const s of suites) {
       for (const t of s.tests) {
+        if (t.http && !surUnServeur()) {
+          ignores += 1;
+          rendre({
+            type: "ignore",
+            suite: s.nom,
+            nom: t.nom,
+            message: "necessite un serveur local",
+          });
+          continue;
+        }
+
         try {
           await t.corps();
           reussis += 1;
@@ -90,8 +117,8 @@
       }
     }
 
-    return { reussis, echecs, total: reussis + echecs.length };
+    return { reussis, ignores, echecs, total: reussis + ignores + echecs.length };
   }
 
-  global.Harnais = { suite, test, attendre, executer };
+  global.Harnais = { suite, test, attendre, executer, surUnServeur };
 })(window);

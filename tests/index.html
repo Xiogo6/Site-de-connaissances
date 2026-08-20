@@ -14,6 +14,7 @@
         --doux: #93a3af;
         --vert: #5fbf8f;
         --rouge: #e8776c;
+        --ambre: #d9a23f;
       }
       * { box-sizing: border-box; }
       body {
@@ -45,6 +46,18 @@
       .ok .marque { color: var(--vert); }
       .ko .marque { color: var(--rouge); }
       .ko .nom { color: var(--rouge); }
+      .ignore .marque, .ignore .nom { color: var(--doux); }
+      .ignore .message { color: var(--doux); }
+      #banniere {
+        border: 1px solid var(--ambre); border-radius: 10px; padding: 14px 18px;
+        background: rgba(217, 162, 63, .09); color: var(--texte); display: none;
+      }
+      #banniere.visible { display: block; }
+      #banniere code {
+        display: block; margin: 8px 0 0; padding: 8px 10px; border-radius: 6px;
+        background: rgba(0,0,0,.35); font-family: ui-monospace, Menlo, monospace;
+        font-size: .85rem; overflow-x: auto;
+      }
       .message {
         grid-column: 2; color: var(--rouge); font-size: .86rem;
         font-family: ui-monospace, Menlo, monospace; padding-top: 3px;
@@ -58,6 +71,7 @@
         Chaque test épingle un comportement qui a déjà cassé une fois, ou qui protège
         une donnée. Recharger la page relance tout. Aucune dépendance, aucune étape de build.
       </p>
+      <div id="banniere"></div>
       <div id="resume">Exécution…</div>
       <div id="resultats"></div>
     </div>
@@ -115,7 +129,7 @@
           ligne.className = `ligne ${r.type}`;
           const marque = document.createElement("span");
           marque.className = "marque";
-          marque.textContent = r.type === "ok" ? "✓" : "✕";
+          marque.textContent = r.type === "ok" ? "✓" : r.type === "ignore" ? "–" : "✕";
           const nom = document.createElement("span");
           nom.className = "nom";
           nom.textContent = r.nom;
@@ -129,12 +143,26 @@
           suites.get(r.suite).appendChild(ligne);
         };
 
+        if (!window.Harnais.surUnServeur()) {
+          const banniere = document.querySelector("#banniere");
+          banniere.className = "visible";
+          banniere.innerHTML =
+            "<strong>Page ouverte sans serveur.</strong> Trois tests lisent les fichiers du " +
+            "projet et ont besoin d'une vraie adresse HTTP : le navigateur bloque ces lectures " +
+            "en <code style='display:inline;padding:1px 5px'>file://</code>. Ils sont ignorés, " +
+            "pas en échec. Pour les exécuter, lance un serveur depuis le dossier du projet puis " +
+            "ouvre l'adresse indiquée :" +
+            "<code>python3 -m http.server 8000</code>" +
+            "<code>http://localhost:8000/tests/</code>";
+        }
+
         const bilan = await window.Harnais.executer(rendre);
         const rate = bilan.echecs.length;
+        const suffixe = bilan.ignores ? `, ${bilan.ignores} ignoré(s)` : "";
         resume.className = rate ? "ko" : "ok";
         resume.textContent = rate
-          ? `${rate} échec(s) sur ${bilan.total} tests`
-          : `${bilan.reussis} tests passés sur ${bilan.total}`;
+          ? `${rate} échec(s) sur ${bilan.total} tests${suffixe}`
+          : `${bilan.reussis} tests passés sur ${bilan.total - bilan.ignores}${suffixe}`;
         window.__bilanTests = bilan;
       })();
     </script>

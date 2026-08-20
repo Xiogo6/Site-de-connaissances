@@ -121,9 +121,18 @@ Une page a ouvrir, rien a installer :
 tests/index.html
 ```
 
-Il faut la servir en HTTP (les tests lisent `index.html` et `service-worker.js`),
-donc passer par le meme serveur local que l'application plutot que par `file://`.
-Recharger la page relance tout.
+Ouverte par double-clic, la page fonctionne : 25 tests s'executent. Trois
+lisent les fichiers du projet et ont besoin d'une vraie adresse HTTP, car le
+navigateur bloque ces lectures en `file://` ; ils sont alors ignores, et la
+page explique comment les lancer.
+
+Pour tout executer, depuis le dossier du projet :
+
+```bash
+python3 -m http.server 8000
+```
+
+puis ouvrir `http://localhost:8000/tests/`. Recharger la page relance tout.
 
 Chaque test epingle quelque chose qui a deja casse une fois. Trois verifient la
 coherence du deploiement et valent d'etre relancees avant chaque publication :

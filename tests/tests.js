@@ -84,7 +84,7 @@
   suite("Coherence du deploiement", () => {
     // Ce test aurait attrape C-04 : ai.js absent du service worker, qui
     // empechait purement et simplement l'application de demarrer hors ligne.
-    test("chaque script de index.html est dans le cache du service worker", async () => {
+    test.surServeur("chaque script de index.html est dans le cache du service worker", async () => {
       const html = await (await fetch("../index.html", { cache: "no-store" })).text();
       const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
       const scripts = [...html.matchAll(/<script src="\.\/([^"?]+)/g)].map((m) => m[1]);
@@ -94,7 +94,7 @@
       attendre(manquants.join(", ")).vaut("");
     });
 
-    test("chaque feuille de style de index.html est dans le cache", async () => {
+    test.surServeur("chaque feuille de style de index.html est dans le cache", async () => {
       const html = await (await fetch("../index.html", { cache: "no-store" })).text();
       const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
       const feuilles = [...html.matchAll(/<link rel="stylesheet" href="\.\/([^"?]+)/g)].map((m) => m[1]);
@@ -104,7 +104,7 @@
       attendre(manquants.join(", ")).vaut("");
     });
 
-    test("aucun selecteur de dom.js ne pointe vers un element absent", async () => {
+    test.surServeur("aucun selecteur de dom.js ne pointe vers un element absent", async () => {
       const html = await (await fetch("../index.html", { cache: "no-store" })).text();
       const dom = await (await fetch("../scripts/dom.js", { cache: "no-store" })).text();
       const ids = [...dom.matchAll(/querySelector\("#([a-zA-Z0-9_-]+)"\)/g)].map((m) => m[1]);
