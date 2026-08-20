@@ -13,9 +13,24 @@
 -- anon conserve le droit herite de PUBLIC. Verifie par sondage : avec la seule
 -- cle publiable, get_app_payload repond 401 mais get_note_deletions repond 200.
 --
--- Le cas grave est prune_snapshot_history : appelee avec 0, elle supprime la
--- totalite de la table snapshots. La cle publiable etant lisible dans le depot
--- public, n'importe qui pouvait effacer tout l'historique de sauvegardes.
+-- Portee reelle, apres lecture des versions ACTIVES de chaque fonction :
+--
+--   get_note_deletions()    fuite confirmee (HTTP 200 avec la seule cle
+--                           publiable). Expose les identifiants des pages
+--                           supprimees et leurs dates. Reel mais mineur.
+--
+--   prune_snapshot_history  la version active (20260719234500) IGNORE son
+--                           argument : les limites sont ecrites en dur, 30
+--                           snapshots quotidiens et 20 d'action. L'appeler
+--                           n'applique donc que la retention normale, deja
+--                           faite par le declencheur. Impact negligeable.
+--
+--   create_daily_snapshot() reecrit le snapshot quotidien du jour a partir de
+--                           l'etat courant. Un appel repete rafraichit cette
+--                           entree. Genant, pas destructeur.
+--
+-- Aucune de ces trois n'est catastrophique. On les ferme parce qu'une fonction
+-- exposee sans raison finit par le devenir, pas dans l'urgence.
 --
 -- On applique ici le motif correct : revoquer de PUBLIC et de anon, puis
 -- accorder au seul role authenticated.
