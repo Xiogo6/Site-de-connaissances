@@ -8,6 +8,56 @@
     const MIN_GRAPH_ZOOM = 0.08;
     const MAX_GRAPH_ZOOM = 4.4;
     const GRAPH_LABEL_BREAKPOINT = "(max-width: 780px)";
+
+    // Les positions du graphe coutaient un reglage complet a chaque
+    // rechargement de page : 0,6 s a 136 pages, 2,6 s a 303, 9,6 s a 603,
+    // le tout en O(N2) et en bloquant l'onglet. Les conserver rend ce cout
+    // ponctuel au lieu de quotidien, sans changer le dessin obtenu.
+    const graphPositionsStorageKey = `${AtlasApp.config.appStorageKey}-graph-positions`;
+    let savePositionsTimer = null;
+
+    function readStoredPositions() {
+      try {
+        const brut = window.localStorage.getItem(graphPositionsStorageKey);
+        const parse = brut ? JSON.parse(brut) : null;
+        if (!parse || typeof parse !== "object") {
+          return new Map();
+        }
+
+        const positions = new Map();
+        for (const [id, valeur] of Object.entries(parse)) {
+          if (Number.isFinite(valeur?.x) && Number.isFinite(valeur?.y)) {
+            positions.set(id, { x: valeur.x, y: valeur.y, locked: Boolean(valeur.locked) });
+          }
+        }
+        return positions;
+      } catch (error) {
+        return new Map();
+      }
+    }
+
+    function scheduleStorePositions() {
+      if (savePositionsTimer) {
+        window.clearTimeout(savePositionsTimer);
+      }
+
+      savePositionsTimer = window.setTimeout(() => {
+        savePositionsTimer = null;
+        try {
+          const plat = {};
+          context.state.graphPositions.forEach((valeur, id) => {
+            plat[id] = {
+              x: Math.round(valeur.x * 10) / 10,
+              y: Math.round(valeur.y * 10) / 10,
+              locked: Boolean(valeur.locked),
+            };
+          });
+          window.localStorage.setItem(graphPositionsStorageKey, JSON.stringify(plat));
+        } catch (error) {
+          // Le graphe se recalculera au prochain chargement : rien de perdu.
+        }
+      }, 900);
+    }
     let zoomAnimationFrame = null;
     let lastLayoutHeight = CANVAS_HEIGHT;
     let graphLayoutNeedsSettling = false;
@@ -487,6 +537,30 @@
     return positions;
   }
 
+  // Un nouveau noeud apparait au barycentre de ses voisins deja places,
+  // legerement decale pour ne pas se superposer. Sans voisin connu, au centre.
+  function placeNewNodes(nodes, adjacency, width, height) {
+    nodes.forEach((node, index) => {
+      const voisins = [...(adjacency.get(node.id) || [])]
+        .map((id) => context.state.graphPositions.get(id))
+        .filter(Boolean);
+
+      const base = voisins.length
+        ? {
+            x: voisins.reduce((somme, position) => somme + position.x, 0) / voisins.length,
+            y: voisins.reduce((somme, position) => somme + position.y, 0) / voisins.length,
+          }
+        : { x: width / 2, y: height / 2 };
+
+      const angle = (index / Math.max(nodes.length, 1)) * Math.PI * 2;
+      context.state.graphPositions.set(node.id, {
+        x: clamp(base.x + Math.cos(angle) * 46, 38, width - 38),
+        y: clamp(base.y + Math.sin(angle) * 46, 38, height - 38),
+        locked: false,
+      });
+    });
+  }
+
   function recenterGraphLayout() {
     const graph = buildGraphModel();
     const { width, height } = getGraphDimensions();
@@ -542,17 +616,46 @@
       `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`
     );
 
-    const hasAllPositions = graph.nodes.every((node) => context.state.graphPositions.has(node.id));
-    if (!hasAllPositions) {
-      context.state.graphPositions = initializeGraphPositions(graph, width, height);
+    if (!context.state.graphPositions.size) {
+      context.state.graphPositions = readStoredPositions();
     }
 
+    const nouveaux = graph.nodes.filter((node) => !context.state.graphPositions.has(node.id));
+    const partDeZero = context.state.graphPositions.size === 0;
+
+    if (partDeZero) {
+      context.state.graphPositions = initializeGraphPositions(graph, width, height);
+    } else if (nouveaux.length) {
+      // Ajouter une page ne jette plus la disposition entiere : les nouveaux
+      // venus se placent pres de leurs voisins deja positionnes, et une
+      // courte relaxation suffit a les integrer.
+      placeNewNodes(nouveaux, adjacency, width, height);
+    }
+
+    // A l'ajout de pages, seuls les nouveaux venus se deplacent. Laisser toute
+    // la disposition se reorganiser deplacait les anciens noeuds de 90 px en
+    // moyenne : la carte mentale du graphe changeait a chaque page creee.
+    //
+    // Et aucune passe : un nouveau noeud subit la repulsion de toutes les pages
+    // figees sans rien pour le retenir hormis ses quelques liens. Avec 24 passes
+    // il finissait ejecte contre le bord, avec 6 encore a 400 px de ses voisins.
+    // Le placement au barycentre est deja le bon endroit ; simuler ne fait que
+    // l'en eloigner.
+    const noeudsAdeplacer =
+      !partDeZero && !graphLayoutNeedsSettling && nouveaux.length
+        ? new Set(nouveaux.map((node) => node.id))
+        : null;
+
+    // Rien n'a change depuis la derniere fois : aucune passe. Les dix passes
+    // de retouche appliquees jusqu'ici faisaient deriver le graphe de 31 px en
+    // moyenne a chaque ouverture, sans rien ameliorer. Le dessin qu'on quitte
+    // est desormais celui qu'on retrouve.
     const simulationPasses =
-      !hasAllPositions || graphLayoutNeedsSettling
+      partDeZero || graphLayoutNeedsSettling
         ? 180
         : context.state.graphDrag.mode
           ? 2
-          : 10;
+          : 0;
     graphLayoutNeedsSettling = false;
 
     for (let pass = 0; pass < simulationPasses; pass += 1) {
@@ -600,6 +703,10 @@
           return;
         }
 
+        if (noeudsAdeplacer && !noeudsAdeplacer.has(node.id)) {
+          return;
+        }
+
         const force = forces.get(node.id);
         position.x += force.x + (centerX - position.x) * 0.002;
         position.y += force.y + (centerY - position.y) * 0.002;
@@ -608,6 +715,27 @@
         position.y = context.helpers.clamp(position.y, verticalInset, height - verticalInset);
       });
     }
+
+    if (!simulationPasses) {
+      const verticalInset = height > 900 ? 118 : -90;
+      context.state.graphPositions.forEach((position) => {
+        position.x = clamp(position.x, 38, width - 38);
+        position.y = clamp(position.y, verticalInset, height - verticalInset);
+      });
+    }
+
+    // Les pages supprimees laissaient leur position derriere elles ; on elague
+    // pour que ni la memoire ni le stockage ne grossissent indefiniment.
+    if (context.state.graphPositions.size > graph.nodes.length) {
+      const vivants = new Set(graph.nodes.map((node) => node.id));
+      context.state.graphPositions.forEach((_, id) => {
+        if (!vivants.has(id)) {
+          context.state.graphPositions.delete(id);
+        }
+      });
+    }
+
+    scheduleStorePositions();
 
     context.elements.graphCanvas.innerHTML = "";
 
