@@ -129,8 +129,12 @@
   grid-column: 2;
 }
 
+/* Le graphe prend toute la largeur et le panneau de lecture passe dessous.
+   L'espace logique fait 960 de large : dans une colonne de 594 px le dessin
+   etait reduit a 62 %, contre 97 % en pleine largeur, soit 2,5 fois plus de
+   surface. Le panneau Focus, le plus souvent vide, coutait cette place. */
 .graph-layout {
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .quiz-layout {
@@ -1150,16 +1154,11 @@ body[data-theme="dark"] .tab.is-active {
     box-shadow: 0 14px 30px rgba(15, 18, 22, 0.24);
   }
 
-  .graph-sidebar {
-    display: none;
-  }
-
   .workspace > .panel {
     background: transparent;
     border: 0;
     box-shadow: none;
-  }.panel-links,
-.graph-sidebar {
+  }.panel-links {
     display: none;
   }
 

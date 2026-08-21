@@ -694,12 +694,9 @@ body[data-theme="dark"] #knowledge-list .note-type-icon-folder + .knowledge-item
   background: rgba(255, 247, 232, 0.95);
   border-color: rgba(191, 91, 44, 0.3);
   color: var(--text);
-}
-
-.workspace-callout,
+}.workspace-callout,
 .stat-card,
 .helper-card,
-.focus-card,
 .quiz-card,
 .quiz-summary,
 .insight-card,
@@ -775,11 +772,8 @@ body[data-theme="dark"] .text-input,
 body[data-theme="dark"] .select-input,
 body[data-theme="dark"] .editor {
   background: rgba(16, 19, 23, 0.72);
-}
-
-:root[data-theme="dark"] .knowledge-item,
+}:root[data-theme="dark"] .knowledge-item,
 :root[data-theme="dark"] .helper-card,
-:root[data-theme="dark"] .focus-card,
 :root[data-theme="dark"] .quiz-card,
 :root[data-theme="dark"] .quiz-summary,
 :root[data-theme="dark"] .sidebar-tab,
@@ -787,7 +781,6 @@ body[data-theme="dark"] .editor {
 :root[data-theme="dark"] .workspace-callout,
 body[data-theme="dark"] .knowledge-item,
 body[data-theme="dark"] .helper-card,
-body[data-theme="dark"] .focus-card,
 body[data-theme="dark"] .quiz-card,
 body[data-theme="dark"] .quiz-summary,
 body[data-theme="dark"] .sidebar-tab,
@@ -834,11 +827,8 @@ body[data-theme="dark"] .button-flat:hover {
   border: 0;
   box-shadow: none;
   color: var(--accent);
-}
-
-.stat-card,
+}.stat-card,
 .helper-card,
-.focus-card,
 .quiz-card,
 .quiz-summary,
 .snapshot-item {
@@ -854,10 +844,7 @@ body[data-theme="dark"] .button-flat:hover {
 .stat-label {
   color: var(--text-soft);
   font-size: 0.82rem;
-}
-
-.helper-card,
-.focus-card,
+}.helper-card,
 .quiz-card,
 .quiz-summary {
   padding: 18px;
@@ -2922,11 +2909,8 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
 
 #template-editor {
   min-height: 460px;
-}
-
-:root[data-theme="dark"] .stat-card,
+}:root[data-theme="dark"] .stat-card,
 :root[data-theme="dark"] .helper-card,
-:root[data-theme="dark"] .focus-card,
 :root[data-theme="dark"] .quiz-card,
 :root[data-theme="dark"] .quiz-summary,
 :root[data-theme="dark"] .snapshot-item,
@@ -2939,7 +2923,6 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
 :root[data-theme="dark"] .pill-soft,
 body[data-theme="dark"] .stat-card,
 body[data-theme="dark"] .helper-card,
-body[data-theme="dark"] .focus-card,
 body[data-theme="dark"] .quiz-card,
 body[data-theme="dark"] .quiz-summary,
 body[data-theme="dark"] .snapshot-item,

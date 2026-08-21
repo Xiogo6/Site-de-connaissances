@@ -753,7 +753,6 @@
     context.elements.graphCanvas.innerHTML = "";
 
     if (!graph.nodes.length) {
-      renderGraphFocus();
       return;
     }
 
@@ -876,8 +875,6 @@
       }
       context.elements.graphCanvas.appendChild(group);
     });
-
-    renderGraphFocus();
   }
 
   function setGraphSelectionFromNode(group) {
@@ -914,63 +911,7 @@
       return;
     }
 
-    renderGraphFocus();
     drawGraph();
-  }
-
-  function renderGraphFocus() {
-    const selection = context.state.graphSelection;
-
-    if (selection?.kind === "tag") {
-      const tag = selection.id.replace("tag::", "");
-      const relatedNotes = context.state.notes
-        .filter((note) =>
-          note.tags.some((candidate) => candidate.toLowerCase() === tag.toLowerCase())
-        )
-        .map((note) => note.title);
-      context.elements.graphFocus.innerHTML = `
-        <p><strong>Tag : ${escapeHtml(tag)}</strong></p>
-        <p>${relatedNotes.length} page(s) reliee(s)</p>
-        <p>${escapeHtml(relatedNotes.join(", ") || "Aucune page")}</p>
-      `;
-      return;
-    }
-
-    if (selection?.kind === "note") {
-      const note = context.state.notes.find((item) => item.id === selection.id);
-      if (!note) {
-        context.elements.graphFocus.innerHTML = "<p>Aucune page selectionnee.</p>";
-        return;
-      }
-
-      const outgoing = unique(extractLinks(note.content));
-      const backlinks = context.notes.getBacklinks(note.title, note.id);
-
-      context.elements.graphFocus.innerHTML = `
-        <p><strong>${escapeHtml(note.title)}</strong></p>
-        <p>${escapeHtml(extractSummary(note.content))}</p>
-        <p><strong>Type :</strong> ${escapeHtml(
-          context.data.getNoteTypeLabels()[note.type] || "Concept"
-        )}</p>
-        <p><strong>Liens sortants :</strong> ${escapeHtml(outgoing.join(", ") || "Aucun")}</p>
-        <p><strong>Backlinks :</strong> ${escapeHtml(backlinks.join(", ") || "Aucun")}</p>
-        <button type="button" class="button" data-open-active-note>Ouvrir cette page</button>
-      `;
-      return;
-    }
-
-    context.elements.graphFocus.innerHTML = "<p>Aucune page selectionnee.</p>";
-  }
-
-  function handleGraphFocusClick(event) {
-    const button = event.target.closest("[data-open-active-note]");
-    if (!button) {
-      return;
-    }
-
-    context.state.activeTab = "knowledge";
-    context.state.noteViewMode = "read";
-    context.renderers.renderEverything();
   }
 
   function handleGraphPointerDown(event) {
@@ -1152,7 +1093,6 @@
       return;
     }
 
-    renderGraphFocus();
     drawGraph();
   }
 
@@ -1386,13 +1326,11 @@
     drawGraph,
     getGraphNotes,
     handleGraphClick,
-    handleGraphFocusClick,
     handleGraphPointerDown,
     handleGraphPointerMove,
     handleGraphPointerUp,
     handleGraphWheel,
     recenterGraphLayout,
-    renderGraphFocus,
     zoomIn,
     zoomOut,
   };

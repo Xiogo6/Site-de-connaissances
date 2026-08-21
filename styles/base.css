@@ -65,11 +65,8 @@ body[data-theme="dark"] code {
   font-weight: 600;
   line-height: 1.2;
   margin: 0;
-}
-
-.brand-copy,
+}.brand-copy,
 .hero-copy,
-.focus-card p,
 .helper-card p {
   color: var(--text-soft);
   line-height: 1.6;

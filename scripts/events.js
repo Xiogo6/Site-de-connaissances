@@ -793,7 +793,6 @@
     context.elements.outgoingLinks.addEventListener("click", handleChipClick);
     context.elements.backlinks.addEventListener("click", handleChipClick);
     context.elements.suggestedLinks.addEventListener("click", handleSuggestedLinkClick);
-    context.elements.graphFocus.addEventListener("click", context.graph.handleGraphFocusClick);
     context.elements.quickCaptureToggle.addEventListener("click", () => {
       if (handleQuickQuizReturnAction()) {
         return;

@@ -399,11 +399,8 @@ body[data-theme="dark"] .editor {
 .editor:focus {
   border-color: var(--theme-accent-line);
   box-shadow: 0 0 0 4px var(--theme-accent-wash);
-}
-
-.knowledge-item,
+}.knowledge-item,
 .helper-card,
-.focus-card,
 .quiz-card,
 .quiz-summary,
 .sidebar-tab,
@@ -416,7 +413,6 @@ body[data-theme="dark"] .editor {
 .utility-link,
 body[data-theme="dark"] .knowledge-item,
 body[data-theme="dark"] .helper-card,
-body[data-theme="dark"] .focus-card,
 body[data-theme="dark"] .quiz-card,
 body[data-theme="dark"] .quiz-summary,
 body[data-theme="dark"] .sidebar-tab,
@@ -703,16 +699,13 @@ body[data-theme-preset] .knowledge-list {
   background: color-mix(in srgb, var(--theme-sidebar-surface) 76%, transparent);
   border-radius: 16px;
   padding: 6px;
-}
-
-body[data-theme-preset] .knowledge-item,
+}body[data-theme-preset] .knowledge-item,
 body[data-theme-preset] .insight-card,
 body[data-theme-preset] .due-item,
 body[data-theme-preset] .hierarchy-node,
 body[data-theme-preset] .snapshot-item,
 body[data-theme-preset] .stat-card,
-body[data-theme-preset] .helper-card,
-body[data-theme-preset] .focus-card {
+body[data-theme-preset] .helper-card {
   background: var(--theme-item-background);
   border-color: var(--line);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
