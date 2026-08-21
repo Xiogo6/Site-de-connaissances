@@ -16,16 +16,31 @@
     const graphPositionsStorageKey = `${AtlasApp.config.appStorageKey}-graph-positions`;
     let savePositionsTimer = null;
 
-    function readStoredPositions() {
+    // Une disposition par format d'affichage. Le graphe compact et le graphe
+    // large ne travaillent pas sur la meme hauteur logique ni sur le meme
+    // encadrement vertical : melanger les deux remontait de force les noeuds
+    // du haut, et une seule visite sur telephone abimait durablement la
+    // disposition de bureau.
+    function currentLayoutMode() {
+      return isCompactGraphViewport() ? "compact" : "wide";
+    }
+
+    function readStoredPositions(mode, height) {
       try {
         const brut = window.localStorage.getItem(graphPositionsStorageKey);
         const parse = brut ? JSON.parse(brut) : null;
-        if (!parse || typeof parse !== "object") {
+        const entree = parse && typeof parse === "object" ? parse[mode] : null;
+        if (!entree || typeof entree.positions !== "object") {
+          return new Map();
+        }
+
+        // Dimensions trop differentes : mieux vaut recalculer que recadrer.
+        if (!Number.isFinite(entree.height) || Math.abs(entree.height - height) > 80) {
           return new Map();
         }
 
         const positions = new Map();
-        for (const [id, valeur] of Object.entries(parse)) {
+        for (const [id, valeur] of Object.entries(entree.positions)) {
           if (Number.isFinite(valeur?.x) && Number.isFinite(valeur?.y)) {
             positions.set(id, { x: valeur.x, y: valeur.y, locked: Boolean(valeur.locked) });
           }
@@ -36,7 +51,7 @@
       }
     }
 
-    function scheduleStorePositions() {
+    function scheduleStorePositions(mode, height) {
       if (savePositionsTimer) {
         window.clearTimeout(savePositionsTimer);
       }
@@ -44,15 +59,20 @@
       savePositionsTimer = window.setTimeout(() => {
         savePositionsTimer = null;
         try {
-          const plat = {};
+          const positions = {};
           context.state.graphPositions.forEach((valeur, id) => {
-            plat[id] = {
+            positions[id] = {
               x: Math.round(valeur.x * 10) / 10,
               y: Math.round(valeur.y * 10) / 10,
               locked: Boolean(valeur.locked),
             };
           });
-          window.localStorage.setItem(graphPositionsStorageKey, JSON.stringify(plat));
+
+          const brut = window.localStorage.getItem(graphPositionsStorageKey);
+          const parse = brut ? JSON.parse(brut) : null;
+          const tout = parse && typeof parse === "object" ? parse : {};
+          tout[mode] = { height, positions };
+          window.localStorage.setItem(graphPositionsStorageKey, JSON.stringify(tout));
         } catch (error) {
           // Le graphe se recalculera au prochain chargement : rien de perdu.
         }
@@ -616,8 +636,9 @@
       `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`
     );
 
+    const layoutMode = currentLayoutMode();
     if (!context.state.graphPositions.size) {
-      context.state.graphPositions = readStoredPositions();
+      context.state.graphPositions = readStoredPositions(layoutMode, height);
     }
 
     const nouveaux = graph.nodes.filter((node) => !context.state.graphPositions.has(node.id));
@@ -716,14 +737,6 @@
       });
     }
 
-    if (!simulationPasses) {
-      const verticalInset = height > 900 ? 118 : -90;
-      context.state.graphPositions.forEach((position) => {
-        position.x = clamp(position.x, 38, width - 38);
-        position.y = clamp(position.y, verticalInset, height - verticalInset);
-      });
-    }
-
     // Les pages supprimees laissaient leur position derriere elles ; on elague
     // pour que ni la memoire ni le stockage ne grossissent indefiniment.
     if (context.state.graphPositions.size > graph.nodes.length) {
@@ -735,7 +748,7 @@
       });
     }
 
-    scheduleStorePositions();
+    scheduleStorePositions(layoutMode, height);
 
     context.elements.graphCanvas.innerHTML = "";
 
