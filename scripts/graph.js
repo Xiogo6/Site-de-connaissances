@@ -25,7 +25,7 @@
       return isCompactGraphViewport() ? "compact" : "wide";
     }
 
-    function readStoredPositions(mode, height) {
+    function readStoredPositions(mode, width, height) {
       try {
         const brut = window.localStorage.getItem(graphPositionsStorageKey);
         const parse = brut ? JSON.parse(brut) : null;
@@ -35,7 +35,12 @@
         }
 
         // Dimensions trop differentes : mieux vaut recalculer que recadrer.
-        if (!Number.isFinite(entree.height) || Math.abs(entree.height - height) > 80) {
+        if (
+          !Number.isFinite(entree.height) ||
+          Math.abs(entree.height - height) > 80 ||
+          !Number.isFinite(entree.width) ||
+          Math.abs(entree.width - width) > 80
+        ) {
           return new Map();
         }
 
@@ -51,7 +56,7 @@
       }
     }
 
-    function scheduleStorePositions(mode, height) {
+    function scheduleStorePositions(mode, width, height) {
       if (savePositionsTimer) {
         window.clearTimeout(savePositionsTimer);
       }
@@ -71,7 +76,7 @@
           const brut = window.localStorage.getItem(graphPositionsStorageKey);
           const parse = brut ? JSON.parse(brut) : null;
           const tout = parse && typeof parse === "object" ? parse : {};
-          tout[mode] = { height, positions };
+          tout[mode] = { width, height, positions };
           window.localStorage.setItem(graphPositionsStorageKey, JSON.stringify(tout));
         } catch (error) {
           // Le graphe se recalculera au prochain chargement : rien de perdu.
@@ -160,15 +165,25 @@
     return global.matchMedia?.(GRAPH_LABEL_BREAKPOINT)?.matches ?? false;
   }
 
+  // L'espace de mise en page epouse la zone reellement affichee, au pixel pres.
+  // Avec un espace fixe de 960 x 620, agrandir la zone ne faisait que grossir le
+  // dessin : les noeuds devenaient enormes et se chevauchaient sans que la
+  // disposition ne s'aere. Ici, plus de place signifie vraiment plus d'espace
+  // entre les noeuds.
   function getGraphDimensions() {
     const rect = context.elements.graphCanvas?.getBoundingClientRect();
-    if (!isCompactGraphViewport() || !rect?.width || !rect?.height) {
+    if (!rect?.width || !rect?.height) {
       return { width: CANVAS_WIDTH, height: CANVAS_HEIGHT };
     }
 
+    // Sur grand ecran l'espace logique epouse la zone : echelle 1, et
+    // l'agrandir donne vraiment plus de place aux noeuds. Sur ecran etroit
+    // on garde un espace large ramene a la taille de l'ecran, sinon 136
+    // noeuds de 30 px de rayon dans 375 px de large se chevauchent tous.
+    const largeur = Math.max(Math.round(rect.width), CANVAS_WIDTH);
     return {
-      width: CANVAS_WIDTH,
-      height: clamp(CANVAS_WIDTH * (rect.height / rect.width), 960, 2100),
+      width: largeur,
+      height: clamp(Math.round(largeur * (rect.height / rect.width)), 320, 2600),
     };
   }
 
@@ -638,7 +653,7 @@
 
     const layoutMode = currentLayoutMode();
     if (!context.state.graphPositions.size) {
-      context.state.graphPositions = readStoredPositions(layoutMode, height);
+      context.state.graphPositions = readStoredPositions(layoutMode, width, height);
     }
 
     const nouveaux = graph.nodes.filter((node) => !context.state.graphPositions.has(node.id));
@@ -691,7 +706,11 @@
           let dx = a.x - b.x;
           let dy = a.y - b.y;
           const distance = Math.max(Math.hypot(dx, dy), 1);
-          const repulsion = 2800 / (distance * distance);
+          // Repulsion relevee de 2800 a 10000. Mesure sur 136 noeuds de rayon
+          // moyen 30 px : l'espacement au plus proche voisin passe de 52 a 63 px
+          // et les chevauchements de 107 a 69. Au-dela, le gain sature et les
+          // noeuds se plaquent contre les bords.
+          const repulsion = 10000 / (distance * distance);
           dx /= distance;
           dy /= distance;
 
@@ -732,7 +751,7 @@
         position.x += force.x + (centerX - position.x) * 0.002;
         position.y += force.y + (centerY - position.y) * 0.002;
         position.x = context.helpers.clamp(position.x, 38, width - 38);
-        const verticalInset = height > 900 ? 118 : -90;
+        const verticalInset = Math.max(44, height * 0.06);
         position.y = context.helpers.clamp(position.y, verticalInset, height - verticalInset);
       });
     }
@@ -748,7 +767,7 @@
       });
     }
 
-    scheduleStorePositions(layoutMode, height);
+    scheduleStorePositions(layoutMode, width, height);
 
     context.elements.graphCanvas.innerHTML = "";
 

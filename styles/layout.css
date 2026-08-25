@@ -129,6 +129,21 @@
   grid-column: 2;
 }
 
+/* Sur l'onglet graphe, le volet Bibliotheque s'efface : on y observe des
+   liens, on n'y navigue pas dans l'arborescence. Cela rend 390 px de large
+   au dessin, qui passe de 932 a environ 1346 px. Les onglets du haut
+   restent la pour changer de vue. Pour revenir en arriere, supprimer ce
+   bloc suffit. */
+@media (min-width: 781px) {
+  body.graph-view-active .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body.graph-view-active .sidebar {
+    display: none;
+  }
+}
+
 /* Le graphe prend toute la largeur et le panneau de lecture passe dessous.
    L'espace logique fait 960 de large : dans une colonne de 594 px le dessin
    etait reduit a 62 %, contre 97 % en pleine largeur, soit 2,5 fois plus de
