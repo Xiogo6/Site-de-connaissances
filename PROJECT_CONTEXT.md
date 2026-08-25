@@ -22,6 +22,9 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
   Tous les selecteurs DOM centralises.
 - `scripts/helpers.js`
   Utilitaires texte, tags, rendu markdown simple, dates flexibles.
+- `scripts/auth.js`
+  Session Supabase : connexion, jeton conserve, rafraichissement automatique.
+  Sans session ouverte, l application reste en mode local et n ecrit rien a distance.
 - `scripts/data.js`
   Chargement/sauvegarde locale, snapshots, sync Supabase.
 - `scripts/notes.js`
@@ -35,7 +38,12 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
 - `scripts/quiz.js`
   Quiz.
 - `styles/*.css`
-  Base visuelle et responsive.
+  Base visuelle et responsive. Six feuilles chargees en parallele, dans l ordre
+  tokens, base, layout, components, features, themes. Chaque couche affine la
+  precedente : c est voulu, pas un accident.
+- `tests/index.html`
+  28 tests a ouvrir dans un navigateur, sans dependance ni etape de build.
+  Servir en HTTP, sinon trois tests sont ignores. Voir le README.
 
 ## Conventions fonctionnelles importantes
 
@@ -98,6 +106,15 @@ Des suggestions apparaissent pendant la saisie dans l editeur principal et dans 
 
 Le quiz fonctionne en rappel actif, sans propositions visibles.
 
+Important : les questions ne sont PAS deduites du contenu. Une page n est
+interrogee que si elle possede un tableau `quizQuestions` non vide, saisi a la
+main ou genere par Gemini. Une page sans question est invisible pour le quiz,
+quel que soit son contenu.
+
+Repondre fait avancer la repetition espacee : `updateReviewState()` met a jour
+`review.streak` et `review.nextReviewAt` selon `reviewIntervalsInHours`. Une
+page est acquise pour la session si toutes ses questions tirees sont justes.
+
 Scopes actuels :
 
 - toutes les pages
@@ -118,13 +135,46 @@ Points UX specifiques deja en place :
 - pendant l edition, le bouton flottant devient un raccourci `Enregistrer`
 - graphe deplacable au doigt
 
+## Graphe
+
+L espace de mise en page epouse la zone affichee sur grand ecran, ce qui donne
+aux noeuds la place de s ecarter. Sur ecran etroit il garde 960 px de large
+ramenes a l echelle, sinon les noeuds se chevauchent tous.
+
+Les positions sont conservees dans `localStorage`, une disposition par format
+d affichage, chacune avec les dimensions qui l ont produite. Le reglage complet
+n a donc lieu qu une fois au lieu de chaque rechargement. Ajouter une page ne
+deplace aucun noeud existant : la nouvelle se place au barycentre de ses voisins.
+
+Le volet Bibliotheque s efface sur cet onglet en grand ecran. Le graphe sert a
+observer les liens, pas a ouvrir les pages : cliquer un noeud estompe le reste
+et fait ressortir la page et ses voisins.
+
 ## Points a surveiller pour les prochaines iterations
 
-- politique de retention des snapshots
-- meilleure logique de fusion des tags proches mais non triviaux
-- zoom/pan du graphe encore perfectible si le reseau grossit beaucoup
-- focus automatique de la recherche selon les contraintes iPhone/Safari
+- `normalizeTag` fabrique des mots inexistants sur les pluriels en -aux
+  (`chevaux` donne `chevau`). Le corriger separerait les tags deja enregistres
+  de ceux a venir : il faut une migration, pas seulement un correctif. Un test
+  epingle volontairement le comportement actuel.
+- Les questions de quiz restent entierement manuelles ou generees par Gemini.
+  Des generateurs deduits du contenu (dates, liens, termes en gras) rendraient
+  le quiz utilisable sur tout le corpus.
+- `prune_snapshot_history` garde un parametre que sa version active ignore :
+  les limites sont ecrites en dur, 30 quotidiens et 20 d action. Trois appels
+  sur quatre passent encore `5`, un chiffre qui ne veut plus rien dire.
+- Les numeros de version `?v=` sont poses a la main sur 20 fichiers, plus
+  `CACHE_NAME`. Un oubli sert un melange d anciennes et de nouvelles versions.
+- `events.js` et `renderers.js` ont absorbe tout ce qui ne rentrait ailleurs.
 
 ## Regle de prudence
 
-Ne pas modifier brutalement la politique de snapshots ou la sync distante sans validation explicite, car ces deux zones touchent a la securite des donnees.
+Ne pas modifier brutalement la politique de snapshots ou la sync distante sans
+validation explicite, car ces deux zones touchent a la securite des donnees.
+
+Verifier quelle version d une fonction SQL est active avant d en tirer une
+conclusion : seize migrations se redefinissent les unes les autres, et lire une
+definition au hasard induit en erreur. Prendre la derniere par ordre de nom de
+fichier, ou interroger la base.
+
+Ne pas conclure d une recherche vide qu il n y a rien : verifier d abord que la
+recherche portait sur la bonne chose.

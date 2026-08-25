@@ -30,10 +30,13 @@ Ouvrez simplement `index.html` dans votre navigateur.
 - liens wiki via `[[Nom de page]]`
 - creation automatique d'une page si vous cliquez sur un lien inexistant
 - backlinks et suggestions de liens
-- graphe visuel de toutes les connexions
+- graphe visuel de toutes les connexions, dont la disposition est conservee
+  d une session a l autre et ne se reorganise pas quand vous ajoutez une page
 - filtres par type, tag et favoris
-- file de revision avec pages a revoir
-- types de page (concept, hub, procedure, question)
+- repetition espacee : repondre juste a un quiz repousse la page, se tromper
+  la ramene tout de suite. Les dossiers ne sont pas comptes comme a reviser
+- dix types de page : concept, definition, personne, evenement, experience,
+  daily, dossier, hub, procedure, question, plus vos types personnalises
 - mode publie via `knowledge-base.json`
 - quiz en rappel actif, a partir des questions saisies sur chaque page
   (a la main ou generees par Gemini : une page sans question n'est pas interrogee)
@@ -57,15 +60,20 @@ Ouvrez simplement `index.html` dans votre navigateur.
 - le bouton d'export genere justement ce fichier
 - une fois heberge, ouvrez `?source=published` pour forcer le chargement du snapshot publie
 
-## Workflow V3
+## Workflow
 
-1. travaillez dans l'espace local editable
-2. capturez rapidement une idee si besoin
-3. enregistrez un snapshot local avant une grosse modification
-4. quand vous etes satisfait, telechargez `knowledge-base.json` depuis l'onglet `Publication`
-5. remplacez le fichier du depot GitHub par ce nouveau snapshot
-6. poussez sur GitHub Pages
-7. consultez la version en ligne avec `?source=published`
+Supabase fait autorite : il n y a plus de publication manuelle a faire pour
+travailler.
+
+1. connectez-vous une fois sur l appareil
+2. ecrivez ; chaque enregistrement part vers Supabase
+3. le meme espace vous suit sur vos autres appareils
+
+Le mode `?source=published` reste disponible, mais il ne sert plus qu a exposer
+une version figee en lecture seule. Il faut alors telecharger
+`knowledge-base.json` depuis l onglet `Publication`, remplacer le fichier du
+depot et pousser. Ce n est necessaire que si vous voulez montrer un instantane
+public de vos pages, ce qui, le depot etant public, est a peser.
 
 ## Modes
 
