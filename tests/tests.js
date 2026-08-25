@@ -104,6 +104,25 @@
       attendre(manquants.join(", ")).vaut("");
     });
 
+    // Vingt references dans index.html plus CACHE_NAME doivent porter le meme
+    // numero. Les tenir a la main derape : au 21 aout les fichiers etaient a
+    // v86 et le cache a v87. Le navigateur sert alors un melange d'anciennes
+    // et de nouvelles versions, symptome difficile a relier a sa cause.
+    // Pour tout avancer d'un cran : zsh ./scripts/version.sh
+    test.surServeur("les numeros de version sont tous identiques", async () => {
+      const html = await (await fetch("../index.html", { cache: "no-store" })).text();
+      const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
+
+      const versions = [...new Set([...html.matchAll(/\?v=(\d+)/g)].map((m) => m[1]))];
+      attendre(versions.length > 0).vrai();
+      attendre(versions.sort().join(", ")).vaut(versions[0]);
+
+      const cache = sw.match(/atlas-connaissance-v(\d+)/)?.[1] || "(absent)";
+      attendre(`fichiers ${versions[0]} / cache ${cache}`).vaut(
+        `fichiers ${versions[0]} / cache ${versions[0]}`
+      );
+    });
+
     test.surServeur("aucun selecteur de dom.js ne pointe vers un element absent", async () => {
       const html = await (await fetch("../index.html", { cache: "no-store" })).text();
       const dom = await (await fetch("../scripts/dom.js", { cache: "no-store" })).text();

@@ -162,8 +162,6 @@ et fait ressortir la page et ses voisins.
 - `prune_snapshot_history` garde un parametre que sa version active ignore :
   les limites sont ecrites en dur, 30 quotidiens et 20 d action. Trois appels
   sur quatre passent encore `5`, un chiffre qui ne veut plus rien dire.
-- Les numeros de version `?v=` sont poses a la main sur 20 fichiers, plus
-  `CACHE_NAME`. Un oubli sert un melange d anciennes et de nouvelles versions.
 - `events.js` et `renderers.js` ont absorbe tout ce qui ne rentrait ailleurs.
 
 ## Regle de prudence

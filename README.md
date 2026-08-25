@@ -121,6 +121,21 @@ et de secours hors ligne.
 
 Les donnees sont stockees dans le `localStorage` du navigateur sous la cle `atlas-connaissance-notes`.
 
+## Publier une mise a jour
+
+Avant de pousser, avancer le numero de version du cache :
+
+```bash
+zsh ./scripts/version.sh
+```
+
+Vingt references dans `index.html` plus `CACHE_NAME` dans
+`service-worker.js` doivent porter le meme numero, sans quoi le navigateur
+sert un melange d'anciennes et de nouvelles versions. Le script les avance
+toutes d'un cran, et un test verifie ensuite la coherence.
+
+Pour imposer une valeur : `zsh ./scripts/version.sh 92`.
+
 ## Tests
 
 Une page a ouvrir, rien a installer :
