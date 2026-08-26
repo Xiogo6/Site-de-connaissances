@@ -22,6 +22,10 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
   Tous les selecteurs DOM centralises.
 - `scripts/helpers.js`
   Utilitaires texte, tags, rendu markdown simple, dates flexibles.
+- `scripts/sport.js`
+  Journal d entrainement, seances et masse. Sorti de events.js et renderers.js
+  ou il pesait 900 lignes. C etait le seul ensemble reellement detachable de
+  ces deux fichiers : il ne parlait au reste du code qu a travers `context`.
 - `scripts/auth.js`
   Session Supabase : connexion, jeton conserve, rafraichissement automatique.
   Sans session ouverte, l application reste en mode local et n ecrit rien a distance.
@@ -162,7 +166,10 @@ et fait ressortir la page et ses voisins.
 - `prune_snapshot_history` garde un parametre que sa version active ignore :
   les limites sont ecrites en dur, 30 quotidiens et 20 d action. Trois appels
   sur quatre passent encore `5`, un chiffre qui ne veut plus rien dire.
-- `events.js` et `renderers.js` ont absorbe tout ce qui ne rentrait ailleurs.
+- `events.js` et `renderers.js` restent volumineux. Les decouper davantage
+  demanderait de passer aux modules ES : 296 appels croisent les fonctions
+  d une meme fermeture, et un fichier ne peut pas etre coupe en deux sans
+  casser ces appels. Le bloc sport, lui, etait autonome et a ete sorti.
 
 ## Regle de prudence
 

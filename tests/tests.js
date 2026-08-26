@@ -12,7 +12,8 @@
       for (const nom of [
         "createAuthModule", "createDataModule", "createAiModule",
         "createNotesModule", "createGraphModule", "createQuizModule",
-        "createMascotModule", "createTodosModule", "createRenderersModule",
+        "createMascotModule", "createTodosModule", "createSportModule",
+        "createRenderersModule",
         "createEventsModule", "createElements",
       ]) {
         attendre(global.AtlasApp[nom]).estUneFonction();
@@ -45,6 +46,7 @@
       contexte.notes = global.AtlasApp.createNotesModule(contexte);
       contexte.renderers = global.AtlasApp.createRenderersModule(contexte);
       contexte.quiz = global.AtlasApp.createQuizModule(contexte);
+      contexte.sport = global.AtlasApp.createSportModule(contexte);
 
       const attendus = {
         data: ["loadNotes", "saveNotes", "saveSnapshots", "restoreSnapshotById",
@@ -58,6 +60,7 @@
                     "renderWorkspaceBanner", "syncDynamicControls"],
         quiz: ["buildQuizSession", "validateQuizSession", "renderQuizCard",
                "renderQuizDashboard", "renderQuizViewMode"],
+        sport: ["bindEvents", "render", "renderTableZoom"],
       };
 
       const manquants = [];
@@ -121,6 +124,21 @@
       attendre(`fichiers ${versions[0]} / cache ${cache}`).vaut(
         `fichiers ${versions[0]} / cache ${versions[0]}`
       );
+    });
+
+    // Le lanceur de tests charge sa propre liste de scripts. Elle doit suivre
+    // celle de index.html, sinon les tests s'executent sur une application
+    // amputee : c'est arrive a l'ajout de sport.js.
+    test.surServeur("le lanceur de tests charge les memes scripts que l'application", async () => {
+      const html = await (await fetch("../index.html", { cache: "no-store" })).text();
+      const lanceur = await (await fetch("./index.html", { cache: "no-store" })).text();
+
+      const attendus = [...html.matchAll(/<script src="\.\/scripts\/([^"?]+)/g)].map((m) => m[1]);
+      const charges = [...lanceur.matchAll(/"\.\.\/scripts\/([^"?]+)"/g)].map((m) => m[1]);
+      attendre(attendus.length > 10).vrai();
+
+      const oublies = attendus.filter((f) => !charges.includes(f));
+      attendre(oublies.join(", ")).vaut("");
     });
 
     test.surServeur("aucun selecteur de dom.js ne pointe vers un element absent", async () => {
