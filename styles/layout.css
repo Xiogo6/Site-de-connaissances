@@ -474,6 +474,16 @@ body[data-theme="dark"] .tab.is-active {
   grid-template-columns: minmax(0, 1fr);
 }
 
+/* L'aide occupe toute la largeur sous les champs, quel que soit le nombre
+   de colonnes affichees. */
+.date-format-hint {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  grid-column: 1 / -1;
+  line-height: 1.45;
+  margin: 0;
+}
+
 .editor-label {
   display: grid;
   gap: 8px;

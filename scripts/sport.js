@@ -108,8 +108,14 @@
           entry.date = normalizedDate;
           input.dataset.sportDateValue = normalizedDate;
           input.setCustomValidity("");
+          // A la sortie du champ, on reaffiche la date sous sa forme lisible.
+          // Sans cela, quatre chiffres tapes au telephone restent quatre
+          // chiffres a l'ecran et rien ne dit qu'ils ont ete compris.
+          if (event.type === "change") {
+            input.value = formatSportDateForCell(normalizedDate);
+          }
         } else {
-          input.setCustomValidity("Utilisez le format jj/mm ou jj/mm/aa.");
+          input.setCustomValidity("Tapez les chiffres a la suite : 1408, 140825 ou 14082025.");
           if (event.type === "change") {
             input.reportValidity();
           }
@@ -227,7 +233,14 @@
           : "";
       }
 
-      const shortMatch = trimmed.match(/^(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2}|\d{4}))?$/);
+      // Saisie sans separateur, indispensable au telephone : le pave
+      // numerique d'iOS ne propose ni barre oblique ni tiret. 4 chiffres
+      // donnent le jour et le mois, 6 y ajoutent l'annee courte, 8 l'annee
+      // complete. La virgule est acceptee comme separateur car c'est la
+      // seule touche que le clavier decimal francais propose.
+      const digitsOnly = trimmed.match(/^(\d{2})(\d{2})((?:\d{2})|(?:\d{4}))?$/);
+      const shortMatch =
+        digitsOnly || trimmed.match(/^(\d{1,2})[./,-](\d{1,2})(?:[./,-](\d{2}|\d{4}))?$/);
       if (!shortMatch) {
         return "";
       }
@@ -883,7 +896,7 @@
             </button>
           </td>
           <td class="sport-date-cell">
-            <input class="sport-input sport-date-input" aria-label="Date, ligne ${index + 1}" type="text" inputmode="numeric" maxlength="8" value="${escapeHtml(formatSportPerformanceDate(entry.date))}" placeholder="jj/mm" enterkeyhint="next" data-sport-date-value="${escapeHtml(entry.date || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="date" />
+            <input class="sport-input sport-date-input" aria-label="Date, ligne ${index + 1}" type="text" inputmode="decimal" maxlength="10" value="${escapeHtml(formatSportPerformanceDate(entry.date))}" placeholder="jjmm" enterkeyhint="next" data-sport-date-value="${escapeHtml(entry.date || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="date" />
           </td>
           <td>
             <input class="sport-input sport-exercise-input" aria-label="Exercice, ligne ${index + 1}" type="text" value="${escapeHtml(entry.exercise || "")}" placeholder="Nom de l'exercice" autocapitalize="sentences" autocomplete="off" enterkeyhint="next" data-sport-table="performance" data-sport-index="${index}" data-sport-field="exercise" />
@@ -942,6 +955,9 @@
       bindEvents,
       render: renderSportTracker,
       renderTableZoom: renderSportTableZoom,
+      // Expose pour les tests : la saisie de date est la seule entree libre
+      // du tableau, et c'est elle qui avait cesse de fonctionner au telephone.
+      parseDateInput: parseSportDateInput,
     };
   };
 })(window);

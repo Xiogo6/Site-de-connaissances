@@ -60,7 +60,7 @@
                     "renderWorkspaceBanner", "syncDynamicControls"],
         quiz: ["buildQuizSession", "validateQuizSession", "renderQuizCard",
                "renderQuizDashboard", "renderQuizViewMode"],
-        sport: ["bindEvents", "render", "renderTableZoom"],
+        sport: ["bindEvents", "render", "renderTableZoom", "parseDateInput"],
       };
 
       const manquants = [];
@@ -163,6 +163,20 @@
       attendre(helpers.normalizeFlexibleDateInput("")).vaut("");
     });
 
+    // Au telephone, le pave numerique d'iOS ne propose ni barre oblique ni
+    // tiret : sans saisie en chiffres seuls, le mois etait inatteignable et
+    // la date ne pouvait pas etre remplie du tout.
+    test("les trois precisions sont atteignables en chiffres seuls", () => {
+      attendre(helpers.normalizeFlexibleDateInput("14071789")).vaut("1789-07-14");
+      attendre(helpers.normalizeFlexibleDateInput("071789")).vaut("1789-07");
+      attendre(helpers.normalizeFlexibleDateInput("1789")).vaut("1789");
+    });
+
+    test("la virgule du clavier decimal vaut separateur", () => {
+      attendre(helpers.normalizeFlexibleDateInput("14,07,1789")).vaut("1789-07-14");
+      attendre(helpers.normalizeFlexibleDateInput("07,1789")).vaut("1789-07");
+    });
+
     test("conserve la precision reelle", () => {
       attendre(helpers.parseFlexibleDateParts("900").precision).vaut("year");
       attendre(helpers.parseFlexibleDateParts("1453-05").precision).vaut("month");
@@ -182,6 +196,40 @@
       const b = helpers.getFlexibleDateTimestamp("1453-05");
       const c = helpers.getFlexibleDateTimestamp("1789-07-14");
       attendre(a < b && b < c).vrai();
+    });
+  });
+
+  /* ------------------------------------------------------------------ */
+  suite("Dates du tableau de sport", () => {
+    const sport = global.AtlasApp.createSportModule({
+      state: {}, elements: {},
+      auth: { isConfigured: () => false, isSignedIn: () => false },
+    });
+
+    // Meme cause qu'au-dessus : le clavier numerique du telephone n'offre
+    // aucun separateur, la case date devenait impossible a remplir.
+    test("la saisie en chiffres seuls couvre jour, mois et annee", () => {
+      const anneeCourante = new Date().getFullYear();
+      attendre(sport.parseDateInput("1408")).vaut(`${anneeCourante}-08-14`);
+      attendre(sport.parseDateInput("140825")).vaut("2025-08-14");
+      attendre(sport.parseDateInput("14082025")).vaut("2025-08-14");
+    });
+
+    test("les separateurs restent acceptes", () => {
+      attendre(sport.parseDateInput("14/08/2025")).vaut("2025-08-14");
+      attendre(sport.parseDateInput("14-08-25")).vaut("2025-08-14");
+      attendre(sport.parseDateInput("14,08,2025")).vaut("2025-08-14");
+      attendre(sport.parseDateInput("2025-08-14")).vaut("2025-08-14");
+    });
+
+    test("l'annee de la ligne precedente sert de repli", () => {
+      attendre(sport.parseDateInput("1408", "2019-01-01")).vaut("2019-08-14");
+    });
+
+    test("une date impossible est refusee plutot que corrigee", () => {
+      attendre(sport.parseDateInput("3202")).vaut("");
+      attendre(sport.parseDateInput("2026")).vaut("");
+      attendre(sport.parseDateInput("bonjour")).vaut("");
     });
   });
 

@@ -158,20 +158,33 @@
   }
 
   function normalizeFlexibleDateInput(value) {
+    // La virgule compte comme separateur : sur iPhone en francais, le pave
+    // decimal propose une virgule et non un point.
     const cleaned = String(value || "")
       .trim()
-      .replace(/[/.]/g, "-")
+      .replace(/[/.,]/g, "-")
       .replace(/\s+/g, "");
 
     if (!cleaned) {
       return "";
     }
 
+    // Saisie sans separateur, indispensable au telephone : le clavier
+    // numerique d'iOS ne propose ni barre oblique ni tiret. Les trois
+    // precisions doivent donc etre atteignables en chiffres seuls, dans
+    // l'ordre francais : 8 chiffres pour un jour, 6 pour un mois, 4 pour
+    // une annee.
     if (/^\d{8}$/.test(cleaned)) {
       const day = cleaned.slice(0, 2);
       const month = cleaned.slice(2, 4);
       const year = cleaned.slice(4, 8);
       return `${year}-${month}-${day}`;
+    }
+
+    if (/^\d{6}$/.test(cleaned)) {
+      const month = cleaned.slice(0, 2);
+      const year = cleaned.slice(2, 6);
+      return `${year}-${month}`;
     }
 
     const parts = cleaned.split("-").filter(Boolean);
