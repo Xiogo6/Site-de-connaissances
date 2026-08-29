@@ -2873,9 +2873,13 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   width: 15%;
 }
 
+/* Le mode compact masque la derniere colonne, celle des notes. La cellule
+   d'un en-tete de seance est seule dans sa ligne, donc derniere aussi : sans
+   cette exception, tous les en-tetes disparaissaient au telephone et
+   l'historique replie devenait inatteignable. */
 .sport-performance-table[data-sport-compact="true"] .sport-comment-column,
 .sport-performance-table[data-sport-compact="true"] th:last-child,
-.sport-performance-table[data-sport-compact="true"] td:last-child {
+.sport-performance-table[data-sport-compact="true"] td:last-child:not(.sport-session-cell) {
   display: none;
 }
 
