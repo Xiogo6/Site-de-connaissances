@@ -4,9 +4,10 @@
   Ce bloc vivait a cheval sur events.js et renderers.js, ou il representait
   30 fonctions sur 124 et pesait 900 lignes. Mesure faite avant de le sortir :
   il n'appelait le reste du code qu'a travers `context`, ce qui en faisait le
-  seul ensemble reellement detachable de ces deux fichiers. Le decoupage
-  complet, lui, n'est pas possible sans passer aux modules ES : 296 appels
-  croisent les fonctions d'une meme fermeture.
+  premier ensemble reellement detachable de ces deux fichiers. Il en reste :
+  dans events.js, le tirer-pour-rafraichir et la redaction des questions de
+  quiz ne partagent ni appel ni variable de module avec le reste. renderers.js
+  n'offre pas la meme prise, 65 de ses 69 fonctions formant un bloc connexe.
 
   getSportSettings et getTodayInputDate existaient en double, une copie dans
   chaque fichier. Il n'en reste qu'une.

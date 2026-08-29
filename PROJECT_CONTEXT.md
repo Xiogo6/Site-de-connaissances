@@ -196,23 +196,40 @@ et fait ressortir la page et ses voisins.
 ## Points a surveiller pour les prochaines iterations
 
 - `normalizeTag` fabrique des mots inexistants sur les pluriels en -aux
-  (`chevaux` donne `chevau`). Le corriger separerait les tags deja enregistres
-  de ceux a venir : il faut une migration, pas seulement un correctif. Un test
-  epingle volontairement le comportement actuel.
+  (`chevaux` donne `chevau`). Ecarte volontairement : la completion propose
+  deja les tags existants pendant la saisie, ce qui empeche les doublons en
+  amont, et corriger le normaliseur separerait les tags deja enregistres de
+  ceux a venir. Un test epingle le comportement actuel pour qu il ne change
+  pas par accident.
 - Les questions de quiz restent entierement manuelles ou generees par Gemini.
   Des generateurs deduits du contenu (dates, liens, termes en gras) rendraient
   le quiz utilisable sur tout le corpus.
-- `prune_snapshot_history` garde un parametre que sa version active ignore :
-  les limites sont ecrites en dur, 30 quotidiens et 20 d action. Trois appels
-  sur quatre passent encore `5`, un chiffre qui ne veut plus rien dire.
+- `prune_snapshot_history(max_snapshots)` declare un parametre que sa version
+  active (20260719234500) n utilise nulle part : les limites sont ecrites en
+  dur dans le corps, 30 snapshots quotidiens et 20 d action. Les appelants
+  passent `5` ou `30`, des chiffres sans effet. Le piege n est pas le present
+  mais l avenir : rendre le parametre effectif rendrait vivants des appels
+  ecrits a une epoque ou `5` etait la vraie limite. L elagage ne passe que par
+  le declencheur `prune_snapshot_history_trigger` sur la table `snapshots`,
+  `sync_app_payload` ne l appelle pas.
 - Deux migrations Supabase attendent peut-etre encore d etre appliquees a la
   main dans l editeur SQL : `20260820090000_close_public_execute_grants.sql`
   et `20260820100000_protect_snapshot_payload.sql`. Verifier dans la base
   avant de conclure, le depot ne le sait pas.
-- `events.js` et `renderers.js` restent volumineux. Les decouper davantage
-  demanderait de passer aux modules ES : 296 appels croisent les fonctions
-  d une meme fermeture, et un fichier ne peut pas etre coupe en deux sans
-  casser ces appels. Le bloc sport, lui, etait autonome et a ete sorti.
+- `events.js` et `renderers.js` restent volumineux, mais pas pour la meme
+  raison, et la mesure separe nettement les deux cas.
+
+  `renderers.js` : 69 fonctions, 117 appels internes, et 65 de ces fonctions
+  forment un seul bloc connexe. Le couper demanderait de faire passer les
+  appels par un objet exporte, fonction par fonction.
+
+  `events.js` : 92 fonctions, 101 appels internes, mais repartis en 26 groupes
+  qui ne s appellent pas entre eux. Deux sont detachables comme l etait le
+  sport, sans etat de module partage avec le reste : le tirer-pour-rafraichir
+  du fil (16 fonctions, seule variable propre `feedPull`) et la redaction des
+  questions de quiz (9 fonctions, aucune variable de module). Verifier ce
+  partage avant de sortir quoi que ce soit : c est la seule chose qui rendait
+  le bloc sport extractible.
 
 ## Regle de prudence
 
