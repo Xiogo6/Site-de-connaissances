@@ -204,18 +204,22 @@ et fait ressortir la page et ses voisins.
 - Les questions de quiz restent entierement manuelles ou generees par Gemini.
   Des generateurs deduits du contenu (dates, liens, termes en gras) rendraient
   le quiz utilisable sur tout le corpus.
-- `prune_snapshot_history(max_snapshots)` declare un parametre que sa version
-  active (20260719234500) n utilise nulle part : les limites sont ecrites en
-  dur dans le corps, 30 snapshots quotidiens et 20 d action. Les appelants
-  passent `5` ou `30`, des chiffres sans effet. Le piege n est pas le present
-  mais l avenir : rendre le parametre effectif rendrait vivants des appels
-  ecrits a une epoque ou `5` etait la vraie limite. L elagage ne passe que par
-  le declencheur `prune_snapshot_history_trigger` sur la table `snapshots`,
-  `sync_app_payload` ne l appelle pas.
-- Deux migrations Supabase attendent peut-etre encore d etre appliquees a la
-  main dans l editeur SQL : `20260820090000_close_public_execute_grants.sql`
-  et `20260820100000_protect_snapshot_payload.sql`. Verifier dans la base
-  avant de conclure, le depot ne le sait pas.
+- `prune_snapshot_history(max_snapshots)` declarait un parametre que sa
+  version active n utilisait nulle part, les limites etant ecrites en dur,
+  30 snapshots quotidiens et 20 d action. Ses trois appelants passaient un
+  chiffre sans effet, dont deux passaient `5`. Corrige par la migration
+  `20260829120000_drop_prune_snapshot_history_parameter.sql`, a appliquer.
+  Attention en relisant l ancien code : `sync_app_payload_legacy_v59` n est
+  pas morte malgre son nom et ses droits revoques. `sync_app_payload`, la
+  seule fonction que l application appelle, se termine par
+  `return public.sync_app_payload_legacy_v59(safe_payload)`, et le `revoke`
+  ne bloque pas cet appel interne puisque l appelante est `security definer`.
+- Trois migrations Supabase attendent d etre appliquees a la main dans
+  l editeur SQL, dans cet ordre :
+  `20260820090000_close_public_execute_grants.sql`,
+  `20260820100000_protect_snapshot_payload.sql` et
+  `20260829120000_drop_prune_snapshot_history_parameter.sql`. Verifier dans la
+  base avant de conclure, le depot ne sait pas ce qui y a ete passe.
 - `events.js` et `renderers.js` restent volumineux, mais pas pour la meme
   raison, et la mesure separe nettement les deux cas.
 
