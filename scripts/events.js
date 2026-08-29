@@ -653,19 +653,24 @@
     window.addEventListener("pointermove", context.graph.handleGraphPointerMove);
     window.addEventListener("pointerup", context.graph.handleGraphPointerUp);
     window.addEventListener("pointercancel", context.graph.handleGraphPointerUp);
+    // Chacun de ces trois reglages change le nombre de pages affichees : on
+    // recadre, sinon le sous-ensemble restant garde le cadrage du graphe entier.
     context.elements.graphShowTags.addEventListener("change", (event) => {
       context.state.graphShowTags = event.target.checked;
       context.renderers.renderGraphFilters();
+      context.graph.requestGraphFraming();
       context.graph.drawGraph();
     });
     context.elements.graphTagFilter.addEventListener("change", (event) => {
       context.state.graphTagFilter = event.target.value;
       context.renderers.renderGraphFilters();
+      context.graph.requestGraphFraming();
       context.graph.drawGraph();
     });
     context.elements.graphFocusMode.addEventListener("change", (event) => {
       context.state.graphFocusMode = event.target.value;
       context.renderers.renderGraphFilters();
+      context.graph.requestGraphFraming();
       context.graph.drawGraph();
     });
 

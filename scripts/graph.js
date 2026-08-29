@@ -3,10 +3,53 @@
 
   AtlasApp.createGraphModule = function createGraphModule(context) {
     const { clamp, escapeHtml, extractLinks, extractSummary, unique } = AtlasApp.helpers;
-    const CANVAS_WIDTH = 960;
-    const CANVAS_HEIGHT = 620;
+    // Le monde du graphe est fixe et bien plus grand que l'ecran. Avant, il
+    // epousait la fenetre : la disposition remplissait donc l'ecran bord a
+    // bord, sans un pixel de vide autour, et deplacer la vue etait impossible
+    // au zoom 1. Un monde fixe donne trois choses d'un coup : du vide autour
+    // du nuage, une vue qu'on promene dedans, et des positions identiques sur
+    // telephone et sur bureau.
+    const WORLD_WIDTH = 4200;
+    const WORLD_HEIGHT = 2800;
+
+    // La disposition n'occupe que le centre du monde : le reste est le vide
+    // dans lequel on se promene.
+    const LAYOUT_FILL = 0.72;
+
+    // Les distances de la disposition sont multipliees par ce facteur, mais
+    // pas le rayon des noeuds ni la taille des etiquettes. C'est le seul
+    // reglage qui cree vraiment de l'air : agrandir tout dans les memes
+    // proportions redonne exactement la meme image, en plus petit.
+    const LAYOUT_SPREAD = 2.2;
+    const REPULSION = 10000 * LAYOUT_SPREAD * LAYOUT_SPREAD * LAYOUT_SPREAD;
+
+    // Le zoom vaut le nombre de pixels par unite du monde. Au zoom 1 un noeud
+    // occupe a l'ecran exactement ce qu'il occupait avant ce changement.
     const MIN_GRAPH_ZOOM = 0.08;
     const MAX_GRAPH_ZOOM = 4.4;
+
+    // On peut sortir d'une demi-fenetre au-dela des bords du monde : sans ce
+    // debord, le vide s'arrete net et la sensation d'espace tombe.
+    const VIEW_OVERSCROLL = 0.5;
+
+    // Cadrage a l'ouverture : le nuage entier, avec une marge, mais jamais
+    // assez loin pour que les noeuds deviennent des poussieres.
+    const FIT_MARGIN = 1.18;
+    const MAX_FIT_ZOOM = 1.15;
+
+    // Plancher du cadrage d'ouverture : en dessous, les noeuds deviennent des
+    // poussieres. Il est plus bas sur telephone, ou un plancher de bureau
+    // deposerait le lecteur au milieu du nuage sans lui montrer sa forme.
+    const MIN_FIT_ZOOM = 0.38;
+    const MIN_FIT_ZOOM_COMPACT = 0.22;
+
+    // En dessous de ce zoom, seuls les carrefours gardent une etiquette. Les
+    // etiquettes ne retrecissant plus avec le recul, les afficher toutes en
+    // vue d'ensemble remplirait de texte l'espace qu'on vient de degager.
+    const LABEL_CROWD_ZOOM = 0.62;
+
+    const FALLBACK_VIEWPORT_WIDTH = 960;
+    const FALLBACK_VIEWPORT_HEIGHT = 620;
     const GRAPH_LABEL_BREAKPOINT = "(max-width: 780px)";
 
     // Les positions du graphe coutaient un reglage complet a chaque
@@ -16,13 +59,13 @@
     const graphPositionsStorageKey = `${AtlasApp.config.appStorageKey}-graph-positions`;
     let savePositionsTimer = null;
 
-    // Une disposition par format d'affichage. Le graphe compact et le graphe
-    // large ne travaillent pas sur la meme hauteur logique ni sur le meme
-    // encadrement vertical : melanger les deux remontait de force les noeuds
-    // du haut, et une seule visite sur telephone abimait durablement la
-    // disposition de bureau.
+    // Une seule disposition, desormais. Il fallait auparavant en garder une
+    // par format d'affichage parce que l'espace logique suivait l'ecran : une
+    // visite sur telephone abimait durablement la disposition de bureau. Le
+    // monde etant fixe, les deux appareils travaillent sur les memes
+    // coordonnees et partagent la meme disposition.
     function currentLayoutMode() {
-      return isCompactGraphViewport() ? "compact" : "wide";
+      return "world";
     }
 
     function readStoredPositions(mode, width, height) {
@@ -73,19 +116,31 @@
             };
           });
 
-          const brut = window.localStorage.getItem(graphPositionsStorageKey);
-          const parse = brut ? JSON.parse(brut) : null;
-          const tout = parse && typeof parse === "object" ? parse : {};
-          tout[mode] = { width, height, positions };
-          window.localStorage.setItem(graphPositionsStorageKey, JSON.stringify(tout));
+          // On reecrit l'objet au lieu de le completer : les anciennes entrees
+          // "compact" et "wide" ne sont plus lues et resteraient sinon
+          // indefiniment dans le stockage.
+          window.localStorage.setItem(
+            graphPositionsStorageKey,
+            JSON.stringify({ [mode]: { width, height, positions } })
+          );
         } catch (error) {
           // Le graphe se recalculera au prochain chargement : rien de perdu.
         }
       }, 900);
     }
     let zoomAnimationFrame = null;
-    let lastLayoutHeight = CANVAS_HEIGHT;
     let graphLayoutNeedsSettling = false;
+    let graphViewNeedsFraming = true;
+    let retryLayoutFrame = null;
+    let retryLayoutCount = 0;
+
+    // Le premier dessin arrive parfois avant que la zone du graphe ait sa
+    // taille : le panneau vient d'etre affiche et la mise en page n'a pas
+    // encore eu lieu. Cadrer sur des dimensions de repli placerait la vue sur
+    // un coin vide du monde, et plus rien ne la ramenerait. On repasse donc
+    // jusqu'a ce que la zone soit mesurable, sans jamais boucler indefiniment
+    // si l'onglet reste cache.
+    const MAX_LAYOUT_RETRIES = 12;
 
   function getGraphNotes() {
     const base =
@@ -130,7 +185,12 @@
       unique(extractLinks(note.content)).forEach((title) => {
         const target = noteByTitle.get(title);
         if (target) {
-          edges.push({ from: note.id, to: target.id, kind: "note", distance: 140 });
+          edges.push({
+            from: note.id,
+            to: target.id,
+            kind: "note",
+            distance: 140 * LAYOUT_SPREAD,
+          });
         }
       });
     });
@@ -149,12 +209,32 @@
         notes
           .filter((note) => note.tags.includes(tag))
           .forEach((note) => {
-            edges.push({ from: note.id, to: tagId, kind: "tag", distance: 110 });
+            edges.push({
+              from: note.id,
+              to: tagId,
+              kind: "tag",
+              distance: 110 * LAYOUT_SPREAD,
+            });
           });
       });
     }
 
     return { nodes, edges };
+  }
+
+  // Tous les noeuds possibles, filtres compris. L'elagage des positions doit
+  // raisonner la-dessus et non sur le graphe affiche : un filtre par tag ou la
+  // vue voisinage ne montre qu'une poignee de pages, et elaguer sur cette
+  // poignee jetait la position de toutes les autres. Au retour en vue
+  // complete elles revenaient au barycentre de leurs voisins, et la
+  // disposition entiere s'effondrait sur elle-meme.
+  function getAllGraphNodeIds() {
+    const ids = new Set();
+    context.state.notes.forEach((note) => {
+      ids.add(note.id);
+      note.tags.forEach((tag) => ids.add(`tag::${tag}`));
+    });
+    return ids;
   }
 
   function getNodeDegree(nodeId, edges) {
@@ -165,26 +245,41 @@
     return global.matchMedia?.(GRAPH_LABEL_BREAKPOINT)?.matches ?? false;
   }
 
-  // L'espace de mise en page epouse la zone reellement affichee, au pixel pres.
-  // Avec un espace fixe de 960 x 620, agrandir la zone ne faisait que grossir le
-  // dessin : les noeuds devenaient enormes et se chevauchaient sans que la
-  // disposition ne s'aere. Ici, plus de place signifie vraiment plus d'espace
-  // entre les noeuds.
-  function getGraphDimensions() {
+  // Le monde ne depend plus de l'ecran. Il epousait la zone affichee, ce qui
+  // avait deux consequences genantes : aucun vide autour du nuage, et le
+  // moindre redimensionnement de fenetre jetait la disposition enregistree.
+  function getWorldSize() {
+    return { width: WORLD_WIDTH, height: WORLD_HEIGHT };
+  }
+
+  // La zone dans laquelle la disposition est calculee : le centre du monde.
+  // Ce qui deborde autour est le vide qu'on parcourt.
+  function getLayoutBox() {
+    const width = WORLD_WIDTH * LAYOUT_FILL;
+    const height = WORLD_HEIGHT * LAYOUT_FILL;
+    return {
+      x: (WORLD_WIDTH - width) / 2,
+      y: (WORLD_HEIGHT - height) / 2,
+      width,
+      height,
+    };
+  }
+
+  function getViewportPixels() {
     const rect = context.elements.graphCanvas?.getBoundingClientRect();
     if (!rect?.width || !rect?.height) {
-      return { width: CANVAS_WIDTH, height: CANVAS_HEIGHT };
+      return { width: FALLBACK_VIEWPORT_WIDTH, height: FALLBACK_VIEWPORT_HEIGHT };
     }
+    return { width: rect.width, height: rect.height };
+  }
 
-    // Sur grand ecran l'espace logique epouse la zone : echelle 1, et
-    // l'agrandir donne vraiment plus de place aux noeuds. Sur ecran etroit
-    // on garde un espace large ramene a la taille de l'ecran, sinon 136
-    // noeuds de 30 px de rayon dans 375 px de large se chevauchent tous.
-    const largeur = Math.max(Math.round(rect.width), CANVAS_WIDTH);
-    return {
-      width: largeur,
-      height: clamp(Math.round(largeur * (rect.height / rect.width)), 320, 2600),
-    };
+  // La fenetre de vue, exprimee en unites du monde. Elle garde exactement les
+  // proportions de la zone affichee : sans cela le navigateur ajouterait ses
+  // propres bandes et les conversions pixel vers monde seraient fausses.
+  function getViewSpan(zoom) {
+    const viewport = getViewportPixels();
+    const safeZoom = clamp(zoom, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
+    return { width: viewport.width / safeZoom, height: viewport.height / safeZoom };
   }
 
   function initializeOrganicPositions(graph, width, height, degreeByNode) {
@@ -197,8 +292,8 @@
     const positions = new Map();
     const centerX = width / 2;
     const centerY = height / 2;
-    const radiusX = width * 0.41;
-    const radiusY = Math.max(240, (height - 300) * 0.43);
+    const radiusX = width * 0.44;
+    const radiusY = height * 0.44;
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
     nodes.forEach((node, index) => {
@@ -224,6 +319,16 @@
     }
 
     const compactViewport = isCompactGraphViewport();
+
+    // Les regles ci-dessous affichent une etiquette des qu'un noeud a assez de
+    // voisins, quel que soit le zoom. C'etait sans consequence tant que le
+    // texte retrecissait avec le recul ; il ne retrecit plus. En vue large,
+    // seuls les carrefours gardent donc leur nom -- et sur telephone, ou le
+    // texte est plus gros et le recul plus grand, aucun : meme les carrefours
+    // s'y chevauchaient.
+    if (zoom < LABEL_CROWD_ZOOM && (compactViewport || degree < 7)) {
+      return null;
+    }
 
     if (node.kind === "tag") {
       if (!compactViewport || zoom >= 1.2 || degree >= 4) {
@@ -438,7 +543,19 @@
     return total;
   }
 
-  function initializeGraphPositions(graph, width, height) {
+  // La disposition est calculee dans un repere local qui part de zero, puis
+  // deposee au centre du monde. Les fonctions ci-dessous n'ont donc pas a
+  // savoir ou se trouve la boite : elles raisonnent sur sa seule taille.
+  function initializeGraphPositions(graph, box = getLayoutBox()) {
+    const positions = computeLayoutPositions(graph, box.width, box.height);
+    positions.forEach((position) => {
+      position.x += box.x;
+      position.y += box.y;
+    });
+    return positions;
+  }
+
+  function computeLayoutPositions(graph, width, height) {
     const adjacency = buildAdjacency(graph);
     const degreeByNode = new Map(
       graph.nodes.map((node) => [node.id, (adjacency.get(node.id) || new Set()).size])
@@ -574,7 +691,9 @@
 
   // Un nouveau noeud apparait au barycentre de ses voisins deja places,
   // legerement decale pour ne pas se superposer. Sans voisin connu, au centre.
-  function placeNewNodes(nodes, adjacency, width, height) {
+  function placeNewNodes(nodes, adjacency) {
+    const world = getWorldSize();
+    const box = getLayoutBox();
     nodes.forEach((node, index) => {
       const voisins = [...(adjacency.get(node.id) || [])]
         .map((id) => context.state.graphPositions.get(id))
@@ -585,43 +704,150 @@
             x: voisins.reduce((somme, position) => somme + position.x, 0) / voisins.length,
             y: voisins.reduce((somme, position) => somme + position.y, 0) / voisins.length,
           }
-        : { x: width / 2, y: height / 2 };
+        : { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 
       const angle = (index / Math.max(nodes.length, 1)) * Math.PI * 2;
+      const ecart = 46 * LAYOUT_SPREAD;
       context.state.graphPositions.set(node.id, {
-        x: clamp(base.x + Math.cos(angle) * 46, 38, width - 38),
-        y: clamp(base.y + Math.sin(angle) * 46, 38, height - 38),
+        x: clamp(base.x + Math.cos(angle) * ecart, 38, world.width - 38),
+        y: clamp(base.y + Math.sin(angle) * ecart, 38, world.height - 38),
         locked: false,
       });
     });
   }
 
+  // Filtrer par tag ou passer en vue voisinage ne laisse parfois que trois
+  // pages a l'ecran : sans recadrage elles resteraient minuscules dans un coin
+  // du monde, a l'echelle du graphe entier.
+  function scheduleLayoutRetry() {
+    if (retryLayoutFrame || retryLayoutCount >= MAX_LAYOUT_RETRIES) {
+      return;
+    }
+
+    retryLayoutCount += 1;
+    retryLayoutFrame = global.requestAnimationFrame(() => {
+      retryLayoutFrame = null;
+      drawGraph();
+    });
+  }
+
+  function requestGraphFraming() {
+    graphViewNeedsFraming = true;
+  }
+
   function recenterGraphLayout() {
     const graph = buildGraphModel();
-    const { width, height } = getGraphDimensions();
-    context.state.graphPositions = initializeGraphPositions(graph, width, height);
-    context.state.graphZoom = 1;
+    context.state.graphPositions = initializeGraphPositions(graph);
     context.state.graphViewport.panX = 0;
     context.state.graphViewport.panY = 0;
-    lastLayoutHeight = height;
     graphLayoutNeedsSettling = true;
+    graphViewNeedsFraming = true;
     drawGraph();
   }
 
-  function getGraphViewBox(dimensions = getGraphDimensions()) {
-    const { width: canvasWidth, height: canvasHeight } = dimensions;
-    const zoom = clamp(context.state.graphZoom || 1, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
-    const width = canvasWidth / zoom;
-    const height = canvasHeight / zoom;
-    const centeredX = (canvasWidth - width) / 2;
-    const centeredY = (canvasHeight - height) / 2;
-    const minX = Math.min(0, canvasWidth - width);
-    const maxX = Math.max(0, canvasWidth - width);
-    const minY = Math.min(0, canvasHeight - height);
-    const maxY = Math.max(0, canvasHeight - height);
+  // La repulsion gonfle le nuage jusqu'a ce que les bornes l'arretent : sans
+  // cette etape il se plaque contre les bords du monde, exactement comme il se
+  // plaquait contre ceux de l'ecran avant ce changement. On le ramene donc
+  // dans la boite centrale. Jamais dans l'autre sens : un graphe de dix pages
+  // doit rester groupe au milieu, pas etre ecartele pour remplir la boite.
+  function shrinkPositionsIntoLayoutBox(graph) {
+    const points = graph.nodes
+      .map((node) => context.state.graphPositions.get(node.id))
+      .filter(Boolean);
+
+    if (points.length < 2) {
+      return;
+    }
+
+    const box = getLayoutBox();
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    points.forEach((position) => {
+      minX = Math.min(minX, position.x);
+      maxX = Math.max(maxX, position.x);
+      minY = Math.min(minY, position.y);
+      maxY = Math.max(maxY, position.y);
+    });
+
+    const largeur = Math.max(maxX - minX, 1);
+    const hauteur = Math.max(maxY - minY, 1);
+    const facteur = Math.min(1, box.width / largeur, box.height / hauteur);
+    const centreX = (minX + maxX) / 2;
+    const centreY = (minY + maxY) / 2;
+    const cibleX = box.x + box.width / 2;
+    const cibleY = box.y + box.height / 2;
+
+    points.forEach((position) => {
+      position.x = cibleX + (position.x - centreX) * facteur;
+      position.y = cibleY + (position.y - centreY) * facteur;
+    });
+  }
+
+  // Cadre la vue sur le nuage plutot que sur le monde. Cadrer le monde entier
+  // reduirait les noeuds a des poussieres : l'espace gagne entre eux serait
+  // aussitot repris par l'eloignement de la vue.
+  function frameViewOnNodes(graph) {
+    const points = graph.nodes
+      .map((node) => context.state.graphPositions.get(node.id))
+      .filter(Boolean);
+
+    if (!points.length) {
+      return;
+    }
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    points.forEach((position) => {
+      minX = Math.min(minX, position.x);
+      maxX = Math.max(maxX, position.x);
+      minY = Math.min(minY, position.y);
+      maxY = Math.max(maxY, position.y);
+    });
+
+    const viewport = getViewportPixels();
+    const largeurNuage = Math.max(maxX - minX, 1) * FIT_MARGIN;
+    const hauteurNuage = Math.max(maxY - minY, 1) * FIT_MARGIN;
+
+    context.state.graphZoom = clamp(
+      Math.min(viewport.width / largeurNuage, viewport.height / hauteurNuage),
+      isCompactGraphViewport() ? MIN_FIT_ZOOM_COMPACT : MIN_FIT_ZOOM,
+      MAX_FIT_ZOOM
+    );
+
+    // panX est un ecart par rapport a la vue centree sur le monde ; la
+    // largeur de la fenetre s'y annule, quel que soit le zoom.
+    context.state.graphViewport.panX = (minX + maxX) / 2 - WORLD_WIDTH / 2;
+    context.state.graphViewport.panY = (minY + maxY) / 2 - WORLD_HEIGHT / 2;
+  }
+
+  // La vue pouvait auparavant se deplacer entre 0 et zero au zoom 1 : elle
+  // etait litteralement clouee sur le rectangle du monde. Elle se promene
+  // desormais dans le monde, et peut meme deborder de ses bords.
+  function getGraphViewBox(zoom = context.state.graphZoom || 1) {
+    const { width, height } = getViewSpan(zoom);
+    const centeredX = (WORLD_WIDTH - width) / 2;
+    const centeredY = (WORLD_HEIGHT - height) / 2;
+    const debordX = width * VIEW_OVERSCROLL;
+    const debordY = height * VIEW_OVERSCROLL;
+    const premierX = -debordX;
+    const dernierX = WORLD_WIDTH - width + debordX;
+    const premierY = -debordY;
+    const dernierY = WORLD_HEIGHT - height + debordY;
     return {
-      x: clamp(centeredX + (context.state.graphViewport.panX || 0), minX, maxX),
-      y: clamp(centeredY + (context.state.graphViewport.panY || 0), minY, maxY),
+      x: clamp(
+        centeredX + (context.state.graphViewport.panX || 0),
+        Math.min(premierX, dernierX),
+        Math.max(premierX, dernierX)
+      ),
+      y: clamp(
+        centeredY + (context.state.graphViewport.panY || 0),
+        Math.min(premierY, dernierY),
+        Math.max(premierY, dernierY)
+      ),
       width,
       height,
     };
@@ -629,27 +855,16 @@
 
   function drawGraph() {
     const graph = buildGraphModel();
-    const dimensions = getGraphDimensions();
-    const { width, height } = dimensions;
+    const { width, height } = getWorldSize();
     const centerX = width / 2;
     const centerY = height / 2;
-    const zoom = clamp(context.state.graphZoom || 1, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
-    const viewBox = getGraphViewBox(dimensions);
     const focusNodeId = context.state.graphSelection?.id || null;
     const adjacency = buildAdjacency(graph);
     const focusNeighbors = focusNodeId ? adjacency.get(focusNodeId) || new Set() : new Set();
 
-    if (Math.abs(lastLayoutHeight - height) > 80) {
-      context.state.graphPositions = new Map();
-      context.state.graphViewport.panX = 0;
-      context.state.graphViewport.panY = 0;
-      lastLayoutHeight = height;
-    }
-
-    context.elements.graphCanvas.setAttribute(
-      "viewBox",
-      `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`
-    );
+    // Le monde ne bouge plus avec la fenetre : redimensionner l'ecran ne jette
+    // donc plus la disposition. C'est tout ce que faisait le controle qui se
+    // trouvait ici.
 
     const layoutMode = currentLayoutMode();
     if (!context.state.graphPositions.size) {
@@ -660,12 +875,13 @@
     const partDeZero = context.state.graphPositions.size === 0;
 
     if (partDeZero) {
-      context.state.graphPositions = initializeGraphPositions(graph, width, height);
+      context.state.graphPositions = initializeGraphPositions(graph);
+      graphViewNeedsFraming = true;
     } else if (nouveaux.length) {
       // Ajouter une page ne jette plus la disposition entiere : les nouveaux
       // venus se placent pres de leurs voisins deja positionnes, et une
       // courte relaxation suffit a les integrer.
-      placeNewNodes(nouveaux, adjacency, width, height);
+      placeNewNodes(nouveaux, adjacency);
     }
 
     // A l'ajout de pages, seuls les nouveaux venus se deplacent. Laisser toute
@@ -710,7 +926,12 @@
           // moyen 30 px : l'espacement au plus proche voisin passe de 52 a 63 px
           // et les chevauchements de 107 a 69. Au-dela, le gain sature et les
           // noeuds se plaquent contre les bords.
-          const repulsion = 10000 / (distance * distance);
+          //
+          // Le cube vient de la mise a l'echelle : pour que la disposition
+          // garde la meme forme en s'etalant d'un facteur k, les distances de
+          // repos sont multipliees par k et la repulsion par k au cube. La
+          // regler seule ne ferait qu'ecarteler la meme figure.
+          const repulsion = REPULSION / (distance * distance);
           dx /= distance;
           dy /= distance;
 
@@ -750,16 +971,26 @@
         const force = forces.get(node.id);
         position.x += force.x + (centerX - position.x) * 0.002;
         position.y += force.y + (centerY - position.y) * 0.002;
-        position.x = context.helpers.clamp(position.x, 38, width - 38);
-        const verticalInset = Math.max(44, height * 0.06);
-        position.y = context.helpers.clamp(position.y, verticalInset, height - verticalInset);
+        // Les noeuds restent dans le monde, mais sans etre plaques contre ses
+        // bords : la marge garantit qu'il y a toujours du vide au-dela du nuage.
+        const margeX = width * 0.06;
+        const margeY = height * 0.06;
+        position.x = context.helpers.clamp(position.x, margeX, width - margeX);
+        position.y = context.helpers.clamp(position.y, margeY, height - margeY);
       });
+    }
+
+    // Recentrer apres coup, et seulement quand la disposition entiere vient
+    // d'etre calculee : a l'ajout d'une page, deplacer tout le monde de
+    // quelques pixels annulerait la stabilite gagnee juste au-dessus.
+    if (simulationPasses > 2) {
+      shrinkPositionsIntoLayoutBox(graph);
     }
 
     // Les pages supprimees laissaient leur position derriere elles ; on elague
     // pour que ni la memoire ni le stockage ne grossissent indefiniment.
-    if (context.state.graphPositions.size > graph.nodes.length) {
-      const vivants = new Set(graph.nodes.map((node) => node.id));
+    const vivants = getAllGraphNodeIds();
+    if (context.state.graphPositions.size > vivants.size) {
       context.state.graphPositions.forEach((_, id) => {
         if (!vivants.has(id)) {
           context.state.graphPositions.delete(id);
@@ -768,6 +999,39 @@
     }
 
     scheduleStorePositions(layoutMode, width, height);
+
+    // Le cadrage vient apres la disposition : il lui faut les positions
+    // definitives. Et seulement quand la zone est reellement affichee, sinon
+    // il se calculerait sur les dimensions de repli.
+    const zoneAffichee = context.elements.graphCanvas.getBoundingClientRect();
+    const zoneMesurable = zoneAffichee.width > 0 && zoneAffichee.height > 0;
+
+    if (!zoneMesurable) {
+      scheduleLayoutRetry();
+    } else {
+      retryLayoutCount = 0;
+      if (graphViewNeedsFraming) {
+        frameViewOnNodes(graph);
+        graphViewNeedsFraming = false;
+      }
+    }
+
+    const zoom = clamp(context.state.graphZoom || 1, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
+
+    if (zoneMesurable) {
+      const viewBox = getGraphViewBox(zoom);
+      context.elements.graphCanvas.setAttribute(
+        "viewBox",
+        `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`
+      );
+    }
+
+    // Les etiquettes sont ecrites en unites du monde : sans compensation elles
+    // retrecissaient avec le zoom et devenaient illisibles des qu'on prenait du
+    // recul. Les noeuds, eux, doivent bien retrecir : c'est ce qui donne la
+    // sensation d'espace.
+    context.elements.graphCanvas.style.setProperty("--graph-label-scale", String(1 / zoom));
+    const labelScale = 1 / zoom;
 
     context.elements.graphCanvas.innerHTML = "";
 
@@ -866,13 +1130,22 @@
       group.appendChild(circle);
       if (shouldShowLabel) {
         const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        // Le decalage suit la taille apparente du texte, pas celle du monde :
+        // sinon l'etiquette se decolle du noeud quand on prend du recul.
         label.setAttribute(
           "x",
           isSelected
             ? position.x
-            : position.x + nodeRadius + (effectiveLabelMode === "compact" ? 5 : 7)
+            : position.x +
+              nodeRadius +
+              (effectiveLabelMode === "compact" ? 5 : 7) * labelScale
         );
-        label.setAttribute("y", isSelected ? position.y + nodeRadius + 16 : position.y + 3);
+        label.setAttribute(
+          "y",
+          isSelected
+            ? position.y + nodeRadius + 16 * labelScale
+            : position.y + 3 * labelScale
+        );
         if (isSelected) {
           label.setAttribute("text-anchor", "middle");
         }
@@ -1032,15 +1305,16 @@
       return;
     }
 
+    const monde = getWorldSize();
     position.x = context.helpers.clamp(
       point.x - context.state.graphDrag.offsetX,
       28,
-      getGraphDimensions().width - 28
+      monde.width - 28
     );
     position.y = context.helpers.clamp(
       point.y - context.state.graphDrag.offsetY,
       28,
-      getGraphDimensions().height - 28
+      monde.height - 28
     );
     context.state.graphDrag.moved = true;
     drawGraph();
@@ -1266,13 +1540,11 @@
 
   function setZoomAtPoint(nextZoom, clientX, clientY, focalGraphX = null, focalGraphY = null) {
     const rect = context.elements.graphCanvas.getBoundingClientRect();
-    const dimensions = getGraphDimensions();
-    const currentViewBox = getGraphViewBox(dimensions);
+    const currentViewBox = getGraphViewBox();
     const safeZoom = clamp(nextZoom, MIN_GRAPH_ZOOM, MAX_GRAPH_ZOOM);
-    const nextWidth = dimensions.width / safeZoom;
-    const nextHeight = dimensions.height / safeZoom;
-    const centeredX = (dimensions.width - nextWidth) / 2;
-    const centeredY = (dimensions.height - nextHeight) / 2;
+    const { width: nextWidth, height: nextHeight } = getViewSpan(safeZoom);
+    const centeredX = (WORLD_WIDTH - nextWidth) / 2;
+    const centeredY = (WORLD_HEIGHT - nextHeight) / 2;
     const ratioX = clamp((clientX - rect.left) / rect.width, 0, 1);
     const ratioY = clamp((clientY - rect.top) / rect.height, 0, 1);
     const focusX =
@@ -1350,6 +1622,7 @@
     handleGraphPointerUp,
     handleGraphWheel,
     recenterGraphLayout,
+    requestGraphFraming,
     zoomIn,
     zoomOut,
   };

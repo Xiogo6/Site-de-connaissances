@@ -1416,11 +1416,18 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     const targetLabel = String(nextTag || "").trim();
     const source = normalizeTag(sourceLabel);
     const target = normalizeTag(targetLabel);
-    if (!source || !targetLabel) {
+    if (!source || !target) {
       return false;
     }
 
-    if (source === target && sourceLabel === targetLabel) {
+    // Le tag est ecrit sous sa forme normalisee, comme sur tous les autres
+    // chemins d'ecriture : la saisie de l'editeur passe par parseTags, et le
+    // chargement des donnees par normalizeTagList. Ecrire ici le texte brut
+    // laissait un tag que le prochain chargement reecrivait sans prevenir,
+    // jusqu'a annuler entierement le renommage quand seule la casse ou le
+    // pluriel changeait. Deux noms qui se normalisent pareil ne renomment
+    // donc rien : il n'y a aucun changement a enregistrer.
+    if (source === target) {
       return false;
     }
 
@@ -1439,7 +1446,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
 
       note.tags = unique(
         note.tags
-          .map((tag) => (normalizeTag(tag) === source ? targetLabel : tag))
+          .map((tag) => (normalizeTag(tag) === source ? target : tag))
           .filter(Boolean)
       );
       note.updatedAt = updatedAt;
@@ -1451,26 +1458,26 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     }
 
     if (context.state.tagFilter && normalizeTag(context.state.tagFilter) === source) {
-      context.state.tagFilter = targetLabel;
+      context.state.tagFilter = target;
     }
 
     if (context.state.graphTagFilter && normalizeTag(context.state.graphTagFilter) === source) {
-      context.state.graphTagFilter = targetLabel;
+      context.state.graphTagFilter = target;
     }
 
     if (context.state.timeline?.tag && normalizeTag(context.state.timeline.tag) === source) {
-      context.state.timeline.tag = targetLabel;
+      context.state.timeline.tag = target;
     }
 
     if (context.elements.quizTag && normalizeTag(context.elements.quizTag.value) === source) {
-      context.elements.quizTag.value = targetLabel;
+      context.elements.quizTag.value = target;
     }
 
     if (
       context.state.graphSelection?.kind === "tag" &&
       normalizeTag(context.state.graphSelection.id.replace("tag::", "")) === source
     ) {
-      context.state.graphSelection = { kind: "tag", id: `tag::${targetLabel}` };
+      context.state.graphSelection = { kind: "tag", id: `tag::${target}` };
     }
 
     context.data.saveNotes();
