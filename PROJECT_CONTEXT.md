@@ -204,22 +204,30 @@ et fait ressortir la page et ses voisins.
 - Les questions de quiz restent entierement manuelles ou generees par Gemini.
   Des generateurs deduits du contenu (dates, liens, termes en gras) rendraient
   le quiz utilisable sur tout le corpus.
-- `prune_snapshot_history(max_snapshots)` declarait un parametre que sa
-  version active n utilisait nulle part, les limites etant ecrites en dur,
-  30 snapshots quotidiens et 20 d action. Ses trois appelants passaient un
-  chiffre sans effet, dont deux passaient `5`. Corrige par la migration
-  `20260829120000_drop_prune_snapshot_history_parameter.sql`, a appliquer.
+- `prune_snapshot_history(max_snapshots)` declare un parametre que sa version
+  active n utilise nulle part, les limites etant ecrites en dur, 30 snapshots
+  quotidiens et 20 d action. Ses trois appelants passent un chiffre sans
+  effet, dont deux passent `5`. La migration
+  `20260829120000_drop_prune_snapshot_history_parameter.sql` le corrige mais
+  n a pas ete appliquee : la fonction en base declare toujours son parametre.
+  Ne pas rendre ce parametre effectif : `create_daily_snapshot` et
+  `sync_app_payload_legacy_v59` passent `5`, et l historique tomberait a cinq
+  snapshots a chaque synchronisation.
   Attention en relisant l ancien code : `sync_app_payload_legacy_v59` n est
   pas morte malgre son nom et ses droits revoques. `sync_app_payload`, la
   seule fonction que l application appelle, se termine par
   `return public.sync_app_payload_legacy_v59(safe_payload)`, et le `revoke`
   ne bloque pas cet appel interne puisque l appelante est `security definer`.
-- Trois migrations Supabase attendent d etre appliquees a la main dans
-  l editeur SQL, dans cet ordre :
+- Trois migrations existent dans le depot sans avoir ete appliquees, et le
+  proprietaire du projet a decide de ne pas les passer :
   `20260820090000_close_public_execute_grants.sql`,
   `20260820100000_protect_snapshot_payload.sql` et
-  `20260829120000_drop_prune_snapshot_history_parameter.sql`. Verifier dans la
-  base avant de conclure, le depot ne sait pas ce qui y a ete passe.
+  `20260829120000_drop_prune_snapshot_history_parameter.sql`.
+
+  Ne pas les appliquer sans le lui demander. Les lire reste utile : chacune
+  decrit un defaut reel et porte son correctif tout pret. La base tourne donc
+  aujourd hui avec les droits EXECUTE encore ouverts a PUBLIC sur trois
+  fonctions, et sans garde-fou sur l ecrasement du contenu d un snapshot.
 - `events.js` et `renderers.js` restent volumineux, mais pas pour la meme
   raison, et la mesure separe nettement les deux cas.
 
