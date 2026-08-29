@@ -7,6 +7,7 @@
       normalizeFlexibleDateInput,
       normalizeLinkTitle,
       normalizeTag,
+      normalizeTagList,
       parseTags,
       unique,
     } = AtlasApp.helpers;
@@ -33,7 +34,7 @@
 
       if (
         context.state.tagFilter !== "all" &&
-        !note.tags.some((tag) => tag.toLowerCase() === context.state.tagFilter.toLowerCase())
+        !note.tags.some((tag) => normalizeTag(tag) === normalizeTag(context.state.tagFilter))
       ) {
         return false;
       }
@@ -1399,12 +1400,24 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     return `Prochaine: ${context.helpers.formatDate(note.review?.nextReviewAt)}`;
   }
 
+  // Un seul libelle par tag : deux pages qui ecrivent "Cuisine" et "cuisine"
+  // ne doivent pas remplir deux fois les listes deroulantes. On trie avant de
+  // dedupliquer pour que le libelle retenu ne depende pas de l'ordre des pages.
   function getAllTags() {
-    return unique(
-      context.state.notes.flatMap((note) => note.tags).filter(Boolean).sort((left, right) => {
-        return left.localeCompare(right, "fr", { sensitivity: "base" });
-      })
-    );
+    const seen = new Set();
+    return context.state.notes
+      .flatMap((note) => note.tags)
+      .filter(Boolean)
+      .sort((left, right) => left.localeCompare(right, "fr", { sensitivity: "base" }))
+      .filter((tag) => {
+        const key = normalizeTag(tag);
+        if (!key || seen.has(key)) {
+          return false;
+        }
+
+        seen.add(key);
+        return true;
+      });
   }
 
   function renameTag(oldTag, nextTag) {
@@ -1420,14 +1433,11 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
       return false;
     }
 
-    // Le tag est ecrit sous sa forme normalisee, comme sur tous les autres
-    // chemins d'ecriture : la saisie de l'editeur passe par parseTags, et le
-    // chargement des donnees par normalizeTagList. Ecrire ici le texte brut
-    // laissait un tag que le prochain chargement reecrivait sans prevenir,
-    // jusqu'a annuler entierement le renommage quand seule la casse ou le
-    // pluriel changeait. Deux noms qui se normalisent pareil ne renomment
-    // donc rien : il n'y a aucun changement a enregistrer.
-    if (source === target) {
+    // Deux libelles differents peuvent designer le meme tag : "animau" et
+    // "animaux" ont la meme cle. C'est precisement le cas d'une correction
+    // d'orthographe, qu'il faut donc autoriser. Seul un libelle rigoureusement
+    // identique n'a rien a changer.
+    if (sourceLabel === targetLabel) {
       return false;
     }
 
@@ -1444,10 +1454,10 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
         return;
       }
 
-      note.tags = unique(
-        note.tags
-          .map((tag) => (normalizeTag(tag) === source ? target : tag))
-          .filter(Boolean)
+      // normalizeTagList deduplique par cle : si la page portait deja le tag
+      // d'arrivee, la fusion ne laisse pas deux libelles pour un meme tag.
+      note.tags = normalizeTagList(
+        note.tags.map((tag) => (normalizeTag(tag) === source ? targetLabel : tag))
       );
       note.updatedAt = updatedAt;
       didChange = true;
@@ -1458,19 +1468,19 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     }
 
     if (context.state.tagFilter && normalizeTag(context.state.tagFilter) === source) {
-      context.state.tagFilter = target;
+      context.state.tagFilter = targetLabel;
     }
 
     if (context.state.graphTagFilter && normalizeTag(context.state.graphTagFilter) === source) {
-      context.state.graphTagFilter = target;
+      context.state.graphTagFilter = targetLabel;
     }
 
     if (context.state.timeline?.tag && normalizeTag(context.state.timeline.tag) === source) {
-      context.state.timeline.tag = target;
+      context.state.timeline.tag = targetLabel;
     }
 
     if (context.elements.quizTag && normalizeTag(context.elements.quizTag.value) === source) {
-      context.elements.quizTag.value = target;
+      context.elements.quizTag.value = targetLabel;
     }
 
     if (

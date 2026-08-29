@@ -383,9 +383,68 @@
       attendre(helpers.normalizeTag("temps")).vaut("temp");
     });
 
-    test("la liste dedoublonne apres normalisation", () => {
-      attendre(helpers.normalizeTagList(["Sport", "sports", "SPORT"])).equivaut(["sport"]);
+    // Le libelle ecrit par l'utilisateur est conserve ; normalizeTag ne sert
+    // qu'a reconnaitre que deux libelles designent le meme tag. La liste
+    // renvoyait auparavant la cle normalisee, ce qui reecrivait les tags a
+    // chaque chargement et rendait toute correction d'orthographe impossible.
+    test("la liste garde le libelle et dedoublonne par cle", () => {
+      attendre(helpers.normalizeTagList(["Sport", "sports", "SPORT"])).equivaut(["Sport"]);
       attendre(helpers.normalizeTagList(["", "  ", "art"])).equivaut(["art"]);
+      attendre(helpers.normalizeTagList(["Mathematiques"])).equivaut(["Mathematiques"]);
+    });
+
+    // F-16 : renommer un tag ecrivait la forme normalisee, que le chargement
+    // suivant reecrivait a son tour. Corriger "animau" en "animaux" etait donc
+    // impossible : le bouton semblait fonctionner puis le tag revenait.
+    test("renommer un tag corrige son orthographe et tient au rechargement", () => {
+      const contexte = {
+        state: {
+          notes: [{ id: "n1", title: "Page", tags: ["animau"], content: "", type: "concept" }],
+          settings: {}, snapshots: [], tagFilter: "animau", graphTagFilter: "",
+          remote: { enabled: false, status: "local", lastSyncedAt: null, lastError: "" },
+        },
+        elements: {},
+        auth: { isConfigured: () => false, isSignedIn: () => false, getAccessToken: async () => "" },
+        renderers: { renderEverything() {} },
+      };
+      contexte.data = global.AtlasApp.createDataModule(contexte);
+      contexte.data.saveNotes = () => {};
+      contexte.data.isReadOnlyMode = () => false;
+      contexte.notes = global.AtlasApp.createNotesModule(contexte);
+
+      attendre(contexte.notes.renameTag("animau", "animaux")).vrai();
+      attendre(contexte.state.notes[0].tags).equivaut(["animaux"]);
+      // le filtre suit, sinon le renommage casserait la navigation
+      attendre(contexte.state.tagFilter).vaut("animaux");
+
+      // un rechargement ne doit plus reecrire le libelle
+      const recharge = contexte.data.normalizeNoteCollection(
+        JSON.parse(JSON.stringify(contexte.state.notes))
+      );
+      attendre(recharge[0].tags).equivaut(["animaux"]);
+    });
+
+    test("fusionner deux tags ne laisse qu'une entree dans les listes", () => {
+      const contexte = {
+        state: {
+          notes: [
+            { id: "n1", title: "A", tags: ["chat"], content: "", type: "concept" },
+            { id: "n2", title: "B", tags: ["cuisine"], content: "", type: "concept" },
+          ],
+          settings: {}, snapshots: [], tagFilter: "", graphTagFilter: "",
+          remote: { enabled: false, status: "local", lastSyncedAt: null, lastError: "" },
+        },
+        elements: {},
+        auth: { isConfigured: () => false, isSignedIn: () => false, getAccessToken: async () => "" },
+        renderers: { renderEverything() {} },
+      };
+      contexte.data = global.AtlasApp.createDataModule(contexte);
+      contexte.data.saveNotes = () => {};
+      contexte.data.isReadOnlyMode = () => false;
+      contexte.notes = global.AtlasApp.createNotesModule(contexte);
+
+      contexte.notes.renameTag("chat", "Cuisine");
+      attendre(contexte.notes.getAllTags().length).vaut(1);
     });
   });
 

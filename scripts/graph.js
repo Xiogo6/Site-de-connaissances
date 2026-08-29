@@ -2,7 +2,8 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createGraphModule = function createGraphModule(context) {
-    const { clamp, escapeHtml, extractLinks, extractSummary, unique } = AtlasApp.helpers;
+    const { clamp, escapeHtml, extractLinks, extractSummary, normalizeTag, unique } =
+      AtlasApp.helpers;
     // Le monde du graphe est fixe et bien plus grand que l'ecran. Avant, il
     // epousait la fenetre : la disposition remplissait donc l'ecran bord a
     // bord, sans un pixel de vide autour, et deplacer la vue etait impossible
@@ -148,7 +149,7 @@
         ? context.state.notes
         : context.state.notes.filter((note) =>
             note.tags.some(
-              (tag) => tag.toLowerCase() === context.state.graphTagFilter.toLowerCase()
+              (tag) => normalizeTag(tag) === normalizeTag(context.state.graphTagFilter)
             )
           );
 
@@ -196,18 +197,28 @@
     });
 
     if (context.state.graphShowTags) {
-      const tagSet = new Set();
-      notes.forEach((note) => note.tags.forEach((tag) => tagSet.add(tag)));
-      [...tagSet].forEach((tag) => {
-        const tagId = `tag::${tag}`;
+      // Un noeud de tag est identifie par la cle normalisee, pas par le
+      // libelle : deux pages qui ecrivent le meme tag differemment doivent se
+      // rejoindre sur un seul noeud au lieu d'en creer deux jumeaux.
+      const tagLabels = new Map();
+      notes.forEach((note) =>
+        note.tags.forEach((tag) => {
+          const key = normalizeTag(tag);
+          if (key && !tagLabels.has(key)) {
+            tagLabels.set(key, tag);
+          }
+        })
+      );
+      tagLabels.forEach((label, key) => {
+        const tagId = `tag::${key}`;
         nodes.push({
           id: tagId,
           kind: "tag",
           type: "tag",
-          label: `#${tag}`,
+          label: `#${label}`,
         });
         notes
-          .filter((note) => note.tags.includes(tag))
+          .filter((note) => note.tags.some((tag) => normalizeTag(tag) === key))
           .forEach((note) => {
             edges.push({
               from: note.id,
@@ -232,7 +243,7 @@
     const ids = new Set();
     context.state.notes.forEach((note) => {
       ids.add(note.id);
-      note.tags.forEach((tag) => ids.add(`tag::${tag}`));
+      note.tags.forEach((tag) => ids.add(`tag::${normalizeTag(tag)}`));
     });
     return ids;
   }

@@ -2,7 +2,7 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createQuizModule = function createQuizModule(context) {
-    const { escapeHtml, shuffle } = AtlasApp.helpers;
+    const { escapeHtml, normalizeTag, shuffle } = AtlasApp.helpers;
     const EASY_POOL_MINIMUM_FOR_MIXED_ROTATION = 3;
     const EARLY_ROTATION_AVERAGE_ASKED_LIMIT = 2;
     const EARLY_ROTATION_SEEN_RATIO_LIMIT = 0.65;
@@ -21,9 +21,9 @@
       }
 
       if (scope === "tag") {
-        const tag = tagValue.trim().toLowerCase();
+        const tag = normalizeTag(tagValue);
         return context.state.notes.filter((note) =>
-          note.tags.some((candidate) => candidate.toLowerCase() === tag)
+          note.tags.some((candidate) => normalizeTag(candidate) === tag)
         );
       }
 
