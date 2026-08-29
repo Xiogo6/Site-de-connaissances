@@ -107,16 +107,23 @@
     return normalized;
   }
 
+  // Un tag garde le libelle ecrit par l'utilisateur ; normalizeTag ne sert
+  // qu'a fabriquer la cle de comparaison. Deux libelles qui donnent la meme
+  // cle sont le meme tag, et seul le premier est conserve. Cette fonction
+  // renvoyait auparavant la cle elle-meme : les tags etaient donc reecrits a
+  // chaque chargement, et corriger l'orthographe d'un tag etait impossible.
   function normalizeTagList(values) {
     const seen = new Set();
     return values
-      .map((value) => normalizeTag(value))
+      .map((value) => String(value).trim())
       .filter(Boolean)
-      .filter((value) => {
-        if (seen.has(value)) {
+      .filter((label) => {
+        const key = normalizeTag(label);
+        if (!key || seen.has(key)) {
           return false;
         }
-        seen.add(value);
+
+        seen.add(key);
         return true;
       });
   }

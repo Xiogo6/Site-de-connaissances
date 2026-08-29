@@ -67,12 +67,12 @@
          chainees par @import depuis un styles.css, ce qui imposait un
          aller-retour reseau de plus avant meme de les decouvrir. L'ordre est
          celui des @import d'origine, la cascade est identique. -->
-    <link rel="stylesheet" href="./styles/tokens.css?v=94" />
-    <link rel="stylesheet" href="./styles/base.css?v=94" />
-    <link rel="stylesheet" href="./styles/layout.css?v=94" />
-    <link rel="stylesheet" href="./styles/components.css?v=94" />
-    <link rel="stylesheet" href="./styles/features.css?v=94" />
-    <link rel="stylesheet" href="./styles/themes.css?v=94" />
+    <link rel="stylesheet" href="./styles/tokens.css?v=96" />
+    <link rel="stylesheet" href="./styles/base.css?v=96" />
+    <link rel="stylesheet" href="./styles/layout.css?v=96" />
+    <link rel="stylesheet" href="./styles/components.css?v=96" />
+    <link rel="stylesheet" href="./styles/features.css?v=96" />
+    <link rel="stylesheet" href="./styles/themes.css?v=96" />
   </head>
   <body>
     <div class="shell">
@@ -941,12 +941,33 @@
                   placeholder="Écrire une tâche ou coller une liste…"
                   aria-label="Nouvelles tâches sur la page"
                 ></textarea>
-                <button id="todo-page-add-button" class="button button-primary" type="submit">
-                  Ajouter
+                <div class="todo-page-entry-actions">
+                  <select
+                    id="todo-page-category"
+                    class="select-input select-inline"
+                    aria-label="Catégorie de la nouvelle tâche"
+                  ></select>
+                  <button id="todo-page-add-button" class="button button-primary" type="submit">
+                    Ajouter
+                  </button>
+                </div>
+              </form>
+
+              <form id="todo-category-form" class="todo-category-form">
+                <input
+                  id="todo-category-input"
+                  class="text-input"
+                  type="text"
+                  maxlength="80"
+                  placeholder="Nouvelle catégorie…"
+                  aria-label="Nom de la nouvelle catégorie"
+                />
+                <button id="todo-category-add-button" class="button button-ghost" type="submit">
+                  Créer la catégorie
                 </button>
               </form>
 
-              <ul id="todo-page-list" class="todo-list todo-page-list" aria-live="polite"></ul>
+              <div id="todo-page-groups" class="todo-page-groups"></div>
             </section>
           </div>
         </section>
@@ -1535,11 +1556,7 @@
           <button id="utility-drawer-close" class="button" type="button">Fermer</button>
         </div>
 
-        <section class="todo-panel" aria-label="Liste des tâches">
-          <div class="todo-summary">
-            <strong id="todo-count">Tout est fait</strong>
-          </div>
-
+        <section class="todo-panel" aria-label="Ajouter une tâche">
           <form id="todo-form" class="todo-entry-form">
             <textarea
               id="todo-input"
@@ -1550,14 +1567,13 @@
               aria-label="Nouvelles tâches"
             ></textarea>
             <div class="todo-entry-actions">
-              <small>Une ligne = une case</small>
+              <select id="todo-category" class="select-input select-inline" aria-label="Catégorie">
+              </select>
               <button id="todo-add-button" class="button button-primary" type="submit">
                 Ajouter
               </button>
             </div>
           </form>
-
-          <ul id="todo-list" class="todo-list todo-quick-list" aria-live="polite"></ul>
 
           <button class="button button-ghost todo-open-list" data-utility-tab="todos" type="button">
             Voir toute la liste
@@ -1688,20 +1704,20 @@
       </div>
     </section>
 
-    <script src="./scripts/config.js?v=94"></script>
-    <script src="./scripts/dom.js?v=94"></script>
-    <script src="./scripts/helpers.js?v=94"></script>
-    <script src="./scripts/auth.js?v=94"></script>
-    <script src="./scripts/data.js?v=94"></script>
-    <script src="./scripts/ai.js?v=94"></script>
-    <script src="./scripts/notes.js?v=94"></script>
-    <script src="./scripts/graph.js?v=94"></script>
-    <script src="./scripts/quiz.js?v=94"></script>
-    <script src="./scripts/mascot.js?v=94"></script>
-    <script src="./scripts/todos.js?v=94"></script>
-    <script src="./scripts/sport.js?v=94"></script>
-    <script src="./scripts/renderers.js?v=94"></script>
-    <script src="./scripts/events.js?v=94"></script>
-    <script src="./app.js?v=94"></script>
+    <script src="./scripts/config.js?v=96"></script>
+    <script src="./scripts/dom.js?v=96"></script>
+    <script src="./scripts/helpers.js?v=96"></script>
+    <script src="./scripts/auth.js?v=96"></script>
+    <script src="./scripts/data.js?v=96"></script>
+    <script src="./scripts/ai.js?v=96"></script>
+    <script src="./scripts/notes.js?v=96"></script>
+    <script src="./scripts/graph.js?v=96"></script>
+    <script src="./scripts/quiz.js?v=96"></script>
+    <script src="./scripts/mascot.js?v=96"></script>
+    <script src="./scripts/todos.js?v=96"></script>
+    <script src="./scripts/sport.js?v=96"></script>
+    <script src="./scripts/renderers.js?v=96"></script>
+    <script src="./scripts/events.js?v=96"></script>
+    <script src="./app.js?v=96"></script>
   </body>
 </html>

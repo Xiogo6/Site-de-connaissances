@@ -644,8 +644,8 @@
 
   function getForYouScore(note) {
     const active = context.notes.getActiveNote();
-    const activeTags = new Set((active?.tags || []).map((tag) => tag.toLowerCase()));
-    const noteTags = (note.tags || []).map((tag) => tag.toLowerCase());
+    const activeTags = new Set((active?.tags || []).map((tag) => normalizeTag(tag)));
+    const noteTags = (note.tags || []).map((tag) => normalizeTag(tag));
     const sharedTags = noteTags.filter((tag) => activeTags.has(tag)).length;
     const activeLinks = active ? extractLinks(active.content || "").map((title) => title.toLowerCase()) : [];
     const linkedToActive = activeLinks.includes(String(note.title || "").toLowerCase());

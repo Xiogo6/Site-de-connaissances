@@ -805,6 +805,7 @@
           performanceEntries: [],
           lastSavedAt: null,
         },
+        todoCategories: createDefaultTodoCategories(),
         todos: [],
       };
     }
@@ -1004,6 +1005,10 @@
           return {
             id,
             label,
+            categoryId:
+              typeof item?.categoryId === "string" && item.categoryId.trim()
+                ? item.categoryId.trim()
+                : null,
             completed: Boolean(item?.completed),
             createdAt:
               typeof item?.createdAt === "string" ? item.createdAt : new Date().toISOString(),
@@ -1014,6 +1019,48 @@
                 ? item.createdAt
                 : new Date().toISOString(),
             order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index,
+          };
+        })
+        .filter(Boolean)
+        .sort((left, right) => left.order - right.order);
+    }
+
+    // Trois rangements de depart, uniquement a la premiere ouverture. Un
+    // tableau vide est un choix de l'utilisateur (il a tout supprime) et doit
+    // le rester : seule l'absence complete de la cle declenche les valeurs
+    // par defaut.
+    function createDefaultTodoCategories() {
+      return [
+        { id: "todo-cat-courses", label: "Mes courses", order: 0 },
+        { id: "todo-cat-quotidien", label: "Vie quotidienne", order: 1 },
+        { id: "todo-cat-important", label: "Important", order: 2 },
+      ];
+    }
+
+    function normalizeTodoCategories(rawCategories) {
+      if (!Array.isArray(rawCategories)) {
+        return createDefaultTodoCategories();
+      }
+
+      const seen = new Set();
+      return rawCategories
+        .map((category, index) => {
+          const label =
+            typeof category?.label === "string" ? category.label.trim().slice(0, 80) : "";
+          const id =
+            typeof category?.id === "string" && category.id.trim()
+              ? category.id.trim()
+              : `todo-cat-${index}`;
+
+          if (!label || seen.has(id)) {
+            return null;
+          }
+
+          seen.add(id);
+          return {
+            id,
+            label,
+            order: Number.isFinite(Number(category?.order)) ? Number(category.order) : index,
           };
         })
         .filter(Boolean)
@@ -1048,6 +1095,7 @@
           typeof rawSettings?.lastEditedNoteId === "string" ? rawSettings.lastEditedNoteId : null,
         quizPlayerStats: normalizeQuizPlayerStats(rawSettings?.quizPlayerStats),
         sport: normalizeSportSettings(rawSettings?.sport),
+        todoCategories: normalizeTodoCategories(rawSettings?.todoCategories),
         todos: normalizeTodoItems(rawSettings?.todos),
       };
     }
@@ -1098,6 +1146,7 @@
           lastEditedNoteId: context.state.settings.lastEditedNoteId || null,
           quizPlayerStats: normalizeQuizPlayerStats(context.state.settings.quizPlayerStats),
           sport: context.state.settings.sport || { massEntries: [], performanceEntries: [] },
+          todoCategories: normalizeTodoCategories(context.state.settings.todoCategories),
           todos: normalizeTodoItems(context.state.settings.todos),
         },
         notes: context.state.notes.map((note) => ({
