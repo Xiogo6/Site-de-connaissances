@@ -1944,6 +1944,10 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
 }
 
 
+.sport-date-column {
+  width: 148px;
+}
+
 .sport-mass-column {
   width: 108px;
 }
@@ -1983,6 +1987,11 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   width: 44px;
 }
 
+
+.sport-date-header,
+.sport-date-cell {
+  width: 148px;
+}
 
 .sport-mass-header,
 .sport-mass-cell {
@@ -2048,7 +2057,7 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   padding-right: 12px;
 }
 
-.sport-session-date-input {
+.sport-date-input {
   font-size: 0.95rem;
   font-variant-numeric: tabular-nums;
   padding: 0 8px;
@@ -2492,22 +2501,6 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   gap: 6px;
 }
 
-.sport-session-date-input {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  color: var(--text-soft);
-  height: 30px;
-  width: 82px;
-}
-
-.sport-session-date-input:focus {
-  background: var(--surface);
-  border-color: var(--line-strong);
-  color: var(--text);
-  outline: none;
-}
-
 .sport-session-action {
   background: transparent;
   border: 1px solid var(--line);
@@ -2791,6 +2784,12 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
 }
 
 
+.sport-workspace-panel .sport-date-column,
+.sport-workspace-panel .sport-date-header,
+.sport-workspace-panel .sport-date-cell {
+  width: 126px;
+}
+
 .sport-workspace-panel .sport-exercise-column {
   width: 205px;
 }
@@ -2853,6 +2852,10 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
 }
 
 
+.sport-performance-table[data-sport-compact="true"] .sport-date-column {
+  width: 16%;
+}
+
 .sport-performance-table[data-sport-compact="true"] .sport-exercise-column {
   width: 32%;
 }
@@ -2911,6 +2914,10 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
 }
 
 
+.sport-performance-table[data-sport-zoom="72"] .sport-date-column {
+  width: 96px;
+}
+
 .sport-performance-table[data-sport-zoom="72"] .sport-exercise-column {
   width: 165px;
 }
@@ -2934,6 +2941,10 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   width: 720px;
 }
 
+
+.sport-performance-table[data-sport-zoom="86"] .sport-date-column {
+  width: 110px;
+}
 
 .sport-performance-table[data-sport-zoom="86"] .sport-exercise-column {
   width: 180px;

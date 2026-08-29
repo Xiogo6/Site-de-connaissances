@@ -28,9 +28,8 @@
     // s'applique alors : seule la seance la plus recente reste ouverte.
     let sportCollapsedSessions = null;
     let sportTemplateDraft = null;
-    // Poignee, exercice, series, repetitions, kg, repos, note. La date a
-    // quitte les lignes : elle appartient desormais a l'en-tete de seance.
-    const SPORT_PERFORMANCE_COLUMNS = 7;
+    // Poignee, date, exercice, series, repetitions, kg, repos, note.
+    const SPORT_PERFORMANCE_COLUMNS = 8;
 
     function getSportSettings() {
       context.state.settings.sport = context.state.settings.sport || {
@@ -60,6 +59,9 @@
       // etant trie du plus recent au plus ancien, elle apparait donc en haut.
       const entry = createSportPerformanceEntry(options.date || getTodayInputDate());
       sport.performanceEntries.push(entry);
+      // Trier ici plutot que de compter sur le rendu : le rang de la ligne
+      // sert juste apres a lui donner le clavier, et il doit deja etre le bon.
+      sortSportPerformanceEntries();
       context.state.sportMode = "performance";
       // Sans cela, une ligne ajoutee a une seance repliee resterait invisible.
       expandSportSession(entry.date);
@@ -114,9 +116,34 @@
         table === "performance" ? sport.performanceEntries : sport.massEntries;
       ensureSportEntry(entries, table, index);
       const entry = entries[index];
-      // La date ne se saisit plus ligne par ligne : elle appartient a
-      // l'en-tete de seance, traite par handleSportSessionDate.
-      entry[field] = input.type === "checkbox" ? input.checked : input.value;
+      if (table === "performance" && field === "date") {
+        const normalizedDate = parseSportDateInput(input.value, entry.date);
+        if (!input.value.trim()) {
+          entry.date = "";
+          input.dataset.sportDateValue = "";
+          input.setCustomValidity("");
+        } else if (normalizedDate) {
+          entry.date = normalizedDate;
+          input.dataset.sportDateValue = normalizedDate;
+          input.setCustomValidity("");
+          if (event.type === "change") {
+            // La ligne change de seance : on redessine, puis on la retrouve
+            // par identite car le tri lui a donne un nouveau rang.
+            saveSportChanges();
+            renderSportTracker();
+            focusSportCell(entries.indexOf(entry), "exercise");
+            return;
+          }
+        } else {
+          input.setCustomValidity("Tapez les chiffres a la suite : 1408, 140825 ou 14082025.");
+          if (event.type === "change") {
+            input.reportValidity();
+          }
+          return;
+        }
+      } else {
+        entry[field] = input.type === "checkbox" ? input.checked : input.value;
+      }
 
       saveSportChanges();
       if (table === "performance") {
@@ -146,8 +173,8 @@
 
       const fields =
         context.elements.sportPerformanceTable?.dataset.sportCompact === "true"
-          ? ["exercise", "sets", "reps", "weight", "rest"]
-          : ["exercise", "sets", "reps", "weight", "rest", "comment"];
+          ? ["date", "exercise", "sets", "reps", "weight", "rest"]
+          : ["date", "exercise", "sets", "reps", "weight", "rest", "comment"];
       const field = input.dataset.sportField;
       const fieldIndex = fields.indexOf(field);
       const rowIndex = Number(input.dataset.sportIndex);
@@ -713,16 +740,17 @@
       return sessions;
     }
 
-    function isSportSessionCollapsed(date, sessions) {
-      if (sportCollapsedSessions === null) {
-        return sessions.length > 1 && date !== sessions[0].date;
-      }
-      return sportCollapsedSessions.includes(date);
+    // Tout est ouvert au depart. Replier d'office les anciennes seances
+    // faisait disparaitre l'historique de l'ecran : les lignes etaient bien
+    // la, mais il fallait deviner qu'un clic sur chaque en-tete les ramenait.
+    // Le repli reste disponible, il ne s'applique plus tout seul.
+    function isSportSessionCollapsed(date) {
+      return sportCollapsedSessions !== null && sportCollapsedSessions.includes(date);
     }
 
-    function toggleSportSession(date, sessions) {
+    function toggleSportSession(date) {
       if (sportCollapsedSessions === null) {
-        sportCollapsedSessions = sessions.slice(1).map((session) => session.date);
+        sportCollapsedSessions = [];
       }
       const position = sportCollapsedSessions.indexOf(date);
       if (position >= 0) {
@@ -791,16 +819,6 @@
               <span class="sport-session-meta">${escapeHtml(summarizeSportSession(session.rows))}</span>
             </button>
             <span class="sport-session-tools">
-              <input
-                class="sport-input sport-session-date-input"
-                type="text"
-                inputmode="decimal"
-                maxlength="10"
-                value="${escapeHtml(formatSportDateForCell(date))}"
-                placeholder="jjmm"
-                aria-label="Date de la seance"
-                data-sport-session-date="${escapeHtml(date)}"
-              />
               <button
                 class="sport-session-action"
                 type="button"
@@ -858,7 +876,7 @@
       const sessions = groupSportEntriesBySession(performanceEntries);
       context.elements.sportPerformanceBody.innerHTML = sessions
         .map((session) => {
-          const collapsed = isSportSessionCollapsed(session.date, sessions);
+          const collapsed = isSportSessionCollapsed(session.date);
           const header = buildSportSessionHeaderRow(session, collapsed, SPORT_PERFORMANCE_COLUMNS);
           if (collapsed) {
             return header;
@@ -1039,6 +1057,9 @@
               <span aria-hidden="true"></span>
             </button>
           </td>
+          <td class="sport-date-cell">
+            <input class="sport-input sport-date-input" aria-label="Date, ligne ${index + 1}" type="text" inputmode="decimal" maxlength="10" value="${escapeHtml(formatSportDateForCell(entry.date))}" placeholder="jjmm" enterkeyhint="next" data-sport-date-value="${escapeHtml(entry.date || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="date" />
+          </td>
           <td>
             <input class="sport-input sport-exercise-input" aria-label="Exercice, ligne ${index + 1}" type="text" value="${escapeHtml(entry.exercise || "")}" placeholder="Nom de l'exercice" autocapitalize="sentences" autocomplete="off" enterkeyhint="next" data-sport-table="performance" data-sport-index="${index}" data-sport-field="exercise" />
           </td>
@@ -1066,10 +1087,8 @@
      * ---------------------------------------------------------------- */
 
     function expandSportSession(date) {
-      sortSportPerformanceEntries();
-      if (sportCollapsedSessions === null) {
-        const sessions = groupSportEntriesBySession(getSportSettings().performanceEntries);
-        sportCollapsedSessions = sessions.slice(1).map((session) => session.date);
+      if (!sportCollapsedSessions) {
+        return;
       }
       const position = sportCollapsedSessions.indexOf(date);
       if (position >= 0) {
@@ -1080,8 +1099,7 @@
     function handleSportSessionClick(event) {
       const toggle = event.target.closest("[data-sport-session-toggle]");
       if (toggle) {
-        const sessions = groupSportEntriesBySession(getSportSettings().performanceEntries);
-        toggleSportSession(toggle.dataset.sportSessionToggle, sessions);
+        toggleSportSession(toggle.dataset.sportSessionToggle);
         renderSportTracker();
         return;
       }
@@ -1099,43 +1117,6 @@
       if (save) {
         startTemplateFromSession(save.dataset.sportSessionSaveTemplate);
       }
-    }
-
-    // Branche sur `change` seulement : corriger la date a chaque frappe
-    // ferait sauter la seance d'un groupe a l'autre en pleine saisie.
-    function handleSportSessionDate(event) {
-      const input = event.target.closest("[data-sport-session-date]");
-      if (!input) {
-        return;
-      }
-
-      const previous = input.dataset.sportSessionDate;
-      const normalized = parseSportDateInput(input.value, previous);
-      if (!normalized) {
-        input.setCustomValidity("Tapez les chiffres a la suite : 1408, 140825 ou 14082025.");
-        input.reportValidity();
-        return;
-      }
-
-      input.setCustomValidity("");
-      if (normalized === previous) {
-        return;
-      }
-
-      // Toute la seance suit sa date : c'est la seule facon de la deplacer
-      // maintenant que les lignes n'ont plus de cellule de date.
-      getSportSettings().performanceEntries.forEach((entry) => {
-        if ((entry.date || "") === previous) {
-          entry.date = normalized;
-        }
-      });
-      if (Array.isArray(sportCollapsedSessions)) {
-        sportCollapsedSessions = sportCollapsedSessions.map((date) =>
-          date === previous ? normalized : date
-        );
-      }
-      saveSportChanges();
-      renderSportTracker();
     }
 
     /* ---------------------------------------------------------------- *
@@ -1369,6 +1350,7 @@
         date,
       }));
       sport.performanceEntries.push(...added);
+      sortSportPerformanceEntries();
       context.state.sportMode = "performance";
       expandSportSession(date);
       saveSportChanges();
@@ -1503,7 +1485,6 @@
       // Avant handleSportPerformanceClick : l'en-tete de seance est servi
       // en premier, la ligne ordinaire ensuite.
       context.elements.sportPerformanceBody?.addEventListener("click", handleSportSessionClick);
-      context.elements.sportPerformanceBody?.addEventListener("change", handleSportSessionDate);
       context.elements.sportPerformanceBody?.addEventListener("click", handleSportPerformanceClick);
       context.elements.sportTemplatesToggle?.addEventListener("click", () => {
         openSportTemplatesPanel(!isSportTemplatesPanelOpen());
