@@ -670,7 +670,7 @@
       .slice(0, 6)
       .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
       .join("");
-    const favoriteMarkup = note.favorite ? '<span class="tag tag-favorite">Favori</span>' : "";
+    const favoriteMarkup = note.favorite ? '<span class="tag tag-favorite">Epingle</span>' : "";
     const tagsBlock =
       favoriteMarkup || tagMarkup
         ? `<span class="feed-tags">${favoriteMarkup}${tagMarkup}</span>`
@@ -1068,7 +1068,7 @@
     if (note.favorite) {
       const favoriteTag = document.createElement("span");
       favoriteTag.className = "tag tag-favorite";
-      favoriteTag.textContent = "Favori";
+      favoriteTag.textContent = "Epingle";
       context.elements.previewTags.appendChild(favoriteTag);
     }
 

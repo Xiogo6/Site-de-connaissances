@@ -3863,6 +3863,45 @@ body.graph-view-active .graph-panel {
   padding-top: 68px;
 }
 
+/* Le mode graphe n'avait recu son traitement plein cadre que sous 780 px.
+   Sur grand ecran il gardait l'habillage de carte -- bordure, coins arrondis
+   de 24 px, halo interieur de 80 px -- pose sur un fond deja sombre : d'ou
+   ce rectangle flottant aux bords etranges. Et la scene, plus haute que la
+   fenetre, obligeait a faire defiler la page pour voir le bas du graphe, si
+   bien que la bordure du bas n'apparaissait jamais. */
+@media (min-width: 781px) {
+  body.graph-view-active .graph-panel {
+    display: flex;
+    flex-direction: column;
+    /* Ce qui reste sous le panneau : 24 px de marge du shell en haut et en
+       bas, 60 px de navigation, 8 px de banniere et deux gouttieres de 18 px.
+       Si la banniere grandit, le trop-plein redevient un defilement discret
+       au lieu de casser la mise en page. */
+    height: calc(100vh - 188px);
+    height: calc(100dvh - 188px);
+    min-height: 0;
+    /* Les 68 px degagent le selecteur de mode, qui n'est fixe par-dessus le
+       panneau que sur telephone. Ici il est au-dessus, dans le flux : cette
+       reserve ne faisait qu'ecraser la scene. */
+    padding-top: 22px;
+  }
+
+  body.graph-view-active .graph-stage {
+    flex: 1;
+    min-height: 0;
+  }
+
+  body.graph-view-active .graph-canvas {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    display: block;
+    height: 100%;
+    min-height: 0;
+  }
+}
+
 @media (max-width: 780px) {
   body.graph-view-active .graph-label {
     font-size: calc(14px * var(--graph-label-scale, 1));
@@ -3872,8 +3911,11 @@ body.graph-view-active .graph-panel {
     font-size: calc(12px * var(--graph-label-scale, 1));
   }
 
+  /* L'etiquette de la page active est souvent la seule affichee en vue large :
+     a 18 px elle ecrasait des points de 4 px. Elle reste distincte par sa
+     graisse, plus par sa taille. */
   body.graph-view-active .graph-label.is-key {
-    font-size: calc(18px * var(--graph-label-scale, 1));
+    font-size: calc(14px * var(--graph-label-scale, 1));
   }
 
   html.graph-view-active,
