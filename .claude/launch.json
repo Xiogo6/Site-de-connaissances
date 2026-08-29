@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "atlas",
+      "runtimeExecutable": "zsh",
+      "runtimeArgs": ["-c", "exec python3 -m http.server 8777"],
+      "port": 8777
+    }
+  ]
+}

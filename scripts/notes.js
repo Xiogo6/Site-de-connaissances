@@ -598,7 +598,14 @@
           !context.state.notes.some((candidate) => candidate.id === note.parentId)
         );
       })
-      .sort((left, right) => left.title.localeCompare(right.title, "fr", { sensitivity: "base" }))
+      .sort((left, right) => {
+        // Les pages epinglees restent en tete de la racine, le reste suit l'ordre alphabetique.
+        const pinnedGap = Number(Boolean(right.favorite)) - Number(Boolean(left.favorite));
+        if (pinnedGap !== 0) {
+          return pinnedGap;
+        }
+        return left.title.localeCompare(right.title, "fr", { sensitivity: "base" });
+      })
       .map((note) => buildNode(note));
   }
 

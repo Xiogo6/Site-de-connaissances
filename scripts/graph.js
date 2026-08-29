@@ -41,13 +41,26 @@
     // Plancher du cadrage d'ouverture : en dessous, les noeuds deviennent des
     // poussieres. Il est plus bas sur telephone, ou un plancher de bureau
     // deposerait le lecteur au milieu du nuage sans lui montrer sa forme.
-    const MIN_FIT_ZOOM = 0.38;
+    const MIN_FIT_ZOOM = 0.3;
     const MIN_FIT_ZOOM_COMPACT = 0.22;
 
-    // En dessous de ce zoom, seuls les carrefours gardent une etiquette. Les
-    // etiquettes ne retrecissant plus avec le recul, les afficher toutes en
-    // vue d'ensemble remplirait de texte l'espace qu'on vient de degager.
-    const LABEL_CROWD_ZOOM = 0.62;
+    // En dessous de ce zoom, seuls les carrefours gardent une etiquette : en
+    // vue d'ensemble, tout nommer remplirait de texte l'espace qu'on vient de
+    // degager. Au-dessus, les noms reviennent en deux crans de zoom.
+    const LABEL_CROWD_ZOOM = 0.42;
+    const LABEL_HUB_DEGREE = 6;
+
+    // Le texte suit le zoom, mais en racine carree et entre deux bornes. Une
+    // compensation totale -- taille fixe a l'ecran -- donnait un texte enorme
+    // a cote des points en vue large, et minuscule a cote d'eux une fois
+    // zoome. Aucune compensation redonnerait le defaut inverse : illisible
+    // des qu'on prend du recul.
+    const LABEL_MIN_SCREEN_FACTOR = 0.9;
+    const LABEL_MAX_SCREEN_FACTOR = 2;
+
+    function getLabelScreenFactor(zoom) {
+      return clamp(Math.sqrt(zoom), LABEL_MIN_SCREEN_FACTOR, LABEL_MAX_SCREEN_FACTOR);
+    }
 
     const FALLBACK_VIEWPORT_WIDTH = 960;
     const FALLBACK_VIEWPORT_HEIGHT = 620;
@@ -324,8 +337,12 @@
     return positions;
   }
 
-  function getGraphLabelMode(node, degree, zoom, isCurrent, isSelected) {
-    if (isCurrent || isSelected) {
+  // Seul le point sur lequel on vient d'appuyer porte son nom en grand. La
+  // page ouverte dans l'editeur en portait un elle aussi, en permanence : il
+  // restait affiche apres un clic dans le vide, et s'ajoutait au sien quand on
+  // appuyait sur un tag, ce qui donnait deux noms en grand a la fois.
+  function getGraphLabelMode(node, degree, zoom, isSelected) {
+    if (isSelected) {
       return "key";
     }
 
@@ -337,34 +354,38 @@
     // seuls les carrefours gardent donc leur nom -- et sur telephone, ou le
     // texte est plus gros et le recul plus grand, aucun : meme les carrefours
     // s'y chevauchaient.
-    if (zoom < LABEL_CROWD_ZOOM && (compactViewport || degree < 7)) {
+    if (zoom < LABEL_CROWD_ZOOM && (compactViewport || degree < LABEL_HUB_DEGREE)) {
       return null;
     }
 
+    // Les seuils sont exprimes dans l'echelle de zoom actuelle, ou la vue
+    // d'ouverture vaut environ 0,38 sur grand ecran et 0,22 sur telephone. Ils
+    // valaient 1,35 et 2 quand le zoom d'ouverture etait 1 : inchanges, il
+    // fallait zoomer huit crans avant de voir un nom apparaitre.
     if (node.kind === "tag") {
-      if (!compactViewport || zoom >= 1.2 || degree >= 4) {
-        return zoom >= 2.35 ? "full" : "compact";
+      if (!compactViewport || zoom >= 0.5 || degree >= 4) {
+        return zoom >= 0.95 ? "full" : "compact";
       }
       return null;
     }
 
     if (!compactViewport) {
-      if (zoom >= 2 || degree >= 7) {
+      if (zoom >= 0.85 || degree >= 7) {
         return "full";
       }
-      if (zoom >= 1.35 || degree >= 4) {
+      if (zoom >= 0.5 || degree >= 4) {
         return "compact";
       }
       return null;
     }
 
-    if (zoom >= 3 || degree >= 7) {
+    if (zoom >= 1.05 || degree >= 7) {
       return "full";
     }
-    if (zoom >= 2 || degree >= 4) {
+    if (zoom >= 0.68 || degree >= 4) {
       return "compact";
     }
-    if (zoom >= 1.45 && degree >= 6) {
+    if (zoom >= 0.55 && degree >= LABEL_HUB_DEGREE) {
       return "compact";
     }
     return null;
@@ -1037,12 +1058,11 @@
       );
     }
 
-    // Les etiquettes sont ecrites en unites du monde : sans compensation elles
-    // retrecissaient avec le zoom et devenaient illisibles des qu'on prenait du
-    // recul. Les noeuds, eux, doivent bien retrecir : c'est ce qui donne la
-    // sensation d'espace.
-    context.elements.graphCanvas.style.setProperty("--graph-label-scale", String(1 / zoom));
-    const labelScale = 1 / zoom;
+    // Les etiquettes sont ecrites en unites du monde ; ce facteur traduit la
+    // taille apparente voulue en taille du monde. Les noeuds, eux, suivent le
+    // zoom sans correction : c'est ce qui donne la sensation d'espace.
+    const labelScale = getLabelScreenFactor(zoom) / zoom;
+    context.elements.graphCanvas.style.setProperty("--graph-label-scale", String(labelScale));
 
     context.elements.graphCanvas.innerHTML = "";
 
@@ -1072,7 +1092,6 @@
 
     graph.nodes.forEach((node) => {
       const position = context.state.graphPositions.get(node.id);
-      const isCurrent = node.kind === "note" && node.noteId === context.state.activeNoteId;
       const isSelected =
         context.state.graphSelection &&
         context.state.graphSelection.kind === node.kind &&
@@ -1082,7 +1101,7 @@
       const isDragging =
         context.state.graphDrag.mode === "node" && context.state.graphDrag.nodeId === node.id;
       const degree = getNodeDegree(node.id, graph.edges);
-      const labelMode = getGraphLabelMode(node, degree, zoom, isCurrent, isSelected);
+      const labelMode = getGraphLabelMode(node, degree, zoom, isSelected);
       const effectiveLabelMode = labelMode || (position.locked ? "compact" : null);
       const shouldShowLabel = Boolean(effectiveLabelMode);
       const palette =
@@ -1090,7 +1109,7 @@
           ? { fill: "#69a77a", stroke: "#dcf0e1", label: "#ffffff" }
           : getTypePalette(node.type);
       const nodeFill = palette.fill;
-      const nodeStroke = isCurrent || isSelected ? "#ffffff" : palette.stroke;
+      const nodeStroke = isSelected ? "#ffffff" : palette.stroke;
       const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
       group.dataset.graphNodeId = node.id;
       group.dataset.graphNodeKind = node.kind;
@@ -1107,12 +1126,13 @@
       const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       circle.setAttribute("cx", position.x);
       circle.setAttribute("cy", position.y);
+      // La page ouverte dans l'editeur avait droit a un cercle plus gros que
+      // tous les autres. Elle ne se distingue plus : la taille ne dit que le
+      // nombre de liens.
       const nodeRadius =
         node.kind === "tag"
           ? 8 + Math.min(degree * 1.35, 9)
-          : isCurrent
-            ? 18 + Math.min(degree * 1.35, 11)
-            : 9 + Math.min(degree * 1.6, 15);
+          : 9 + Math.min(degree * 1.6, 15);
 
       const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       hitArea.setAttribute("cx", position.x);
@@ -1124,7 +1144,7 @@
       circle.setAttribute("r", String(nodeRadius));
       circle.setAttribute(
         "class",
-        `graph-node${isCurrent ? " is-current" : ""}${isSelected ? " is-selected" : ""}${
+        `graph-node${isSelected ? " is-selected" : ""}${
           focusNeighbors.has(node.id) ? " is-neighbor" : ""
         }${position.locked ? " is-pinned" : ""}${isDragging ? " is-dragging" : ""}${
           !isRelatedToFocus ? " is-muted" : ""
@@ -1136,7 +1156,7 @@
         : position.locked
           ? "#a78bfa"
           : nodeStroke;
-      circle.style.strokeWidth = isCurrent || isSelected || position.locked ? "3" : "2";
+      circle.style.strokeWidth = isSelected || position.locked ? "3" : "2";
 
       group.appendChild(circle);
       if (shouldShowLabel) {
@@ -1166,7 +1186,7 @@
             "graph-label",
             node.kind === "tag" ? "is-tag-label" : "",
             effectiveLabelMode === "compact" ? "is-compact" : "",
-            isCurrent || isSelected ? "is-key" : "",
+            isSelected ? "is-key" : "",
             !isRelatedToFocus ? "is-muted" : "",
           ]
             .filter(Boolean)
@@ -1352,7 +1372,6 @@
     }
 
     const group = event.target.closest("[data-graph-node-id]");
-    const isTap = event.pointerType === "touch" && !context.state.graphDrag.moved;
     const isNodeDrag = context.state.graphDrag.mode === "node";
     const wasCancelled = event.type === "pointercancel";
     const draggedNodeId = context.state.graphDrag.nodeId;
@@ -1364,10 +1383,12 @@
           }
         : null;
 
-    if (context.state.graphDrag.moved) {
+    const aBouge = context.state.graphDrag.moved;
+
+    if (aBouge) {
       context.state.graphDrag.suppressClickUntil = Date.now() + 280;
     }
-    if (isNodeDrag && (!context.state.graphDrag.moved || wasCancelled)) {
+    if (isNodeDrag && (!aBouge || wasCancelled)) {
       restoreDraggedNodeLock();
     }
     context.state.graphDrag.mode = null;
@@ -1376,11 +1397,28 @@
     context.state.graphDrag.moved = false;
     context.state.graphDrag.wasLocked = false;
 
-    if (isNodeDrag) {
+    // Redessiner sur un simple clic faisait perdre le clic lui-meme. Le
+    // navigateur ne produit l'evenement "click" qu'apres le relachement, en
+    // remontant a l'ancetre commun de l'appui et du relachement ; or ce
+    // redessin remplace tout le contenu du SVG, donc le cercle sur lequel on
+    // vient d'appuyer n'existe plus. La selection ne changeait alors pas, et
+    // le nom precedent restait affiche. Sans deplacement il n'y a de toute
+    // facon rien de nouveau a dessiner : seul le verrou de deplacement a ete
+    // pose puis retire, sans jamais avoir ete montre.
+    if (isNodeDrag && aBouge) {
       drawGraph();
     }
 
-    if (!isTap || wasCancelled) {
+    // La selection se decide au relachement, quel que soit le moyen de
+    // pointage. Elle attendait auparavant l'evenement "click", qui ne
+    // convenait qu'a la souris -- et mal : la capture de pointeur, posee a
+    // l'appui pour suivre un deplacement hors du cercle, redirige aussi le
+    // clic vers le SVG entier. Le gestionnaire n'y retrouvait donc aucun
+    // noeud et prenait le clic pour un clic dans le vide, ce qui effacait la
+    // selection au lieu de la changer. Le gestionnaire de clic reste en
+    // place pour le clavier ; les 280 ms ci-dessous l'empechent de repasser
+    // derriere nous.
+    if (aBouge || wasCancelled) {
       return;
     }
 
