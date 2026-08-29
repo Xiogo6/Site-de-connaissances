@@ -129,7 +129,7 @@ Avant de pousser, avancer le numero de version du cache :
 zsh ./scripts/version.sh
 ```
 
-Vingt references dans `index.html` plus `CACHE_NAME` dans
+Vingt-et-une references dans `index.html` plus `CACHE_NAME` dans
 `service-worker.js` doivent porter le meme numero, sans quoi le navigateur
 sert un melange d'anciennes et de nouvelles versions. Le script les avance
 toutes d'un cran, et un test verifie ensuite la coherence.
@@ -144,7 +144,7 @@ Une page a ouvrir, rien a installer :
 tests/index.html
 ```
 
-Ouverte par double-clic, la page fonctionne : 25 tests s'executent. Trois
+Ouverte par double-clic, la page fonctionne : 44 tests s'executent. Cinq
 lisent les fichiers du projet et ont besoin d'une vraie adresse HTTP, car le
 navigateur bloque ces lectures en `file://` ; ils sont alors ignores, et la
 page explique comment les lancer.
@@ -157,13 +157,18 @@ python3 -m http.server 8000
 
 puis ouvrir `http://localhost:8000/tests/`. Recharger la page relance tout.
 
-Chaque test epingle quelque chose qui a deja casse une fois. Trois verifient la
+Chaque test epingle quelque chose qui a deja casse une fois. Cinq verifient la
 coherence du deploiement et valent d'etre relancees avant chaque publication :
 
 - tout script charge par `index.html` figure dans le cache du service worker
   (son absence empechait l'application de demarrer hors ligne)
 - toute feuille de style aussi
-- aucun selecteur de `dom.js` ne pointe vers un element disparu
+- les numeros de version sont tous identiques
+- le lanceur de tests charge les memes scripts que l'application
+- aucun selecteur de `dom.js` ne pointe vers un element disparu, et aucun
+  n'est laisse sans lecteur : un selecteur que plus personne ne lit signale
+  un branchement perdu, ce qui etait arrive au bouton d'ajout de ligne du
+  journal de sport
 
 Le harnais a lui-meme ete verifie : trois regressions connues ont ete
 reintroduites volontairement, les trois ont ete detectees et nommees.

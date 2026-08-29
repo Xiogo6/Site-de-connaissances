@@ -1943,9 +1943,6 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   width: 44px;
 }
 
-.sport-date-column {
-  width: 148px;
-}
 
 .sport-mass-column {
   width: 108px;
@@ -1986,10 +1983,6 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   width: 44px;
 }
 
-.sport-date-header,
-.sport-date-cell {
-  width: 148px;
-}
 
 .sport-mass-header,
 .sport-mass-cell {
@@ -2055,7 +2048,7 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   padding-right: 12px;
 }
 
-.sport-date-input {
+.sport-session-date-input {
   font-size: 0.95rem;
   font-variant-numeric: tabular-nums;
   padding: 0 8px;
@@ -2425,6 +2418,270 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   line-height: 1;
 }
 
+/* ------------------------------------------------------------------ *
+ *  Seances : en-tete de groupe et modeles                             *
+ * ------------------------------------------------------------------ */
+
+.sport-session-row td {
+  background: rgba(191, 91, 44, 0.07);
+  border-right: 0;
+  padding: 0;
+}
+
+/* La cellule reste une cellule : lui donner `display: flex` lui ferait
+   perdre son colspan, et l'en-tete se serrait dans la premiere colonne.
+   La mise en ligne se fait donc dans une boite interieure. */
+.sport-session-cell {
+  padding: 0;
+}
+
+.sport-session-bar {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  padding-right: 8px;
+}
+
+.sport-session-toggle {
+  align-items: baseline;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex: 1;
+  font: inherit;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.sport-session-chevron {
+  align-self: center;
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  color: var(--accent);
+  flex: none;
+  height: 7px;
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+  width: 7px;
+}
+
+/* Repliee, la fleche pointe vers la droite : la seance est fermee. */
+.sport-session-row.is-collapsed .sport-session-chevron {
+  transform: rotate(-45deg);
+}
+
+.sport-session-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.sport-session-meta {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.sport-session-tools {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.sport-session-date-input {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-soft);
+  height: 30px;
+  width: 82px;
+}
+
+.sport-session-date-input:focus {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--text);
+  outline: none;
+}
+
+.sport-session-action {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 0.95rem;
+  height: 30px;
+  line-height: 1;
+  width: 30px;
+}
+
+.sport-session-action:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sport-templates-panel.is-hidden {
+  display: none;
+}
+
+.sport-templates-panel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 14px;
+}
+
+.sport-templates-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.sport-templates-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.sport-templates-copy span {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+
+.sport-templates-list {
+  display: grid;
+  gap: 8px;
+}
+
+.sport-templates-empty {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  margin: 0;
+}
+
+.sport-template-card {
+  align-items: center;
+  background: rgba(191, 91, 44, 0.05);
+  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.sport-template-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sport-template-copy span {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+
+.sport-template-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sport-template-editor.is-hidden {
+  display: none;
+}
+
+.sport-template-editor {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.sport-template-rows {
+  display: grid;
+  gap: 6px;
+}
+
+.sport-template-row {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) 58px 58px 62px 62px 32px;
+}
+
+.sport-template-row .sport-input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  height: 34px;
+  padding: 0 8px;
+}
+
+.sport-template-remove {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text-soft);
+  cursor: pointer;
+  height: 32px;
+  line-height: 1;
+  width: 32px;
+}
+
+.sport-template-remove:hover {
+  border-color: var(--accent-strong);
+  color: var(--accent-strong);
+}
+
+.sport-template-editor-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sport-template-spacer {
+  flex: 1;
+}
+
+/* Au telephone, la ligne de modele passe sur deux rangs : le nom occupe
+   toute la largeur, les nombres se partagent celle du dessous. */
+@media (max-width: 680px) {
+  .sport-template-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) 32px;
+  }
+
+  .sport-template-row .sport-input:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .sport-session-meta {
+    display: none;
+  }
+
+  /* Le tableau defile horizontalement au telephone. Sans epinglage, la date
+     de la seance et ses deux boutons se retrouvent hors ecran, a la fin d'un
+     colspan large de sept colonnes. */
+  .sport-session-bar {
+    left: 0;
+    position: sticky;
+    width: max-content;
+  }
+
+  .sport-session-toggle {
+    flex: none;
+    padding-right: 4px;
+  }
+}
+
 .sport-exercise-assist {
   align-items: center;
   background: rgba(191, 91, 44, 0.055);
@@ -2533,11 +2790,6 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   width: 38px;
 }
 
-.sport-workspace-panel .sport-date-column,
-.sport-workspace-panel .sport-date-header,
-.sport-workspace-panel .sport-date-cell {
-  width: 126px;
-}
 
 .sport-workspace-panel .sport-exercise-column {
   width: 205px;
@@ -2600,9 +2852,6 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   width: 6%;
 }
 
-.sport-performance-table[data-sport-compact="true"] .sport-date-column {
-  width: 16%;
-}
 
 .sport-performance-table[data-sport-compact="true"] .sport-exercise-column {
   width: 32%;
@@ -2661,9 +2910,6 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   width: 38px;
 }
 
-.sport-performance-table[data-sport-zoom="72"] .sport-date-column {
-  width: 96px;
-}
 
 .sport-performance-table[data-sport-zoom="72"] .sport-exercise-column {
   width: 165px;
@@ -2688,9 +2934,6 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   width: 720px;
 }
 
-.sport-performance-table[data-sport-zoom="86"] .sport-date-column {
-  width: 110px;
-}
 
 .sport-performance-table[data-sport-zoom="86"] .sport-exercise-column {
   width: 180px;

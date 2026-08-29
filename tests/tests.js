@@ -150,6 +150,28 @@
       const morts = [...new Set(ids)].filter((id) => !html.includes(`id="${id}"`));
       attendre(morts.join(", ")).vaut("");
     });
+
+    // Le miroir du test precedent. Un selecteur que plus personne ne lit est
+    // le signe d'un branchement perdu : c'est exactement ce qui etait arrive
+    // au bouton "+ Ligne" du sport, reste en place mais debranche en sortant
+    // sport.js de events.js. Rien ne l'avait signale.
+    test.surServeur("aucun selecteur de dom.js n'est laisse sans lecteur", async () => {
+      const lire = async (chemin) =>
+        (await fetch(chemin, { cache: "no-store" })).text();
+      const dom = await lire("../scripts/dom.js");
+      const fichiers = [
+        "../app.js", "../scripts/auth.js", "../scripts/data.js", "../scripts/ai.js",
+        "../scripts/notes.js", "../scripts/graph.js", "../scripts/quiz.js",
+        "../scripts/mascot.js", "../scripts/todos.js", "../scripts/sport.js",
+        "../scripts/renderers.js", "../scripts/events.js",
+      ];
+      const sources = (await Promise.all(fichiers.map(lire))).join("\n");
+      const noms = [...dom.matchAll(/^\s{6}(\w+): document\.querySelector/gm)].map((m) => m[1]);
+      attendre(noms.length > 50).vrai();
+
+      const orphelins = [...new Set(noms)].filter((nom) => !sources.includes(nom));
+      attendre(orphelins.join(", ")).vaut("");
+    });
   });
 
   /* ------------------------------------------------------------------ */
@@ -230,6 +252,116 @@
       attendre(sport.parseDateInput("3202")).vaut("");
       attendre(sport.parseDateInput("2026")).vaut("");
       attendre(sport.parseDateInput("bonjour")).vaut("");
+    });
+  });
+
+  /* ------------------------------------------------------------------ */
+  suite("Seances du journal de sport", () => {
+    function journal(entries = [], templates = []) {
+      const contexte = {
+        state: {
+          sportMode: "performance",
+          settings: {
+            sport: {
+              massEntries: [],
+              performanceEntries: entries,
+              sessionTemplates: templates,
+            },
+          },
+        },
+        elements: {},
+        data: { saveNotes() {} },
+      };
+      contexte.sport = global.AtlasApp.createSportModule(contexte);
+      return contexte;
+    }
+
+    const ligne = (date, exercise, sets = "", reps = "", weight = "") => ({
+      date, exercise, sets, reps, weight, rest: "", comment: "",
+    });
+
+    test("le journal se lit de la seance la plus recente a la plus ancienne", () => {
+      const contexte = journal([
+        ligne("2026-08-22", "Traction"),
+        ligne("2026-08-29", "Dips"),
+        ligne("2026-08-26", "Squat"),
+      ]);
+      contexte.sport.sortEntries();
+      attendre(
+        contexte.state.settings.sport.performanceEntries.map((e) => e.date).join(" ")
+      ).vaut("2026-08-29 2026-08-26 2026-08-22");
+    });
+
+    // Une ligne tout juste creee n'a pas encore de date exploitable : la
+    // renvoyer en bas du journal la ferait disparaitre de l'ecran au moment
+    // meme ou on la remplit.
+    test("une ligne sans date reste en tete", () => {
+      const contexte = journal([ligne("2026-08-29", "Dips"), ligne("", "")]);
+      contexte.sport.sortEntries();
+      attendre(contexte.state.settings.sport.performanceEntries[0].date).vaut("");
+    });
+
+    test("les lignes d'une meme date forment une seance", () => {
+      const contexte = journal([
+        ligne("2026-08-29", "Dips"),
+        ligne("2026-08-29", "Developpe"),
+        ligne("2026-08-26", "Squat"),
+      ]);
+      const seances = contexte.sport.groupBySession(
+        contexte.state.settings.sport.performanceEntries
+      );
+      attendre(seances.length).vaut(2);
+      attendre(seances[0].rows.length).vaut(2);
+      attendre(seances[1].rows.length).vaut(1);
+      // Le rang d'origine voyage avec la ligne : tout le tableau designe une
+      // ligne par ce rang, du menu contextuel a la navigation clavier.
+      attendre(seances[1].rows[0].index).vaut(2);
+    });
+
+    test("le tonnage additionne series par repetitions par charge", () => {
+      const rows = [
+        { entry: ligne("2026-08-29", "Squat", "5", "5", "100") },
+        { entry: ligne("2026-08-29", "Presse", "3", "10", "140") },
+      ];
+      // Le separateur de milliers francais est une espace insecable etroite,
+      // pas une espace ordinaire : comparer les deux echoue sans rien dire.
+      const resume = journal().sport.summarizeSession(rows).replace(/\s/gu, " ");
+      attendre(resume).contient("6 700");
+      attendre(resume).contient("2 exercices");
+    });
+
+    test("une charge ecrite a la virgule compte quand meme", () => {
+      const rows = [{ entry: ligne("2026-08-29", "Curl", "1", "10", "12,5") }];
+      attendre(journal().sport.summarizeSession(rows)).contient("125");
+    });
+
+    test("un modele depose ses exercices dans la seance du jour", () => {
+      const contexte = journal(
+        [ligne("2026-08-22", "Traction")],
+        [{
+          id: "m1",
+          name: "Push",
+          exercises: [
+            { exercise: "Developpe", sets: "4", reps: "8", weight: "60", rest: "90", comment: "" },
+            { exercise: "Dips", sets: "3", reps: "12", weight: "0", rest: "60", comment: "" },
+          ],
+        }]
+      );
+      contexte.sport.applyTemplate("m1");
+      const entries = contexte.state.settings.sport.performanceEntries;
+      attendre(entries.length).vaut(3);
+      // Deposes a la date du jour, donc en tete apres le tri.
+      attendre(entries[0].exercise).vaut("Developpe");
+      attendre(entries[1].exercise).vaut("Dips");
+      attendre(entries[0].date).vaut(entries[1].date);
+      attendre(entries[2].exercise).vaut("Traction");
+      attendre(entries[0].weight).vaut("60");
+    });
+
+    test("un modele inconnu ne touche a rien", () => {
+      const contexte = journal([ligne("2026-08-22", "Traction")]);
+      contexte.sport.applyTemplate("inexistant");
+      attendre(contexte.state.settings.sport.performanceEntries.length).vaut(1);
     });
   });
 

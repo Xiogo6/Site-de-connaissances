@@ -21,38 +21,53 @@
     let sportRowPress = null;
     let sportMenuIndex = null;
     let sportActiveExerciseInput = null;
+    // Le repli des seances vit en memoire, pas dans les reglages : c'est un
+    // confort de lecture propre a l'ecran du moment, pas une donnee a
+    // synchroniser. `null` signifie "jamais touche", et la regle par defaut
+    // s'applique alors : seule la seance la plus recente reste ouverte.
+    let sportCollapsedSessions = null;
+    let sportTemplateDraft = null;
+    // Poignee, exercice, series, repetitions, kg, repos, note. La date a
+    // quitte les lignes : elle appartient desormais a l'en-tete de seance.
+    const SPORT_PERFORMANCE_COLUMNS = 7;
 
     function getSportSettings() {
       context.state.settings.sport = context.state.settings.sport || {
         massEntries: [],
         performanceEntries: [],
+        sessionTemplates: [],
         lastSavedAt: null,
       };
       context.state.settings.sport.massEntries = context.state.settings.sport.massEntries || [];
       context.state.settings.sport.performanceEntries =
         context.state.settings.sport.performanceEntries || [];
+      // Les journaux enregistres avant les modeles n'ont pas ce tableau.
+      context.state.settings.sport.sessionTemplates =
+        context.state.settings.sport.sessionTemplates || [];
       return context.state.settings.sport;
     }
 
     function addSportRow(table, options = {}) {
       const sport = getSportSettings();
-      if (table === "performance") {
-        sport.performanceEntries.push({
-          date: options.date || getPreviousPerformanceDate() || getTodayInputDate(),
-          exercise: "",
-          sets: "",
-          reps: "",
-          weight: "",
-          rest: "",
-          comment: "",
-        });
-        context.state.sportMode = "performance";
+      if (table !== "performance") {
+        saveSportChanges();
+        renderSportTracker();
+        return;
       }
 
+      // Sans date precisee, la ligne rejoint la seance du jour : le tableau
+      // etant trie du plus recent au plus ancien, elle apparait donc en haut.
+      const entry = createSportPerformanceEntry(options.date || getTodayInputDate());
+      sport.performanceEntries.push(entry);
+      context.state.sportMode = "performance";
+      // Sans cela, une ligne ajoutee a une seance repliee resterait invisible.
+      expandSportSession(entry.date);
       saveSportChanges();
       renderSportTracker();
-      if (table === "performance" && options.focusField) {
-        focusSportCell(sport.performanceEntries.length - 1, options.focusField);
+      if (options.focusField) {
+        // Le tri a pu deplacer la ligne : on la retrouve par identite, son
+        // rang d'insertion ne veut plus rien dire.
+        focusSportCell(sport.performanceEntries.indexOf(entry), options.focusField);
       }
     }
 
@@ -98,42 +113,9 @@
         table === "performance" ? sport.performanceEntries : sport.massEntries;
       ensureSportEntry(entries, table, index);
       const entry = entries[index];
-      if (table === "performance" && field === "date") {
-        const normalizedDate = parseSportDateInput(input.value, entry.date);
-        if (!input.value.trim()) {
-          entry.date = "";
-          input.dataset.sportDateValue = "";
-          input.setCustomValidity("");
-        } else if (normalizedDate) {
-          entry.date = normalizedDate;
-          input.dataset.sportDateValue = normalizedDate;
-          input.setCustomValidity("");
-          // A la sortie du champ, on reaffiche la date sous sa forme lisible.
-          // Sans cela, quatre chiffres tapes au telephone restent quatre
-          // chiffres a l'ecran et rien ne dit qu'ils ont ete compris.
-          if (event.type === "change") {
-            input.value = formatSportDateForCell(normalizedDate);
-          }
-        } else {
-          input.setCustomValidity("Tapez les chiffres a la suite : 1408, 140825 ou 14082025.");
-          if (event.type === "change") {
-            input.reportValidity();
-          }
-          return;
-        }
-      } else {
-        entry[field] = input.type === "checkbox" ? input.checked : input.value;
-      }
-
-      if (table === "performance" && field === "exercise" && input.value.trim() && !entry.date) {
-        entry.date = getPreviousPerformanceDate(index) || getTodayInputDate();
-        const row = input.closest("tr");
-        const dateInput = row?.querySelector('[data-sport-field="date"]');
-        if (dateInput) {
-          dateInput.value = formatSportDateForCell(entry.date);
-          dateInput.dataset.sportDateValue = entry.date;
-        }
-      }
+      // La date ne se saisit plus ligne par ligne : elle appartient a
+      // l'en-tete de seance, traite par handleSportSessionDate.
+      entry[field] = input.type === "checkbox" ? input.checked : input.value;
 
       saveSportChanges();
       if (table === "performance") {
@@ -163,14 +145,19 @@
 
       const fields =
         context.elements.sportPerformanceTable?.dataset.sportCompact === "true"
-          ? ["date", "exercise", "sets", "reps", "weight", "rest"]
-          : ["date", "exercise", "sets", "reps", "weight", "rest", "comment"];
+          ? ["exercise", "sets", "reps", "weight", "rest"]
+          : ["exercise", "sets", "reps", "weight", "rest", "comment"];
       const field = input.dataset.sportField;
       const fieldIndex = fields.indexOf(field);
       const rowIndex = Number(input.dataset.sportIndex);
       const sport = getSportSettings();
+      const entries = sport.performanceEntries;
       const isLastField = fieldIndex === fields.length - 1;
-      const isLastRow = rowIndex >= sport.performanceEntries.length - 1;
+      // La derniere ligne de la seance, pas du tableau : sous elle commence
+      // une seance plus ancienne, ou rien.
+      const currentDate = entries[rowIndex]?.date || "";
+      const isLastRow =
+        rowIndex >= entries.length - 1 || (entries[rowIndex + 1]?.date || "") !== currentDate;
 
       if (event.key === "Tab" && (!isLastField || !isLastRow || event.shiftKey)) {
         return;
@@ -187,8 +174,10 @@
         return;
       }
 
-      const currentDate = sport.performanceEntries[rowIndex]?.date || getTodayInputDate();
-      addSportRow("performance", { date: currentDate, focusField: "exercise" });
+      addSportRow("performance", {
+        date: currentDate || getTodayInputDate(),
+        focusField: "exercise",
+      });
     }
 
     function focusSportCell(index, field) {
@@ -517,6 +506,13 @@
     }
 
     function handleSportPerformanceClick(event) {
+      // Les en-tetes de seance ont leur propre delegue, plus haut dans la
+      // chaine : sans cette garde, un clic sur l'en-tete cherchait une
+      // cellule a mettre au clavier et volait le focus aux boutons.
+      if (event.target.closest(".sport-session-row")) {
+        return;
+      }
+
       const handle = event.target.closest("[data-sport-row-handle][data-sport-index]");
       if (!handle) {
         const cell = event.target.closest("td");
@@ -583,7 +579,7 @@
       const index = sportMenuIndex;
       const existing = entries[index] || null;
       const inheritedDate =
-        existing?.date || getPreviousPerformanceDate(index + 1) || getTodayInputDate();
+        existing?.date || getMostRecentPerformanceDate() || getTodayInputDate();
       let focusIndex = index;
 
       if (button.dataset.sportRowAction === "insert-before") {
@@ -611,7 +607,10 @@
       }
     }
 
-    function createSportPerformanceEntry(date = "") {
+    // La date par defaut est celle du jour. Une ligne sans date formerait un
+    // groupe "Sans date" flottant en tete du journal, ce qui n'a de sens que
+    // pour les lignes ecrites avant le regroupement par seance.
+    function createSportPerformanceEntry(date = getTodayInputDate()) {
       return {
         date,
         exercise: "",
@@ -659,12 +658,13 @@
       }
     }
 
-    function getPreviousPerformanceDate(beforeIndex = null) {
+    // Le tableau va du plus recent au plus ancien : la seance en cours est
+    // en tete, plus en queue comme avant le tri.
+    function getMostRecentPerformanceDate() {
       const entries = getSportSettings().performanceEntries;
-      const endIndex = beforeIndex == null ? entries.length : beforeIndex;
-      for (let index = endIndex - 1; index >= 0; index -= 1) {
-        if (entries[index]?.date) {
-          return entries[index].date;
+      for (const entry of entries) {
+        if (entry?.date) {
+          return entry.date;
         }
       }
       return "";
@@ -679,6 +679,148 @@
     }
 
 
+    /* ---------------------------------------------------------------- *
+     *  Seances : tri, regroupement, repli                                *
+     * ---------------------------------------------------------------- */
+
+    // Le journal se lit de la seance la plus recente a la plus ancienne. Le
+    // tableau est trie pour de vrai, pas seulement a l'affichage : partout
+    // ailleurs une ligne est designee par son rang dans le tableau, et deux
+    // ordres differents auraient fait porter le menu contextuel, la
+    // suppression et la navigation clavier sur la mauvaise ligne.
+    function sortSportPerformanceEntries() {
+      // Une ligne encore sans date vient d'etre creee : elle reste en tete,
+      // sinon elle disparaitrait tout en bas au moment ou on la remplit.
+      const rang = (entry) => entry.date || "9999-99-99";
+      getSportSettings().performanceEntries.sort(
+        (left, right) => (rang(left) < rang(right) ? 1 : rang(left) > rang(right) ? -1 : 0)
+      );
+    }
+
+    // Le tableau etant trie, les lignes d'une meme date se suivent deja.
+    function groupSportEntriesBySession(entries) {
+      const sessions = [];
+      entries.forEach((entry, index) => {
+        const date = entry.date || "";
+        const last = sessions[sessions.length - 1];
+        if (last && last.date === date) {
+          last.rows.push({ entry, index });
+          return;
+        }
+        sessions.push({ date, rows: [{ entry, index }] });
+      });
+      return sessions;
+    }
+
+    function isSportSessionCollapsed(date, sessions) {
+      if (sportCollapsedSessions === null) {
+        return sessions.length > 1 && date !== sessions[0].date;
+      }
+      return sportCollapsedSessions.includes(date);
+    }
+
+    function toggleSportSession(date, sessions) {
+      if (sportCollapsedSessions === null) {
+        sportCollapsedSessions = sessions.slice(1).map((session) => session.date);
+      }
+      const position = sportCollapsedSessions.indexOf(date);
+      if (position >= 0) {
+        sportCollapsedSessions.splice(position, 1);
+      } else {
+        sportCollapsedSessions.push(date);
+      }
+    }
+
+    // La virgule est acceptee : c'est ce que produit le clavier decimal.
+    function readSportNumber(value) {
+      const parsed = Number(String(value ?? "").replace(",", ".").trim());
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function summarizeSportSession(rows) {
+      const exercises = rows.filter(({ entry }) => (entry.exercise || "").trim()).length;
+      const volume = rows.reduce(
+        (total, { entry }) =>
+          total +
+          readSportNumber(entry.sets) * readSportNumber(entry.reps) * readSportNumber(entry.weight),
+        0
+      );
+      const parts = [];
+      parts.push(exercises > 1 ? `${exercises} exercices` : `${exercises} exercice`);
+      if (volume > 0) {
+        parts.push(`${Math.round(volume).toLocaleString("fr-FR")} kg souleves`);
+      }
+      return parts.join(" \u00b7 ");
+    }
+
+    function formatSportSessionDate(value) {
+      if (!value) {
+        return "Sans date";
+      }
+      const date = new Date(`${value}T12:00:00`);
+      if (Number.isNaN(date.getTime())) {
+        return value;
+      }
+      const aujourdhui = getTodayInputDate();
+      if (value === aujourdhui) {
+        return "Aujourd'hui";
+      }
+      const options =
+        date.getFullYear() === new Date().getFullYear()
+          ? { weekday: "long", day: "numeric", month: "long" }
+          : { weekday: "long", day: "numeric", month: "long", year: "numeric" };
+      const libelle = new Intl.DateTimeFormat("fr-FR", options).format(date);
+      return libelle.charAt(0).toUpperCase() + libelle.slice(1);
+    }
+
+    function buildSportSessionHeaderRow(session, collapsed, columnCount) {
+      const date = session.date;
+      return `
+        <tr class="sport-session-row${collapsed ? " is-collapsed" : ""}" data-sport-session="${escapeHtml(date)}">
+          <td class="sport-session-cell" colspan="${columnCount}">
+            <div class="sport-session-bar">
+            <button
+              class="sport-session-toggle"
+              type="button"
+              data-sport-session-toggle="${escapeHtml(date)}"
+              aria-expanded="${collapsed ? "false" : "true"}"
+            >
+              <span class="sport-session-chevron" aria-hidden="true"></span>
+              <span class="sport-session-title">${escapeHtml(formatSportSessionDate(date))}</span>
+              <span class="sport-session-meta">${escapeHtml(summarizeSportSession(session.rows))}</span>
+            </button>
+            <span class="sport-session-tools">
+              <input
+                class="sport-input sport-session-date-input"
+                type="text"
+                inputmode="decimal"
+                maxlength="10"
+                value="${escapeHtml(formatSportDateForCell(date))}"
+                placeholder="jjmm"
+                aria-label="Date de la seance"
+                data-sport-session-date="${escapeHtml(date)}"
+              />
+              <button
+                class="sport-session-action"
+                type="button"
+                data-sport-session-add="${escapeHtml(date)}"
+                aria-label="Ajouter un exercice a cette seance"
+                title="Ajouter un exercice"
+              >+</button>
+              <button
+                class="sport-session-action"
+                type="button"
+                data-sport-session-save-template="${escapeHtml(date)}"
+                aria-label="Enregistrer cette seance comme modele"
+                title="Enregistrer comme modele"
+              >\u2606</button>
+            </span>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
     function renderSportTracker() {
       if (!context.elements.sportMassBody || !context.elements.sportPerformanceBody) {
         return;
@@ -688,6 +830,7 @@
       const massEntries = sport.massEntries
         .map((entry, index) => ({ entry, index }))
         .sort((left, right) => getMassEntryTimestamp(right) - getMassEntryTimestamp(left));
+      sortSportPerformanceEntries();
       const performanceEntries = sport.performanceEntries.length
         ? sport.performanceEntries
         : [createEmptySportPerformanceEntry()];
@@ -711,9 +854,21 @@
       context.elements.sportMassBody.innerHTML = massEntries.length
         ? massEntries.map(({ entry, index }) => buildSportMassRow(entry, index)).join("")
         : buildEmptySportMassRow();
-      context.elements.sportPerformanceBody.innerHTML = performanceEntries
-        .map((entry, index) => buildSportPerformanceRow(entry, index))
+      const sessions = groupSportEntriesBySession(performanceEntries);
+      context.elements.sportPerformanceBody.innerHTML = sessions
+        .map((session) => {
+          const collapsed = isSportSessionCollapsed(session.date, sessions);
+          const header = buildSportSessionHeaderRow(session, collapsed, SPORT_PERFORMANCE_COLUMNS);
+          if (collapsed) {
+            return header;
+          }
+          return (
+            header +
+            session.rows.map(({ entry, index }) => buildSportPerformanceRow(entry, index)).join("")
+          );
+        })
         .join("");
+      renderSportTemplates();
     }
 
     function createEmptySportMassEntry() {
@@ -721,7 +876,7 @@
     }
 
     function createEmptySportPerformanceEntry() {
-      return { date: "", exercise: "", sets: "", reps: "", weight: "", rest: "", comment: "" };
+      return createSportPerformanceEntry();
     }
 
     function getMassEntryTimestamp({ entry, index }) {
@@ -797,18 +952,6 @@
       return Number.isNaN(date.getTime())
         ? value
         : new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" }).format(date);
-    }
-
-    function formatSportPerformanceDate(value) {
-      const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (!match) {
-        return value || "";
-      }
-
-      const [, year, month, day] = match;
-      return Number(year) === new Date().getFullYear()
-        ? `${day}/${month}`
-        : `${day}/${month}/${year.slice(-2)}`;
     }
 
     function renderSportTableZoom() {
@@ -895,9 +1038,6 @@
               <span aria-hidden="true"></span>
             </button>
           </td>
-          <td class="sport-date-cell">
-            <input class="sport-input sport-date-input" aria-label="Date, ligne ${index + 1}" type="text" inputmode="decimal" maxlength="10" value="${escapeHtml(formatSportPerformanceDate(entry.date))}" placeholder="jjmm" enterkeyhint="next" data-sport-date-value="${escapeHtml(entry.date || "")}" data-sport-table="performance" data-sport-index="${index}" data-sport-field="date" />
-          </td>
           <td>
             <input class="sport-input sport-exercise-input" aria-label="Exercice, ligne ${index + 1}" type="text" value="${escapeHtml(entry.exercise || "")}" placeholder="Nom de l'exercice" autocapitalize="sentences" autocomplete="off" enterkeyhint="next" data-sport-table="performance" data-sport-index="${index}" data-sport-field="exercise" />
           </td>
@@ -920,6 +1060,415 @@
       `;
     }
 
+    /* ---------------------------------------------------------------- *
+     *  En-tetes de seance : repli, date, ajout, mise en modele          *
+     * ---------------------------------------------------------------- */
+
+    function expandSportSession(date) {
+      sortSportPerformanceEntries();
+      if (sportCollapsedSessions === null) {
+        const sessions = groupSportEntriesBySession(getSportSettings().performanceEntries);
+        sportCollapsedSessions = sessions.slice(1).map((session) => session.date);
+      }
+      const position = sportCollapsedSessions.indexOf(date);
+      if (position >= 0) {
+        sportCollapsedSessions.splice(position, 1);
+      }
+    }
+
+    function handleSportSessionClick(event) {
+      const toggle = event.target.closest("[data-sport-session-toggle]");
+      if (toggle) {
+        const sessions = groupSportEntriesBySession(getSportSettings().performanceEntries);
+        toggleSportSession(toggle.dataset.sportSessionToggle, sessions);
+        renderSportTracker();
+        return;
+      }
+
+      const add = event.target.closest("[data-sport-session-add]");
+      if (add) {
+        addSportRow("performance", {
+          date: add.dataset.sportSessionAdd,
+          focusField: "exercise",
+        });
+        return;
+      }
+
+      const save = event.target.closest("[data-sport-session-save-template]");
+      if (save) {
+        startTemplateFromSession(save.dataset.sportSessionSaveTemplate);
+      }
+    }
+
+    // Branche sur `change` seulement : corriger la date a chaque frappe
+    // ferait sauter la seance d'un groupe a l'autre en pleine saisie.
+    function handleSportSessionDate(event) {
+      const input = event.target.closest("[data-sport-session-date]");
+      if (!input) {
+        return;
+      }
+
+      const previous = input.dataset.sportSessionDate;
+      const normalized = parseSportDateInput(input.value, previous);
+      if (!normalized) {
+        input.setCustomValidity("Tapez les chiffres a la suite : 1408, 140825 ou 14082025.");
+        input.reportValidity();
+        return;
+      }
+
+      input.setCustomValidity("");
+      if (normalized === previous) {
+        return;
+      }
+
+      // Toute la seance suit sa date : c'est la seule facon de la deplacer
+      // maintenant que les lignes n'ont plus de cellule de date.
+      getSportSettings().performanceEntries.forEach((entry) => {
+        if ((entry.date || "") === previous) {
+          entry.date = normalized;
+        }
+      });
+      if (Array.isArray(sportCollapsedSessions)) {
+        sportCollapsedSessions = sportCollapsedSessions.map((date) =>
+          date === previous ? normalized : date
+        );
+      }
+      saveSportChanges();
+      renderSportTracker();
+    }
+
+    /* ---------------------------------------------------------------- *
+     *  Modeles de seance                                                *
+     * ---------------------------------------------------------------- */
+
+    function createSportTemplateId() {
+      if (global.crypto?.randomUUID) {
+        return global.crypto.randomUUID();
+      }
+      return `seance-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    function createSportTemplateExercise(source = {}) {
+      return {
+        exercise: source.exercise || "",
+        sets: source.sets || "",
+        reps: source.reps || "",
+        weight: source.weight || "",
+        rest: source.rest || "",
+        comment: source.comment || "",
+      };
+    }
+
+    function openSportTemplatesPanel(open = true) {
+      context.elements.sportTemplatesPanel?.classList.toggle("is-hidden", !open);
+      context.elements.sportTemplatesToggle?.classList.toggle("is-active", open);
+      context.elements.sportTemplatesToggle?.setAttribute("aria-expanded", String(open));
+    }
+
+    function isSportTemplatesPanelOpen() {
+      return context.elements.sportTemplatesPanel
+        ? !context.elements.sportTemplatesPanel.classList.contains("is-hidden")
+        : false;
+    }
+
+    function renderSportTemplates() {
+      const list = context.elements.sportTemplatesList;
+      if (!list) {
+        return;
+      }
+
+      const templates = getSportSettings().sessionTemplates;
+      list.innerHTML = templates.length
+        ? templates.map(buildSportTemplateCard).join("")
+        : `<p class="sport-templates-empty">
+             Aucun modele pour l'instant. Creez-en un, ou enregistrez une seance
+             deja saisie avec l'etoile de son en-tete.
+           </p>`;
+      renderSportTemplateEditor();
+    }
+
+    function buildSportTemplateCard(template) {
+      const count = template.exercises.length;
+      const preview = template.exercises
+        .map((exercise) => exercise.exercise)
+        .filter(Boolean)
+        .slice(0, 4)
+        .join(", ");
+      return `
+        <article class="sport-template-card">
+          <div class="sport-template-copy">
+            <strong>${escapeHtml(template.name || "Sans nom")}</strong>
+            <span>${count > 1 ? `${count} exercices` : `${count} exercice`}${
+              preview ? ` · ${escapeHtml(preview)}` : ""
+            }</span>
+          </div>
+          <div class="sport-template-actions">
+            <button class="button button-inline button-primary" type="button" data-sport-template-apply="${escapeHtml(template.id)}">
+              Ajouter au journal
+            </button>
+            <button class="button button-inline" type="button" data-sport-template-edit="${escapeHtml(template.id)}">
+              Modifier
+            </button>
+            <button class="button button-inline is-danger" type="button" data-sport-template-delete="${escapeHtml(template.id)}">
+              Supprimer
+            </button>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderSportTemplateEditor() {
+      const editor = context.elements.sportTemplateEditor;
+      if (!editor) {
+        return;
+      }
+
+      if (!sportTemplateDraft) {
+        editor.classList.add("is-hidden");
+        editor.innerHTML = "";
+        return;
+      }
+
+      editor.classList.remove("is-hidden");
+      editor.innerHTML = `
+        <label class="field-label" for="sport-template-name">Nom du modele</label>
+        <input
+          id="sport-template-name"
+          class="text-input"
+          type="text"
+          maxlength="60"
+          autocomplete="off"
+          placeholder="Ex. Push, Pull, Jambes"
+          value="${escapeHtml(sportTemplateDraft.name || "")}"
+          data-sport-template-field="name"
+        />
+        <div class="sport-template-rows">
+          ${sportTemplateDraft.exercises.map(buildSportTemplateEditorRow).join("")}
+        </div>
+        <div class="sport-template-editor-actions">
+          <button class="button button-inline" type="button" data-sport-template-add-exercise>
+            + Exercice
+          </button>
+          <span class="sport-template-spacer"></span>
+          <button class="button button-inline" type="button" data-sport-template-cancel>Annuler</button>
+          <button class="button button-inline button-primary" type="button" data-sport-template-save>
+            Enregistrer le modele
+          </button>
+        </div>
+      `;
+    }
+
+    function buildSportTemplateEditorRow(exercise, index) {
+      const cell = (field, placeholder, label, extra = "") => `
+        <input
+          class="sport-input${field === "exercise" ? "" : " sport-number-input"}"
+          type="text"
+          value="${escapeHtml(exercise[field] || "")}"
+          placeholder="${escapeHtml(placeholder)}"
+          aria-label="${escapeHtml(label)} ${index + 1}"
+          autocomplete="off"
+          ${extra}
+          data-sport-template-exercise="${index}"
+          data-sport-template-field="${field}"
+        />`;
+      return `
+        <div class="sport-template-row">
+          ${cell("exercise", "Nom de l'exercice", "Exercice", 'autocapitalize="sentences"')}
+          ${cell("sets", "Ser.", "Series", 'inputmode="numeric" pattern="[0-9]*"')}
+          ${cell("reps", "Rep.", "Repetitions", 'inputmode="numeric" pattern="[0-9]*"')}
+          ${cell("weight", "kg", "Masse", 'inputmode="decimal"')}
+          ${cell("rest", "Repos", "Repos", 'inputmode="numeric" pattern="[0-9]*"')}
+          <button
+            class="sport-template-remove"
+            type="button"
+            data-sport-template-remove-exercise="${index}"
+            aria-label="Retirer l'exercice ${index + 1}"
+          >×</button>
+        </div>
+      `;
+    }
+
+    function startSportTemplateDraft(template = null) {
+      sportTemplateDraft = template
+        ? {
+            id: template.id,
+            name: template.name || "",
+            exercises: template.exercises.map(createSportTemplateExercise),
+          }
+        : { id: createSportTemplateId(), name: "", exercises: [createSportTemplateExercise()] };
+      if (!sportTemplateDraft.exercises.length) {
+        sportTemplateDraft.exercises.push(createSportTemplateExercise());
+      }
+      openSportTemplatesPanel(true);
+      renderSportTemplates();
+      window.requestAnimationFrame(() => {
+        context.elements.sportTemplateEditor?.querySelector("#sport-template-name")?.focus();
+      });
+    }
+
+    // Une seance deja saisie est le moyen le plus court d'obtenir un modele :
+    // les exercices, series et charges sont deja la, il ne manque qu'un nom.
+    function startTemplateFromSession(date) {
+      const exercises = getSportSettings()
+        .performanceEntries.filter((entry) => (entry.date || "") === date)
+        .filter((entry) => (entry.exercise || "").trim())
+        .map(createSportTemplateExercise);
+      startSportTemplateDraft({
+        id: createSportTemplateId(),
+        name: "",
+        exercises,
+      });
+    }
+
+    function commitSportTemplateDraft() {
+      if (!sportTemplateDraft) {
+        return;
+      }
+
+      const exercises = sportTemplateDraft.exercises.filter((exercise) =>
+        (exercise.exercise || "").trim()
+      );
+      if (!exercises.length) {
+        const nameInput = context.elements.sportTemplateEditor?.querySelector(
+          '[data-sport-template-field="exercise"]'
+        );
+        nameInput?.setCustomValidity("Nommez au moins un exercice.");
+        nameInput?.reportValidity();
+        return;
+      }
+
+      const sport = getSportSettings();
+      const template = {
+        id: sportTemplateDraft.id,
+        name: sportTemplateDraft.name.trim() || "Seance sans nom",
+        exercises,
+      };
+      const position = sport.sessionTemplates.findIndex((item) => item.id === template.id);
+      if (position >= 0) {
+        sport.sessionTemplates[position] = template;
+      } else {
+        sport.sessionTemplates.push(template);
+      }
+
+      sportTemplateDraft = null;
+      saveSportChanges();
+      renderSportTemplates();
+    }
+
+    function applySportTemplate(id) {
+      const sport = getSportSettings();
+      const template = sport.sessionTemplates.find((item) => item.id === id);
+      if (!template?.exercises.length) {
+        return;
+      }
+
+      const date = getTodayInputDate();
+      const added = template.exercises.map((exercise) => ({
+        ...createSportTemplateExercise(exercise),
+        date,
+      }));
+      sport.performanceEntries.push(...added);
+      context.state.sportMode = "performance";
+      expandSportSession(date);
+      saveSportChanges();
+      renderSportTracker();
+      focusSportCell(sport.performanceEntries.indexOf(added[0]), "exercise");
+    }
+
+    function handleSportTemplatesClick(event) {
+      if (event.target.closest("[data-sport-template-new]")) {
+        startSportTemplateDraft();
+        return;
+      }
+
+      const apply = event.target.closest("[data-sport-template-apply]");
+      if (apply) {
+        applySportTemplate(apply.dataset.sportTemplateApply);
+        return;
+      }
+
+      const edit = event.target.closest("[data-sport-template-edit]");
+      if (edit) {
+        const template = getSportSettings().sessionTemplates.find(
+          (item) => item.id === edit.dataset.sportTemplateEdit
+        );
+        if (template) {
+          startSportTemplateDraft(template);
+        }
+        return;
+      }
+
+      const remove = event.target.closest("[data-sport-template-delete]");
+      if (remove) {
+        const sport = getSportSettings();
+        const template = sport.sessionTemplates.find(
+          (item) => item.id === remove.dataset.sportTemplateDelete
+        );
+        if (!template || !window.confirm(`Supprimer le modele "${template.name}" ?`)) {
+          return;
+        }
+        sport.sessionTemplates = sport.sessionTemplates.filter((item) => item !== template);
+        if (sportTemplateDraft?.id === template.id) {
+          sportTemplateDraft = null;
+        }
+        saveSportChanges();
+        renderSportTemplates();
+        return;
+      }
+
+      if (event.target.closest("[data-sport-template-add-exercise]")) {
+        sportTemplateDraft?.exercises.push(createSportTemplateExercise());
+        renderSportTemplateEditor();
+        const rows = context.elements.sportTemplateEditor?.querySelectorAll(
+          '[data-sport-template-field="exercise"]'
+        );
+        rows?.[rows.length - 1]?.focus();
+        return;
+      }
+
+      const removeExercise = event.target.closest("[data-sport-template-remove-exercise]");
+      if (removeExercise && sportTemplateDraft) {
+        const index = Number(removeExercise.dataset.sportTemplateRemoveExercise);
+        sportTemplateDraft.exercises.splice(index, 1);
+        if (!sportTemplateDraft.exercises.length) {
+          sportTemplateDraft.exercises.push(createSportTemplateExercise());
+        }
+        renderSportTemplateEditor();
+        return;
+      }
+
+      if (event.target.closest("[data-sport-template-cancel]")) {
+        sportTemplateDraft = null;
+        renderSportTemplates();
+        return;
+      }
+
+      if (event.target.closest("[data-sport-template-save]")) {
+        commitSportTemplateDraft();
+      }
+    }
+
+    // Le brouillon se met a jour sans redessiner : redessiner a chaque frappe
+    // arracherait le curseur du champ en cours.
+    function handleSportTemplateInput(event) {
+      const input = event.target.closest("[data-sport-template-field]");
+      if (!input || !sportTemplateDraft) {
+        return;
+      }
+
+      input.setCustomValidity("");
+      const field = input.dataset.sportTemplateField;
+      if (field === "name") {
+        sportTemplateDraft.name = input.value;
+        return;
+      }
+
+      const index = Number(input.dataset.sportTemplateExercise);
+      if (sportTemplateDraft.exercises[index]) {
+        sportTemplateDraft.exercises[index][field] = input.value;
+      }
+    }
+
     // Les liaisons d'evenements du sport, deplacees telles quelles depuis
     // events.js ou elles occupaient une quarantaine de lignes parmi 201 autres.
     function bindEvents() {
@@ -930,6 +1479,12 @@
         });
       });
       context.elements.sportMassEntryForm?.addEventListener("submit", handleSportMassSubmit);
+      // Sans date precisee, addSportRow vise la seance du jour, donc le haut
+      // du tableau. Ce branchement avait ete perdu en sortant sport.js de
+      // events.js : le bouton existait encore, il ne faisait plus rien.
+      context.elements.addSportPerformanceRowButton?.addEventListener("click", () =>
+        addSportRow("performance", { focusField: "exercise" })
+      );
       context.elements.sportZoomOut?.addEventListener("click", () => adjustSportTableZoom(-1));
       context.elements.sportZoomIn?.addEventListener("click", () => adjustSportTableZoom(1));
       context.elements.sportMassBody?.addEventListener("click", handleSportDelete);
@@ -944,7 +1499,16 @@
       context.elements.sportPerformanceBody?.addEventListener("pointerup", handleSportRowPointerUp);
       context.elements.sportPerformanceBody?.addEventListener("pointerup", handleSportCellPointerUp);
       context.elements.sportPerformanceBody?.addEventListener("pointercancel", cancelSportRowPress);
+      // Avant handleSportPerformanceClick : l'en-tete de seance est servi
+      // en premier, la ligne ordinaire ensuite.
+      context.elements.sportPerformanceBody?.addEventListener("click", handleSportSessionClick);
+      context.elements.sportPerformanceBody?.addEventListener("change", handleSportSessionDate);
       context.elements.sportPerformanceBody?.addEventListener("click", handleSportPerformanceClick);
+      context.elements.sportTemplatesToggle?.addEventListener("click", () => {
+        openSportTemplatesPanel(!isSportTemplatesPanelOpen());
+      });
+      context.elements.sportTemplatesPanel?.addEventListener("click", handleSportTemplatesClick);
+      context.elements.sportTemplatesPanel?.addEventListener("input", handleSportTemplateInput);
       context.elements.sportExerciseSuggestions?.addEventListener("click", handleSportAssistClick);
       context.elements.sportLastPerformance?.addEventListener("click", handleSportAssistClick);
       context.elements.sportRowMenu?.addEventListener("click", handleSportRowMenuAction);
@@ -955,9 +1519,15 @@
       bindEvents,
       render: renderSportTracker,
       renderTableZoom: renderSportTableZoom,
-      // Expose pour les tests : la saisie de date est la seule entree libre
-      // du tableau, et c'est elle qui avait cesse de fonctionner au telephone.
+      // Exposes pour les tests. Ces quatre fonctions decident de l'ordre du
+      // journal, du decoupage en seances et de ce qu'un modele y depose :
+      // les faire passer par le DOM pour les verifier rendrait le test plus
+      // fragile que le code qu'il protege.
       parseDateInput: parseSportDateInput,
+      sortEntries: sortSportPerformanceEntries,
+      groupBySession: groupSportEntriesBySession,
+      summarizeSession: summarizeSportSession,
+      applyTemplate: applySportTemplate,
     };
   };
 })(window);
