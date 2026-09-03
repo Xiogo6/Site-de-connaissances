@@ -796,7 +796,9 @@
     context.elements.previewCard?.addEventListener("pointermove", handleReadingPointerMove);
     context.elements.previewCard?.addEventListener("pointerup", handleReadingPointerUp);
     context.elements.previewCard?.addEventListener("pointercancel", resetReadingPointer);
+    context.elements.previewMetaTop?.addEventListener("click", handlePreviewChildrenToggle);
     context.elements.previewMetaTop?.addEventListener("click", handleChipClick);
+    context.elements.previewChildren?.addEventListener("click", handlePreviewChildClick);
     context.elements.outgoingLinks.addEventListener("click", handleChipClick);
     context.elements.backlinks.addEventListener("click", handleChipClick);
     context.elements.suggestedLinks.addEventListener("click", handleSuggestedLinkClick);
@@ -2125,6 +2127,35 @@
     context.state.settings.lastEditedNoteId = note.id;
     context.notes.setEditorComposedContent(note.content);
     context.data.saveNotes();
+    context.renderers.renderEverything();
+  }
+
+  // Le compte des pages contenues ouvre et referme leur liste. Un seul dossier
+  // reste deplie a la fois : l'etat vit dans context.state, sinon le prochain
+  // rendu le perdrait.
+  function handlePreviewChildrenToggle(event) {
+    const button = event.target.closest("[data-toggle-preview-children]");
+    if (!button) {
+      return;
+    }
+
+    event.stopPropagation();
+    const noteId = button.dataset.togglePreviewChildren;
+    context.state.previewChildrenNoteId =
+      context.state.previewChildrenNoteId === noteId ? null : noteId;
+    context.renderers.renderPreview();
+  }
+
+  function handlePreviewChildClick(event) {
+    const button = event.target.closest("[data-open-preview-child]");
+    if (!button) {
+      return;
+    }
+
+    event.stopPropagation();
+    context.state.activeNoteId = button.dataset.openPreviewChild;
+    context.state.previewChildrenNoteId = null;
+    context.state.noteViewMode = "read";
     context.renderers.renderEverything();
   }
 

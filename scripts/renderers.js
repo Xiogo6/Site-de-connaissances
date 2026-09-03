@@ -1177,13 +1177,22 @@
       context.elements.previewMetaTop.appendChild(parentMeta);
     }
 
-    const childCount = context.notes.getChildNotes(note.id).length;
-    if (childCount) {
-      const childMeta = document.createElement("span");
+    const children = context.notes.getChildNotes(note.id);
+    const childrenOpen = context.state.previewChildrenNoteId === note.id;
+    if (children.length) {
+      const childMeta = document.createElement("button");
+      childMeta.type = "button";
       childMeta.className = "preview-hierarchy-count";
-      childMeta.textContent = `Contient ${childCount} page${childCount > 1 ? "s" : ""}`;
+      childMeta.dataset.togglePreviewChildren = note.id;
+      childMeta.setAttribute("aria-expanded", childrenOpen ? "true" : "false");
+      childMeta.setAttribute("aria-controls", "preview-children");
+      childMeta.textContent = `Contient ${children.length} page${
+        children.length > 1 ? "s" : ""
+      }${childrenOpen ? " \u2013" : " +"}`;
       context.elements.previewMetaTop.appendChild(childMeta);
     }
+
+    renderPreviewChildren(note, children, childrenOpen);
 
     if (metadata.hasDate) {
       const labels = {
@@ -1221,6 +1230,33 @@
     }
 
     renderQuizQuestionPreview(note, isDraft);
+  }
+
+  // La liste des pages contenues, depliee a la demande. Elle defile au-dela
+  // d'une dizaine d'entrees : un dossier de tri peut en compter beaucoup, et
+  // la carte de lecture ne doit pas s'allonger sans fin.
+  function renderPreviewChildren(note, children, isOpen) {
+    const zone = context.elements.previewChildren;
+    if (!zone) {
+      return;
+    }
+
+    zone.classList.toggle("is-hidden", !isOpen || !children.length);
+    if (!isOpen || !children.length) {
+      zone.innerHTML = "";
+      return;
+    }
+
+    zone.innerHTML = children
+      .map(
+        (child) => `
+          <button type="button" class="preview-child-row" data-open-preview-child="${child.id}">
+            ${getNoteTypeIconMarkup(child.type)}
+            <span class="preview-child-title">${escapeHtml(child.title)}</span>
+          </button>
+        `
+      )
+      .join("");
   }
 
   function renderQuizQuestionBank({ force = false } = {}) {

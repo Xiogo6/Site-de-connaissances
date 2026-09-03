@@ -586,6 +586,57 @@ body[data-theme="dark"] #knowledge-list .note-type-icon-folder + .knowledge-item
   color: #fff9f1;
 }
 
+/* La rangee de meta hérite d'un justify-content: space-between qui n'avait pas
+   d'effet tant qu'elle ne portait qu'une pastille de date. Avec le rangement
+   elle en porte plusieurs, qu'il faut grouper a gauche et laisser passer a la
+   ligne sur ecran etroit. */
+#preview-meta-top {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.preview-children {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: grid;
+  gap: 2px;
+  /* Au-dela d'une dizaine d'entrees la liste defile au lieu d'allonger la
+     carte : un dossier de tri peut en compter beaucoup. */
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.preview-children.is-hidden {
+  display: none;
+}
+
+.preview-child-row {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 7px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.preview-child-row:hover {
+  background: color-mix(in srgb, var(--surface) 70%, var(--accent) 30%);
+}
+
+.preview-child-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .preview-hierarchy-chip,
 .preview-hierarchy-count {
   border: 1px solid var(--line);
@@ -596,12 +647,14 @@ body[data-theme="dark"] #knowledge-list .note-type-icon-folder + .knowledge-item
   padding: 2px 10px;
 }
 
-.preview-hierarchy-chip {
+.preview-hierarchy-chip,
+.preview-hierarchy-count {
   background: transparent;
   cursor: pointer;
 }
 
-.preview-hierarchy-chip:hover {
+.preview-hierarchy-chip:hover,
+.preview-hierarchy-count:hover {
   border-color: var(--line-strong);
   color: var(--text);
 }

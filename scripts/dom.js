@@ -135,6 +135,7 @@
       previewMetaTop: document.querySelector("#preview-meta-top"),
       previewMetaBottom: document.querySelector("#preview-meta-bottom"),
       previewContent: document.querySelector("#preview-content"),
+      previewChildren: document.querySelector("#preview-children"),
       previewCard: document.querySelector("#preview-card"),
       noteStatus: document.querySelector("#note-status"),
       outgoingLinks: document.querySelector("#outgoing-links"),

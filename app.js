@@ -60,6 +60,7 @@
       feedExcludedTags: [],
       feedHideFolders: true,
       aiPlacementSuggestion: null,
+      previewChildrenNoteId: null,
       feedTagFilterOpen: false,
       visualizationMode: "graph",
       sourceMode: "workspace",
