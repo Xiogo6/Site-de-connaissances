@@ -314,6 +314,10 @@
                 <input id="feed-favorites-filter" type="checkbox" />
                 <span>Favoris</span>
               </label>
+              <label class="feed-filter-toggle" for="feed-folders-filter">
+                <input id="feed-folders-filter" type="checkbox" checked />
+                <span>Masquer les dossiers</span>
+              </label>
               <div class="feed-tag-filter-control">
                 <button
                   id="feed-tag-filter-button"
@@ -445,12 +449,26 @@
                   </span>
                 </label>
 
-                <label class="editor-parent-field is-hidden">
-                  <span class="field-label">Emplacement</span>
-                  <select id="note-parent" class="select-input">
-                    <option value="">Choisir un dossier</option>
-                  </select>
-                </label>
+                <div class="editor-parent-field is-hidden">
+                  <label class="editor-parent-label">
+                    <span class="field-label">Emplacement</span>
+                    <select id="note-parent" class="select-input">
+                      <option value="">Choisir un dossier</option>
+                    </select>
+                  </label>
+                  <div
+                    id="ai-placement-suggestion"
+                    class="editor-placement-suggestion is-hidden"
+                    aria-live="polite"
+                  ></div>
+                  <button
+                    id="ai-placement-button"
+                    class="button button-inline button-flat editor-placement-button"
+                    type="button"
+                  >
+                    Proposer un emplacement
+                  </button>
+                </div>
                 </div>
 
                 <div id="structured-fields-panel" class="note-detail-panel">

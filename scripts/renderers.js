@@ -11,6 +11,7 @@
       parseFlexibleDateParts,
       parseTags,
       renderNoteHtml,
+      stripHierarchyLines,
       unique,
     } = AtlasApp.helpers;
   // Un panneau masque n'a pas besoin d'etre redessine : renderActiveTabContent()
@@ -43,6 +44,7 @@
     renderKnowledgeMode();
     renderKnowledgeList();
     hydrateEditorFromActiveNote();
+    renderEditorPlacementSuggestion();
     renderStructuredFields();
     syncEditorAvailability();
     renderPreview();
@@ -529,6 +531,7 @@
       rootAttr: "data-root-note",
       duplicateAttr: "data-duplicate-note",
       deleteAttr: "data-delete-note",
+      pinAttr: "data-pin-folder",
       variant: "flat",
       allowDrag: !filterActive,
       forceExpanded: filterActive,
@@ -566,11 +569,16 @@
 
   function getFeedFilteredNotes(notes) {
     const excludedTags = new Set(context.state.feedExcludedTags || []);
-    if (!excludedTags.size) {
+    const hideFolders = context.state.feedHideFolders !== false;
+    if (!excludedTags.size && !hideFolders) {
       return notes;
     }
 
     return notes.filter((note) => {
+      if (hideFolders && note.type === "folder") {
+        return false;
+      }
+
       return !(note.tags || []).some((tag) => excludedTags.has(normalizeTag(tag)));
     });
   }
@@ -582,6 +590,10 @@
 
     if (context.elements.feedFavoritesFilter) {
       context.elements.feedFavoritesFilter.checked = context.state.favoritesOnly;
+    }
+
+    if (context.elements.feedFoldersFilter) {
+      context.elements.feedFoldersFilter.checked = context.state.feedHideFolders !== false;
     }
 
     const excludedCount = (context.state.feedExcludedTags || []).length;
@@ -647,7 +659,9 @@
     const activeTags = new Set((active?.tags || []).map((tag) => normalizeTag(tag)));
     const noteTags = (note.tags || []).map((tag) => normalizeTag(tag));
     const sharedTags = noteTags.filter((tag) => activeTags.has(tag)).length;
-    const activeLinks = active ? extractLinks(active.content || "").map((title) => title.toLowerCase()) : [];
+    const activeLinks = active
+      ? extractLinks(stripHierarchyLines(active.content || "")).map((title) => title.toLowerCase())
+      : [];
     const linkedToActive = activeLinks.includes(String(note.title || "").toLowerCase());
     const recentlyUpdated = new Date(note.updatedAt || note.createdAt || 0).getTime() || 0;
     const weeksOld = recentlyUpdated ? (Date.now() - recentlyUpdated) / 1000 / 60 / 60 / 24 / 7 : 12;
@@ -795,11 +809,18 @@
     const isMenuOpen = config.menuState === note.id;
     const leadingHtml =
       config.leadingHtml || '<span class="tree-toggle-spacer" aria-hidden="true"></span>';
+    const canPin = Boolean(config.pinAttr) && context.notes.canPinFolder(note);
+    const isPinned = canPin && context.notes.isFolderPinned(note.id);
+    const pinButtonHtml = canPin
+      ? `<button type="button" class="button${
+          isPinned ? " is-active" : ""
+        }" ${config.pinAttr}="${note.id}">${isPinned ? "Detacher" : "Epingler"}</button>`
+      : "";
 
     return `
       <div class="knowledge-item-shell${
         note.id === context.state.activeNoteId ? " is-active" : ""
-      }" data-note-id="${note.id}">
+      }${isPinned ? " is-pinned-folder" : ""}" data-note-id="${note.id}">
         <div class="knowledge-item-row">
           <div class="knowledge-item-main">
             ${leadingHtml}
@@ -807,6 +828,7 @@
             <button type="button" class="knowledge-item-title" ${config.openAttr}="${note.id}">
               ${escapeHtml(note.title)}
             </button>
+            ${isPinned ? '<span class="pinned-folder-marker" role="img" aria-label="Dossier epingle"></span>' : ""}
           </div>
           <button type="button" class="knowledge-item-more" ${config.toggleAttr}="${note.id}">
             ...
@@ -814,12 +836,70 @@
         </div>
         <div class="knowledge-item-menu${isMenuOpen ? "" : " is-hidden"}">
           <div class="compact-menu-actions">
+            ${pinButtonHtml}
             <button type="button" class="button" ${config.editAttr}="${note.id}">Editer</button>
             <button type="button" class="button" ${config.rootAttr}="${note.id}">Racine</button>
             <button type="button" class="button" ${config.duplicateAttr}="${note.id}">Dupliquer</button>
             <button type="button" class="button button-ghost" ${config.deleteAttr}="${note.id}">Supprimer</button>
           </div>
         </div>
+      </div>
+    `;
+  }
+
+  // La proposition ne range rien : elle affiche un choix et attend un clic.
+  // C'est la difference demandee avec un classement automatique.
+  function renderEditorPlacementSuggestion() {
+    const zone = context.elements.aiPlacementSuggestion;
+    if (!zone) {
+      return;
+    }
+
+    const note = context.notes.getActiveNote();
+    const suggestion = context.state.aiPlacementSuggestion;
+    const pertinente = Boolean(suggestion && note && suggestion.noteId === note.id);
+
+    if (context.elements.aiPlacementButton) {
+      context.elements.aiPlacementButton.disabled = context.data.isReadOnlyMode() || !note;
+    }
+
+    zone.classList.toggle("is-hidden", !pertinente);
+    if (!pertinente) {
+      zone.innerHTML = "";
+      return;
+    }
+
+    const raison = suggestion.reason
+      ? `<span class="editor-placement-reason">${escapeHtml(suggestion.reason)}</span>`
+      : "";
+
+    if (suggestion.folderId) {
+      const dejaRange = (note.parentId || "") === suggestion.folderId;
+      zone.innerHTML = `
+        <p class="editor-placement-headline">
+          Proposition : <strong>${escapeHtml(suggestion.folderPath)}</strong>
+        </p>
+        ${raison}
+        <div class="editor-placement-actions">
+          ${
+            dejaRange
+              ? '<span class="pill pill-soft">La page y est deja</span>'
+              : '<button type="button" class="button button-inline" data-apply-placement>Choisir ce dossier</button>'
+          }
+          <button type="button" class="button button-ghost button-inline" data-dismiss-placement>Ignorer</button>
+        </div>
+      `;
+      return;
+    }
+
+    zone.innerHTML = `
+      <p class="editor-placement-headline">
+        Aucun dossier existant ne convient. Gemini suggere d en creer un :
+        <strong>${escapeHtml(suggestion.newFolder || "sans nom")}</strong>
+      </p>
+      ${raison}
+      <div class="editor-placement-actions">
+        <button type="button" class="button button-ghost button-inline" data-dismiss-placement>Ignorer</button>
       </div>
     `;
   }
@@ -1083,6 +1163,28 @@
     updatedMeta.textContent = `Maj: ${context.helpers.formatDate(note.updatedAt)}`;
     context.elements.previewMetaBottom.appendChild(updatedMeta);
 
+    // Le rangement, recalcule depuis parentId a chaque affichage. Il ne peut
+    // donc plus etre en retard sur un deplacement, contrairement a la ligne de
+    // texte qu'il remplace. Place avant le bloc de date, dont les retours
+    // anticipes sauteraient ce qui suit.
+    const parentNote = context.notes.getParentNote(note);
+    if (parentNote) {
+      const parentMeta = document.createElement("button");
+      parentMeta.type = "button";
+      parentMeta.className = "preview-hierarchy-chip";
+      parentMeta.dataset.linkTitle = parentNote.title;
+      parentMeta.textContent = `Dans : ${parentNote.title}`;
+      context.elements.previewMetaTop.appendChild(parentMeta);
+    }
+
+    const childCount = context.notes.getChildNotes(note.id).length;
+    if (childCount) {
+      const childMeta = document.createElement("span");
+      childMeta.className = "preview-hierarchy-count";
+      childMeta.textContent = `Contient ${childCount} page${childCount > 1 ? "s" : ""}`;
+      context.elements.previewMetaTop.appendChild(childMeta);
+    }
+
     if (metadata.hasDate) {
       const labels = {
         reference: "Date de reference",
@@ -1093,30 +1195,29 @@
       const hasEndDate = hasKnownStructuredDate(metadata.endDate);
       const hasSingleDate = hasKnownStructuredDate(metadata.singleDate);
 
-      if (metadata.dateMode === "range" && !hasStartDate && !hasEndDate) {
-        return;
-      }
+      // Une date annoncee mais incomplete n'affiche pas de pastille. C'etaient
+      // trois `return` : ils quittaient renderPreview entierement, et la page
+      // perdait aussi ses questions, rendues plus bas. Seule la pastille doit
+      // sauter.
+      const hasDisplayableDate =
+        metadata.dateMode === "range" || metadata.dateMode === "life"
+          ? hasStartDate || hasEndDate
+          : hasSingleDate;
 
-      if (metadata.dateMode === "life" && !hasStartDate && !hasEndDate) {
-        return;
-      }
-
-      if (metadata.dateMode !== "range" && metadata.dateMode !== "life" && !hasSingleDate) {
-        return;
-      }
-
-      const dateMeta = document.createElement("span");
-      dateMeta.textContent =
-        metadata.dateMode === "range"
-          ? `${labels.range}: ${formatStructuredDate(metadata.startDate)} -> ${formatStructuredDate(
-              metadata.endDate
-            )}`
-          : metadata.dateMode === "life"
-            ? `${labels.life}: ${formatStructuredDate(metadata.startDate)} -> ${formatStructuredDate(
+      if (hasDisplayableDate) {
+        const dateMeta = document.createElement("span");
+        dateMeta.textContent =
+          metadata.dateMode === "range"
+            ? `${labels.range}: ${formatStructuredDate(metadata.startDate)} -> ${formatStructuredDate(
                 metadata.endDate
               )}`
-          : `${labels[metadata.dateMode] || "Date"}: ${formatStructuredDate(metadata.singleDate)}`;
-      context.elements.previewMetaTop.appendChild(dateMeta);
+            : metadata.dateMode === "life"
+              ? `${labels.life}: ${formatStructuredDate(metadata.startDate)} -> ${formatStructuredDate(
+                  metadata.endDate
+                )}`
+            : `${labels[metadata.dateMode] || "Date"}: ${formatStructuredDate(metadata.singleDate)}`;
+        context.elements.previewMetaTop.appendChild(dateMeta);
+      }
     }
 
     renderQuizQuestionPreview(note, isDraft);
@@ -1267,7 +1368,11 @@
   }
 
   function getReadablePreviewContent(note) {
-    const lines = String(note.content || "").split("\n");
+    // Le rangement n'est plus du texte : il est recalcule depuis parentId et
+    // affiche a part, en pastille. On le retire donc de la lecture et du feed,
+    // ou il n'etait qu'une ligne de service au milieu du contenu.
+    const readable = stripHierarchyLines(note.content || "");
+    const lines = readable.split("\n");
     const firstContentIndex = lines.findIndex((line) => line.trim());
     if (firstContentIndex === -1) {
       return "";
@@ -1275,13 +1380,13 @@
 
     const firstLine = lines[firstContentIndex].trim();
     if (!firstLine.startsWith("# ")) {
-      return note.content || "";
+      return readable;
     }
 
     const headingTitle = normalizePreviewTitle(firstLine.slice(2));
     const noteTitle = normalizePreviewTitle(note.title || "");
     if (headingTitle !== noteTitle) {
-      return note.content || "";
+      return readable;
     }
 
     return lines
@@ -1308,7 +1413,7 @@
       return;
     }
 
-    const outgoing = unique(extractLinks(note.content));
+    const outgoing = unique(extractLinks(stripHierarchyLines(note.content)));
     const backlinks = context.notes.getBacklinks(note.title, note.id);
     const suggested = context.notes.getSuggestedLinks(note).map((item) => item.title);
     const outline = context.notes.extractOutline(note.content);
@@ -1477,6 +1582,7 @@
             rootAttr: options.rootAttr || "data-root-organization-note",
             duplicateAttr: options.duplicateAttr || "data-duplicate-organization-note",
             deleteAttr: options.deleteAttr || "data-delete-organization-note",
+            pinAttr: options.pinAttr || "",
             leadingHtml: isCollapsible
               ? `<button type="button" class="tree-toggle" data-toggle-folder="${node.id}" aria-label="${
                   isCollapsed ? "Deplier" : "Replier"
@@ -2217,6 +2323,7 @@
 
   return {
     buildCompactNoteItem,
+    renderEditorPlacementSuggestion,
     hydrateEditorFromActiveNote,
     populateSelect,
     renderChipCollection,

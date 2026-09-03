@@ -382,8 +382,18 @@
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  /* Quatrieme colonne pour le point des dossiers epingles. Elle reste a zero
+     quand le marqueur est absent, ce qui est le cas general. */
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   min-width: 0;
+}
+
+.pinned-folder-marker {
+  background: var(--accent);
+  border-radius: 50%;
+  flex: 0 0 auto;
+  height: 6px;
+  width: 6px;
 }
 
 .note-type-icon {
@@ -574,6 +584,56 @@ body[data-theme="dark"] #knowledge-list .note-type-icon-folder + .knowledge-item
   border-color: transparent;
   box-shadow: 0 14px 26px rgba(191, 91, 44, 0.2);
   color: #fff9f1;
+}
+
+.preview-hierarchy-chip,
+.preview-hierarchy-count {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 2px 10px;
+}
+
+.preview-hierarchy-chip {
+  background: transparent;
+  cursor: pointer;
+}
+
+.preview-hierarchy-chip:hover {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.editor-placement-suggestion {
+  background: color-mix(in srgb, var(--surface) 84%, var(--accent) 16%);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.editor-placement-suggestion.is-hidden {
+  display: none;
+}
+
+.editor-placement-headline {
+  line-height: 1.4;
+  margin: 0;
+}
+
+.editor-placement-reason {
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.editor-placement-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .editor-secondary-actions {
@@ -3767,7 +3827,7 @@ body[data-theme="dark"] .toggle-row-editor {
   box-shadow: none;
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(160px, 1fr) minmax(130px, auto) auto auto auto;
+  grid-template-columns: minmax(160px, 1fr) minmax(130px, auto) auto auto auto auto;
   padding: 0;
   position: relative;
 }
@@ -4089,6 +4149,13 @@ body.feed-refresh-complete .feed-refresh-indicator::before {
 .feed-content .note-line {
   display: block;
   margin: 0;
+}
+
+/* Le feed rend le meme balisage que la page, il lui faut donc la meme regle :
+   sans elle le marqueur de ligne vide restait un div sans hauteur. */
+.feed-content .note-blank-space {
+  height: calc(var(--note-blank-lines, 1) * 1.42em);
+  pointer-events: none;
 }
 
 .feed-content p + p {

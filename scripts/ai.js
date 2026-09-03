@@ -266,6 +266,173 @@
       }
     }
 
+    // Le rangement est un appel a part, jamais melange a la reecriture.
+    // Une consigne permissive (propose un dossier) noyee dans un prompt
+    // restrictif (n ajoute rien) rouvre la derive decrite dans
+    // PROMPT_REDACTION_NOTES.md : le modele qui range se remet a enrichir.
+    // Le prompt effectif est double dans PROMPT_RANGEMENT_NOTES.md : toute
+    // modification ici doit y etre reportee.
+    function buildFolderCatalogue() {
+      const parPage = new Map(context.state.notes.map((note) => [note.id, note]));
+      const cheminDe = (note) => {
+        const morceaux = [];
+        let courant = note;
+        const vus = new Set();
+        while (courant && !vus.has(courant.id)) {
+          vus.add(courant.id);
+          morceaux.unshift(courant.title);
+          courant = courant.parentId ? parPage.get(courant.parentId) : null;
+        }
+        return morceaux.join(" / ");
+      };
+
+      return context.state.notes
+        .filter((note) => note.type === "folder")
+        .map((note) => ({ id: note.id, title: note.title, path: cheminDe(note) }))
+        .sort((gauche, droite) => gauche.path.localeCompare(droite.path, "fr", { sensitivity: "base" }));
+    }
+
+    function buildPlacementPrompt({ title, type, content, folders }) {
+      const catalogue = folders.length
+        ? folders.map((folder) => `- ${folder.path}`).join("\n")
+        : "- Aucun dossier n existe encore";
+
+      return [
+        "Tu ranges une note dans une arborescence de dossiers deja en place.",
+        "Tu ne reecris pas la note et tu ne la commentes pas.",
+        "",
+        "Regle principale :",
+        "- choisis en priorite un dossier de la liste, tel qu il est ecrit",
+        "- ne propose un nouveau dossier que si aucun dossier existant ne convient vraiment",
+        "- en cas d hesitation entre deux dossiers existants, prends le plus precis",
+        "- un dossier existant approximatif vaut mieux qu un nouveau dossier de plus",
+        "",
+        "Objectif :",
+        "- respecter la nomenclature existante : sa langue, sa casse, son niveau de detail",
+        "- si tu proposes un nouveau dossier, le nommer dans le meme style que les autres",
+        "- rester au niveau de generalite des dossiers deja presents",
+        "",
+        "Interdictions :",
+        "- ne pas inventer un chemin de dossier qui n est pas dans la liste",
+        "- ne pas proposer un nouveau dossier pour une seule note quand un dossier general existe",
+        "- ne pas repondre les deux a la fois : un dossier existant ou un nouveau, pas les deux",
+        "",
+        "Contraintes de sortie :",
+        "- retourne uniquement un JSON valide, sans markdown ni commentaire",
+        '- le JSON contient exactement les cles "folder", "newFolder" et "reason"',
+        '- "folder" : le chemin exact d un dossier de la liste, sinon null',
+        '- "newFolder" : le nom d un dossier a creer, sinon null',
+        '- une seule des deux est non nulle, l autre vaut null',
+        '- "reason" : une phrase courte, quinze mots au plus',
+        "",
+        "Dossiers existants :",
+        catalogue,
+        "",
+        `Titre: ${title}`,
+        `Type: ${type}`,
+        "",
+        "Contenu brut :",
+        content || "",
+      ].join("\n");
+    }
+
+    function normalizePlacementPayload(payload, folders) {
+      const cheminPropose = typeof payload?.folder === "string" ? payload.folder.trim() : "";
+      const nouveauDossier = typeof payload?.newFolder === "string" ? payload.newFolder.trim() : "";
+      const raison = typeof payload?.reason === "string" ? payload.reason.trim() : "";
+
+      // Le modele rend un chemin, pas un identifiant : on le rapproche d un
+      // dossier reel. Un chemin qu on ne retrouve pas est traite comme une
+      // invention, et bascule en proposition de nouveau dossier.
+      const cible = cheminPropose
+        ? folders.find(
+            (folder) =>
+              folder.path.toLowerCase() === cheminPropose.toLowerCase() ||
+              folder.title.toLowerCase() === cheminPropose.toLowerCase()
+          )
+        : null;
+
+      if (cible) {
+        return { folderId: cible.id, folderPath: cible.path, newFolder: "", reason: raison };
+      }
+
+      return {
+        folderId: "",
+        folderPath: "",
+        newFolder: nouveauDossier || cheminPropose,
+        reason: raison,
+      };
+    }
+
+    async function suggestPlacementForActiveNote() {
+      const note = context.notes.getActiveNote();
+      if (!note) {
+        throw new Error("Aucune note active.");
+      }
+
+      const config = saveConfig(syncInputsToState());
+      if (!config.apiKey) {
+        throw new Error("Ajoute d'abord ta cle Gemini.");
+      }
+
+      const draftTitle = context.elements.titleInput?.value.trim() || note.title || "Sans titre";
+      const draftContent = context.elements.contentInput?.value || note.content || "";
+      const draftType = context.elements.typeInput?.value || note.type || "concept";
+      // Une page ne se range pas dans elle-meme ni sous une de ses descendances.
+      const folders = buildFolderCatalogue().filter(
+        (folder) => folder.id !== note.id && context.notes.canMoveNote(note.id, folder.id)
+      );
+
+      setStatus({
+        busy: true,
+        type: "working",
+        message: "Gemini cherche un emplacement...",
+        error: "",
+      });
+
+      try {
+        const content = await callGemini(
+          buildPlacementPrompt({
+            title: draftTitle,
+            type: draftType,
+            content: draftContent,
+            folders,
+          }),
+          config,
+          { temperature: 0 }
+        );
+
+        const suggestion = normalizePlacementPayload(parseJsonPayload(content), folders);
+        context.state.aiPlacementSuggestion = { ...suggestion, noteId: note.id };
+        context.renderers.renderEditorPlacementSuggestion();
+
+        setStatus({
+          busy: false,
+          type: "success",
+          message: suggestion.folderId
+            ? "Emplacement propose."
+            : "Aucun dossier existant ne convient.",
+          error: "",
+          lastRunAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        context.state.aiPlacementSuggestion = null;
+        context.renderers.renderEditorPlacementSuggestion();
+        setStatus({
+          busy: false,
+          type: "error",
+          message: "Gemini a rencontre un probleme.",
+          error: error.message || "Echec de l'assistant.",
+        });
+        throw error;
+      }
+    }
+
+    function clearPlacementSuggestion() {
+      context.state.aiPlacementSuggestion = null;
+      context.renderers?.renderEditorPlacementSuggestion?.();
+    }
+
     function captureRewriteBackup(note) {
       context.state.aiRewriteBackup = {
         noteId: note.id,
@@ -692,8 +859,10 @@
       loadConfig,
       restoreLastRewrite,
       rewriteActiveNote,
+      clearPlacementSuggestion,
       saveConfig,
       setStatus,
+      suggestPlacementForActiveNote,
       testConnection,
     };
   };

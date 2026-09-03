@@ -58,6 +58,8 @@
       feedSeed: Date.now(),
       feedNavCompact: false,
       feedExcludedTags: [],
+      feedHideFolders: true,
+      aiPlacementSuggestion: null,
       feedTagFilterOpen: false,
       visualizationMode: "graph",
       sourceMode: "workspace",
@@ -170,6 +172,26 @@
         ensuredFolders?.didChange
       ) {
         context.data.saveNotes();
+      }
+    }
+
+    // Retrait unique des lignes de rangement laissees dans le texte. Il ne
+    // part qu'une fois : le drapeau est enregistre avec la modification, dans
+    // la meme sauvegarde. Place apres ensureDefaultFolders pour que les
+    // dossiers systeme existent deja, et jamais en lecture seule, ou l'espace
+    // affiche n'est pas celui qu'on a le droit de reecrire.
+    if (
+      context.state.notes.length &&
+      !context.data.isReadOnlyMode() &&
+      !context.state.settings.hierarchyLinesStrippedAt
+    ) {
+      const retrait = context.notes.stripStoredHierarchyLines();
+      context.state.settings.hierarchyLinesStrippedAt = new Date().toISOString();
+      context.data.saveNotes();
+      if (retrait.removedLines) {
+        console.info(
+          `Atlas : ${retrait.removedLines} lignes de rangement retirees de ${retrait.changedNotes} pages.`
+        );
       }
     }
 

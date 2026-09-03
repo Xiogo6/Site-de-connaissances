@@ -136,6 +136,32 @@
     return [...content.matchAll(/\[\[([^[\]]+)\]\]/g)].map((match) => match[1].trim());
   }
 
+  // Les lignes `Dans : [[X]]` et `Contient : [[Y]]` etaient une copie de
+  // parentId ecrite dans le texte au moment du deplacement. La copie derivait :
+  // une reecriture pouvait l'effacer, un deplacement n'en mettait qu'une des
+  // deux a jour. parentId fait desormais foi et ces lignes sont recalculees a
+  // l'affichage. Celles deja ecrites dans les pages restent en place mais ne
+  // sont plus lues nulle part.
+  const hierarchyLinePattern = /^\s*(?:Dans|Contient)\s*:\s*\[\[[^[\]]+\]\]\s*$/i;
+
+  function isHierarchyLine(line) {
+    return hierarchyLinePattern.test(String(line || ""));
+  }
+
+  function stripHierarchyLines(content) {
+    const source = String(content || "");
+    if (!source.includes("[[")) {
+      return source;
+    }
+
+    return source
+      .split("\n")
+      .filter((line) => !isHierarchyLine(line))
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/\s+$/, "");
+  }
+
   function extractSummary(content) {
     return (
       content
@@ -330,7 +356,11 @@
       .replace(/(^|[\s(])\*([^*]+)\*(?=[\s).,!?:;]|$)/g, "$1<em>$2</em>")
       .replace(/\+\+([^+]+)\+\+/g, "<u>$1</u>")
       .replace(/\[\[([^[\]]+)\]\]/g, (_, title) => {
-        const safeTitle = escapeHtml(title.trim());
+        // Le titre est capture dans un texte deja echappe : le re-echapper tel
+        // quel donnait &amp;#39; a la place de l'apostrophe, affiche en clair
+        // dans le lien. On le ramene a sa forme brute avant de l'echapper une
+        // seule fois.
+        const safeTitle = escapeHtml(decodeHtmlEntities(title.trim()));
         return `<a class="note-link" data-link-title="${safeTitle}">${safeTitle}</a>`;
       });
   }
@@ -364,12 +394,16 @@
       paragraphBuffer = [];
     };
 
+    // Une ligne vide dans le texte vaut une ligne vide a l'affichage. Le
+    // marqueur ne valait avant que pour deux lignes vides et plus : une seule
+    // ne produisait rien, et deux puces separees par un blanc se retrouvaient
+    // collees, la mise en forme des blocs etant a zero en CSS.
+    // Il n'a de sens qu'entre deux blocs : en tete de note il n'ajouterait
+    // qu'un vide avant le premier mot.
     const flushBlankSpacing = () => {
-      if (blankLineCount > 1) {
+      if (blankLineCount > 0 && blocks.length) {
         blocks.push(
-          `<div class="note-blank-space" style="--note-blank-lines: ${
-            blankLineCount - 1
-          }" aria-hidden="true"></div>`
+          `<div class="note-blank-space" style="--note-blank-lines: ${blankLineCount}" aria-hidden="true"></div>`
         );
       }
       blankLineCount = 0;
@@ -425,7 +459,8 @@
 
     flushParagraph();
     flushList();
-    flushBlankSpacing();
+    // Pas de flushBlankSpacing final : a ce stade il ne peut plus produire
+    // qu'un vide en fin de note, sous le dernier bloc.
     return blocks.join("");
   }
 
@@ -435,6 +470,7 @@
     escapeHtml,
     extractLinks,
     extractSummary,
+    isHierarchyLine,
     formatFlexibleDate,
     formatDate,
     getFlexibleDateTimestamp,
@@ -447,6 +483,7 @@
     renderInline,
     renderNoteHtml,
     shuffle,
+    stripHierarchyLines,
     toKebab,
     unique,
   };

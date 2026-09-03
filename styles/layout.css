@@ -408,6 +408,18 @@ body[data-theme="dark"] .tab.is-active {
   grid-column: 1 / -1;
 }
 
+/* Le champ n'est plus un label : il porte maintenant le libelle, le select,
+   la proposition de Gemini et son bouton. Le label reste autour du select
+   seul, pour que cliquer le libelle continue de l'ouvrir. */
+.editor-parent-label {
+  display: grid;
+  gap: 8px;
+}
+
+.editor-placement-button {
+  justify-self: start;
+}
+
 .editor-parent-field.is-hidden {
   display: none;
 }

@@ -796,6 +796,8 @@
         settingsAuthorityVersion: 1,
         templates: {},
         collapsedFolders: [],
+        pinnedFolders: [],
+        hierarchyLinesStrippedAt: null,
         lastEditedNoteId: null,
         quizPlayerStats: {
           sessions: [],
@@ -1091,6 +1093,13 @@
         collapsedFolders: Array.isArray(rawSettings?.collapsedFolders)
           ? rawSettings.collapsedFolders.filter((value) => typeof value === "string")
           : [],
+        pinnedFolders: Array.isArray(rawSettings?.pinnedFolders)
+          ? rawSettings.pinnedFolders.filter((value) => typeof value === "string")
+          : [],
+        hierarchyLinesStrippedAt:
+          typeof rawSettings?.hierarchyLinesStrippedAt === "string"
+            ? rawSettings.hierarchyLinesStrippedAt
+            : null,
         lastEditedNoteId:
           typeof rawSettings?.lastEditedNoteId === "string" ? rawSettings.lastEditedNoteId : null,
         quizPlayerStats: normalizeQuizPlayerStats(rawSettings?.quizPlayerStats),
@@ -1143,6 +1152,8 @@
           settingsAuthorityVersion: 1,
           templates: context.state.settings.templates || {},
           collapsedFolders: context.state.settings.collapsedFolders || [],
+          pinnedFolders: context.state.settings.pinnedFolders || [],
+          hierarchyLinesStrippedAt: context.state.settings.hierarchyLinesStrippedAt || null,
           lastEditedNoteId: context.state.settings.lastEditedNoteId || null,
           quizPlayerStats: normalizeQuizPlayerStats(context.state.settings.quizPlayerStats),
           sport: context.state.settings.sport || { massEntries: [], performanceEntries: [] },

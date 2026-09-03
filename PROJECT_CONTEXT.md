@@ -62,9 +62,35 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
 - `Enregistrer` ou `Annuler` quittent l edition et reviennent en lecture.
 - Une nouvelle page ou un nouveau dossier sont des brouillons temporaires tant qu ils ne sont pas enregistres.
 - Les dossiers sont des pages normales de type `folder`.
-- Deplacer une page dans un dossier cree aussi des liens hierarchiques dans le contenu.
+- Deplacer une page dans un dossier ne touche plus au texte : `parentId` porte
+  seul le rangement, et l affichage le recalcule.
 - Les templates sont appliques automatiquement sur une page encore vierge ou encore basee sur son modele.
 - Le champ `Titre` reste lie au premier `# Titre` du contenu quand ce premier titre existe.
+
+## Rangement des pages
+
+`parentId` fait autorite. Les lignes `Dans : [[X]]` et `Contient : [[Y]]` etaient
+une copie de cette information ecrite dans le texte au moment du deplacement.
+La copie derivait : une reecriture Gemini pouvait l effacer sans que rien ne la
+reinjecte, et un deplacement ne mettait a jour qu une partie des lignes. Mesure
+sur le corpus du 2026-09-03, 143 pages : 254 lignes, 6 orphelines et 8 relations
+reelles sans ligne.
+
+Ces lignes ne sont donc plus ni ecrites ni lues. `stripHierarchyLines()` dans
+`helpers.js` les retire partout ou le contenu est interprete :
+
+- lecture et feed, via `getReadablePreviewContent()`
+- aretes du graphe, backlinks, liens sortants, suggestions, comptes de connexions
+
+A la place, le rangement est recalcule depuis `parentId` : une pastille `Dans :`
+et un compte `Contient N pages` en mode lecture, une arete parent/enfant dans le
+graphe, une entree dans les backlinks. Le graphe ne lisant que le texte
+auparavant, cette arete derivee est ce qui l empeche de perdre toute la
+hierarchie.
+
+Les lignes deja presentes dans les pages n ont pas ete supprimees : elles sont
+inertes, mais restent visibles en mode edition. Leur retrait effectif est une
+operation a part, qui reecrit le contenu de 139 pages et part en sync Supabase.
 
 ## Types de pages disponibles
 

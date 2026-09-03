@@ -71,6 +71,43 @@
     context.ai?.generateQuestionsForActiveNote?.().catch(() => {});
   }
 
+  function handleAiPlacementClick() {
+    if (context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    if (!context.ai?.hasApiKey?.()) {
+      context.ai?.focusSettings?.();
+      return;
+    }
+
+    context.ai?.suggestPlacementForActiveNote?.().catch(() => {});
+  }
+
+  // La proposition ne fait que preselectionner le dossier. L'enregistrement
+  // reste un geste separe, comme pour n'importe quelle modification du champ.
+  function handlePlacementSuggestionClick(event) {
+    const dismissButton = event.target.closest("[data-dismiss-placement]");
+    if (dismissButton) {
+      context.ai?.clearPlacementSuggestion?.();
+      return;
+    }
+
+    const applyButton = event.target.closest("[data-apply-placement]");
+    if (!applyButton) {
+      return;
+    }
+
+    const suggestion = context.state.aiPlacementSuggestion;
+    if (!suggestion?.folderId || !context.elements.parentInput) {
+      return;
+    }
+
+    context.elements.parentInput.value = suggestion.folderId;
+    context.elements.parentInput.dispatchEvent(new Event("change", { bubbles: true }));
+    context.ai?.clearPlacementSuggestion?.();
+  }
+
   function handleAiUndoRewriteClick() {
     if (context.data.isReadOnlyMode()) {
       return;
@@ -260,6 +297,10 @@
       }
       context.renderers.renderEverything();
     });
+    context.elements.feedFoldersFilter?.addEventListener("change", (event) => {
+      context.state.feedHideFolders = event.target.checked;
+      context.renderers.renderFeed();
+    });
     context.elements.feedTagFilterButton?.addEventListener("click", (event) => {
       event.stopPropagation();
       context.state.feedTagFilterOpen = !context.state.feedTagFilterOpen;
@@ -373,6 +414,8 @@
     });
     context.elements.aiAssistButton?.addEventListener("click", handleAiRewriteClick);
     context.elements.aiQuestionsButton?.addEventListener("click", handleAiQuestionsClick);
+    context.elements.aiPlacementButton?.addEventListener("click", handleAiPlacementClick);
+    context.elements.aiPlacementSuggestion?.addEventListener("click", handlePlacementSuggestionClick);
     context.elements.aiUndoButton?.addEventListener("click", handleAiUndoRewriteClick);
     context.elements.aiApiKeyInput?.addEventListener("input", () => {
       context.state.aiConfig = {
@@ -753,6 +796,7 @@
     context.elements.previewCard?.addEventListener("pointermove", handleReadingPointerMove);
     context.elements.previewCard?.addEventListener("pointerup", handleReadingPointerUp);
     context.elements.previewCard?.addEventListener("pointercancel", resetReadingPointer);
+    context.elements.previewMetaTop?.addEventListener("click", handleChipClick);
     context.elements.outgoingLinks.addEventListener("click", handleChipClick);
     context.elements.backlinks.addEventListener("click", handleChipClick);
     context.elements.suggestedLinks.addEventListener("click", handleSuggestedLinkClick);
@@ -1066,6 +1110,9 @@
     context.state.favoritesOnly = false;
     context.state.feedExcludedTags = [];
     context.state.feedTagFilterOpen = false;
+    // Effacer les filtres ramene le feed a son etat normal, dossiers masques :
+    // les faire reapparaitre serait l'inverse de ce que le bouton promet.
+    context.state.feedHideFolders = true;
 
     if (context.elements.searchInput) {
       context.elements.searchInput.value = "";
@@ -1087,6 +1134,9 @@
     }
     if (context.elements.feedFavoritesFilter) {
       context.elements.feedFavoritesFilter.checked = false;
+    }
+    if (context.elements.feedFoldersFilter) {
+      context.elements.feedFoldersFilter.checked = true;
     }
 
     context.renderers.renderEverything();
@@ -1815,6 +1865,14 @@
       animateFolderToggle(toggleFolderButton, () =>
         context.notes.toggleFolderCollapse(toggleFolderButton.dataset.toggleFolder)
       );
+      return;
+    }
+
+    const pinFolderButton = event.target.closest("[data-pin-folder]");
+    if (pinFolderButton) {
+      event.stopPropagation();
+      context.state.explorerMenuNoteId = null;
+      context.notes.toggleFolderPin(pinFolderButton.dataset.pinFolder);
       return;
     }
 

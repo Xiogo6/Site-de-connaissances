@@ -2,7 +2,15 @@
   const AtlasApp = (global.AtlasApp = global.AtlasApp || {});
 
   AtlasApp.createGraphModule = function createGraphModule(context) {
-    const { clamp, escapeHtml, extractLinks, extractSummary, normalizeTag, unique } =
+    const {
+      clamp,
+      escapeHtml,
+      extractLinks,
+      extractSummary,
+      normalizeTag,
+      stripHierarchyLines,
+      unique,
+    } =
       AtlasApp.helpers;
     // Le monde du graphe est fixe et bien plus grand que l'ecran. Avant, il
     // epousait la fenetre : la disposition remplissait donc l'ecran bord a
@@ -162,10 +170,17 @@
       return base;
     }
 
-    const neighborTitles = new Set(unique(extractLinks(active.content)));
+    const neighborTitles = new Set(unique(extractLinks(stripHierarchyLines(active.content))));
     context.notes
       .getBacklinks(active.title, active.id)
       .forEach((title) => neighborTitles.add(title));
+    const activeParent = context.notes.getParentNote(active);
+    if (activeParent) {
+      neighborTitles.add(activeParent.title);
+    }
+    context.notes
+      .getChildNotes(active.id)
+      .forEach((child) => neighborTitles.add(child.title));
 
     return base.filter((note) => note.id === active.id || neighborTitles.has(note.title));
   }
@@ -182,18 +197,31 @@
     }));
     const edges = [];
 
+    // Les aretes parent/enfant venaient des lignes `Dans`/`Contient` ecrites
+    // dans le texte. Ce texte n'est plus lu : sans la boucle sur parentId
+    // ci-dessous, le graphe perdrait toute la hierarchie.
+    const noteById = new Map(notes.map((note) => [note.id, note]));
+    const dejaVues = new Set();
+    const ajouterArete = (from, to) => {
+      const cle = from < to ? `${from}|${to}` : `${to}|${from}`;
+      if (from === to || dejaVues.has(cle)) {
+        return;
+      }
+      dejaVues.add(cle);
+      edges.push({ from, to, kind: "note", distance: 140 * LAYOUT_SPREAD });
+    };
+
     notes.forEach((note) => {
-      unique(extractLinks(note.content)).forEach((title) => {
+      unique(extractLinks(stripHierarchyLines(note.content))).forEach((title) => {
         const target = noteByTitle.get(title);
         if (target) {
-          edges.push({
-            from: note.id,
-            to: target.id,
-            kind: "note",
-            distance: 140 * LAYOUT_SPREAD,
-          });
+          ajouterArete(note.id, target.id);
         }
       });
+
+      if (note.parentId && noteById.has(note.parentId)) {
+        ajouterArete(note.id, note.parentId);
+      }
     });
 
     if (context.state.graphShowTags) {

@@ -4,6 +4,8 @@
   AtlasApp.createNotesModule = function createNotesModule(context) {
     const {
       extractLinks,
+      isHierarchyLine,
+      stripHierarchyLines,
       normalizeFlexibleDateInput,
       normalizeLinkTitle,
       normalizeTag,
@@ -182,8 +184,6 @@
           (candidate) => candidate.id === previousParentId
         );
         if (previousParent) {
-          previousParent.content = removeWikiLinkLine(previousParent.content, note.title);
-          note.content = removeWikiLinkLine(note.content, previousParent.title);
           previousParent.updatedAt = new Date().toISOString();
         }
       }
@@ -341,18 +341,34 @@
 
   function getBacklinks(title, excludedId) {
     const targetTitle = normalizeLinkTitle(title);
+    const cible = context.state.notes.find(
+      (note) => normalizeLinkTitle(note.title) === targetTitle && note.id !== excludedId
+    );
+
     return context.state.notes
-      .filter(
-        (note) =>
-          note.id !== excludedId &&
-          extractLinks(note.content).some((linkTitle) => normalizeLinkTitle(linkTitle) === targetTitle)
-      )
+      .filter((note) => {
+        if (note.id === excludedId) {
+          return false;
+        }
+
+        // Un lien de rangement n'est plus un lien de texte : il se lit sur
+        // parentId, dans les deux sens.
+        if (cible && (note.parentId === cible.id || cible.parentId === note.id)) {
+          return true;
+        }
+
+        return extractLinks(stripHierarchyLines(note.content)).some(
+          (linkTitle) => normalizeLinkTitle(linkTitle) === targetTitle
+        );
+      })
       .map((note) => note.title);
   }
 
   function getSuggestedLinks(note) {
     const text = `${note.title} ${note.content}`.toLowerCase();
-    const outgoing = new Set(extractLinks(note.content).map((linkTitle) => normalizeLinkTitle(linkTitle)));
+    const outgoing = new Set(
+      extractLinks(stripHierarchyLines(note.content)).map((linkTitle) => normalizeLinkTitle(linkTitle))
+    );
 
     return context.state.notes
       .filter((candidate) => candidate.id !== note.id)
@@ -543,21 +559,6 @@
     return links;
   }
 
-  function ensureWikiLinkLine(content, title, label) {
-    const targetTitle = normalizeLinkTitle(title);
-    const lines = content.split("\n");
-    if (
-      lines.some((line) =>
-        extractLinks(line).some((linkTitle) => normalizeLinkTitle(linkTitle) === targetTitle)
-      )
-    ) {
-      return content;
-    }
-
-    const suffix = content.trim().endsWith("\n") ? "" : "\n";
-    return `${content}${suffix}\n${label} : [[${title}]]`;
-  }
-
   function removeWikiLinkLine(content, title) {
     const targetTitle = normalizeLinkTitle(title);
     return content
@@ -570,9 +571,10 @@
       .replace(/\n{3,}/g, "\n\n");
   }
 
+  // Le rangement ne s'ecrit plus dans le texte : parentId le porte seul, et
+  // l'affichage le recalcule. Ne restent que les horodatages, un deplacement
+  // modifiant bien les deux pages.
   function ensureBidirectionalHierarchyLinks(parent, child) {
-    parent.content = ensureWikiLinkLine(parent.content, child.title, "Contient");
-    child.content = ensureWikiLinkLine(child.content, parent.title, "Dans");
     parent.updatedAt = new Date().toISOString();
     child.updatedAt = new Date().toISOString();
   }
@@ -591,6 +593,8 @@
       };
     };
 
+    // L'epinglage ne joue qu'a la racine : il sert a garder sous la main les
+    // quelques dossiers ouverts tous les jours, que l'alphabetique enterrait.
     return context.state.notes
       .filter((note) => {
         return (
@@ -598,12 +602,86 @@
           !context.state.notes.some((candidate) => candidate.id === note.parentId)
         );
       })
-      .sort((left, right) => left.title.localeCompare(right.title, "fr", { sensitivity: "base" }))
+      .sort((left, right) => {
+        const leftPinned = isFolderPinned(left.id);
+        const rightPinned = isFolderPinned(right.id);
+        if (leftPinned !== rightPinned) {
+          return leftPinned ? -1 : 1;
+        }
+
+        return left.title.localeCompare(right.title, "fr", { sensitivity: "base" });
+      })
       .map((note) => buildNode(note));
   }
 
   function getConnectionCount(note) {
-    return unique(extractLinks(note.content)).length + getBacklinks(note.title, note.id).length;
+    return (
+      unique(extractLinks(stripHierarchyLines(note.content))).length +
+      getBacklinks(note.title, note.id).length
+    );
+  }
+
+  // Migration unique. Les lignes de rangement ne sont plus lues nulle part,
+  // mais elles restaient dans le texte, donc visibles en mode edition.
+  //
+  // Verifiee avant execution sur le corpus du 2026-09-03, 143 pages : 254
+  // lignes retirees, dont 248 doublons exacts de parentId et 6 affirmations
+  // fausses (quatre pages deplacees ailleurs, une page supprimee, une relation
+  // perimee). Aucune relation vraie n'existait uniquement dans le texte, la
+  // suppression ne perd donc rien.
+  //
+  // Ne supprime jamais une page : elle ne touche qu'au contenu, ligne par
+  // ligne, sur un motif strict.
+  function stripStoredHierarchyLines() {
+    let changedNotes = 0;
+    let removedLines = 0;
+
+    context.state.notes.forEach((note) => {
+      const before = String(note.content || "");
+      const stripped = stripHierarchyLines(before);
+      if (stripped === before) {
+        return;
+      }
+
+      removedLines += before.split("\n").filter((line) => isHierarchyLine(line)).length;
+      // Un dossier dont le contenu n'etait que du rangement se retrouverait
+      // vide. On lui laisse son titre, la forme que createFolderNote donne
+      // deja a un dossier neuf.
+      note.content = stripped.trim() ? stripped : `# ${note.title}`;
+      note.updatedAt = new Date().toISOString();
+      changedNotes += 1;
+    });
+
+    return { changedNotes, removedLines };
+  }
+
+  function getPinnedFolders() {
+    return Array.isArray(context.state.settings.pinnedFolders)
+      ? context.state.settings.pinnedFolders
+      : [];
+  }
+
+  function isFolderPinned(noteId) {
+    return getPinnedFolders().includes(noteId);
+  }
+
+  // Un dossier deplace hors de la racine garde son epingle sans effet visible :
+  // la remettre a la main serait une corvee s'il revient a la racine plus tard.
+  function canPinFolder(note) {
+    return Boolean(note) && note.type === "folder" && !note.parentId;
+  }
+
+  function toggleFolderPin(noteId) {
+    if (!noteId) {
+      return;
+    }
+
+    context.state.settings.pinnedFolders = isFolderPinned(noteId)
+      ? getPinnedFolders().filter((id) => id !== noteId)
+      : [...getPinnedFolders(), noteId];
+
+    context.data.saveNotes();
+    context.renderers.renderKnowledgeList();
   }
 
   function isFolderCollapsed(noteId) {
@@ -716,8 +794,7 @@
     if (previousParentId && previousParentId !== current.parentId) {
       const previousParent = context.state.notes.find((note) => note.id === previousParentId);
       if (previousParent) {
-        previousParent.content = removeWikiLinkLine(previousParent.content, current.title);
-        current.content = removeWikiLinkLine(current.content, previousParent.title);
+        previousParent.updatedAt = new Date().toISOString();
       }
     }
 
@@ -947,8 +1024,7 @@
     if (previousParentId && previousParentId !== sanitizedParentId) {
       const previousParent = context.state.notes.find((candidate) => candidate.id === previousParentId);
       if (previousParent) {
-        previousParent.content = removeWikiLinkLine(previousParent.content, note.title);
-        note.content = removeWikiLinkLine(note.content, previousParent.title);
+        previousParent.updatedAt = new Date().toISOString();
       }
     }
 
@@ -1496,9 +1572,12 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
   }
 
   function isOrphanNote(note, sourceNotes = context.state.notes) {
-    const outgoing = unique(extractLinks(note.content));
+    const outgoing = unique(extractLinks(stripHierarchyLines(note.content)));
     const backlinks = sourceNotes.filter((candidate) => {
-      return candidate.id !== note.id && extractLinks(candidate.content).includes(note.title);
+      return (
+        candidate.id !== note.id &&
+        extractLinks(stripHierarchyLines(candidate.content)).includes(note.title)
+      );
     });
     const hasParent = Boolean(note.parentId);
     const hasChildren = sourceNotes.some((candidate) => candidate.parentId === note.id);
@@ -1560,6 +1639,10 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     openQuickCapture,
     discardPendingNewNote,
     removeWikiLinkLine,
+    canPinFolder,
+    stripStoredHierarchyLines,
+    isFolderPinned,
+    toggleFolderPin,
     resetDragState,
     sanitizeParentId,
     saveCurrentNote,
