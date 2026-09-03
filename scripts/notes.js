@@ -603,6 +603,10 @@
         );
       })
       .sort((left, right) => {
+        // Conflit resolu le 2026-09-03 : la branche distante triait sur
+        // `favorite`, ce qui aurait confondu epingler et mettre en favori, et
+        // aurait porte sur toutes les pages. L'epinglage garde donc son propre
+        // reglage, `settings.pinnedFolders`, reserve aux dossiers de la racine.
         const leftPinned = isFolderPinned(left.id);
         const rightPinned = isFolderPinned(right.id);
         if (leftPinned !== rightPinned) {

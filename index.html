@@ -159,7 +159,7 @@
 
               <label class="toggle-row" for="favorites-filter">
                 <input id="favorites-filter" type="checkbox" />
-                <span>Favoris seulement</span>
+                <span>Epingles seulement</span>
               </label>
 
               <button id="clear-filters-button" class="button button-inline" type="button">
@@ -312,7 +312,7 @@
               <select id="feed-type-filter" class="feed-filter-select" aria-label="Type de page"></select>
               <label class="feed-filter-toggle" for="feed-favorites-filter">
                 <input id="feed-favorites-filter" type="checkbox" />
-                <span>Favoris</span>
+                <span>Epingles</span>
               </label>
               <label class="feed-filter-toggle" for="feed-folders-filter">
                 <input id="feed-folders-filter" type="checkbox" checked />
@@ -399,7 +399,7 @@
                   <label class="field-label" for="note-title">Titre</label>
                   <span class="title-field-row">
                     <input id="note-title" class="text-input" type="text" placeholder="Titre" />
-                    <label class="favorite-star-toggle" for="note-favorite" title="Page favorite" aria-label="Page favorite">
+                    <label class="favorite-star-toggle" for="note-favorite" title="Epingler la page" aria-label="Epingler la page">
                       <input id="note-favorite" type="checkbox" />
                       <span aria-hidden="true">☆</span>
                     </label>
@@ -1456,6 +1456,7 @@
                   <table class="sport-table sport-performance-table">
                     <colgroup>
                       <col class="sport-handle-column" />
+                      <col class="sport-date-column" />
                       <col class="sport-exercise-column" />
                       <col class="sport-sets-column" />
                       <col class="sport-reps-column" />
@@ -1466,6 +1467,7 @@
                     <thead>
                       <tr>
                         <th class="sport-handle-header" aria-hidden="true"></th>
+                        <th class="sport-date-header">Date</th>
                         <th>Exercice</th>
                         <th>Ser.</th>
                         <th>Rep.</th>
