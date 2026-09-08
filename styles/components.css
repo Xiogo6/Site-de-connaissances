@@ -1175,6 +1175,34 @@ body[data-theme="dark"] .preview-note-card {
   margin-top: 1rem;
 }
 
+/* Le sous-titre reprenait la taille par defaut du navigateur, une fois et demie
+   le corps du texte : trois sous-titres suffisaient a pousser le contenu hors
+   de l'ecran du telephone. Il reste distinct du texte, mais cesse de dominer.
+   Le titre `#` garde sa taille : il est retire de la lecture des qu'il repete
+   le titre de la page, donc il ne coute presque jamais rien. */
+.rendered-note h2 {
+  font-size: 1.2em;
+  margin-top: 0.9rem;
+}
+
+/* Une ligne vide avant un sous-titre produit deja un espaceur : sa marge
+   propre s'y ajoutait, ce qui faisait 36 px de blanc au-dessus pour 23 px de
+   texte. Et l'espaceur qui le suivait le decollait de ce qu'il annonce. Un
+   titre se colle a son contenu et se detache de ce qui precede. */
+.rendered-note .note-blank-space + h1,
+.rendered-note .note-blank-space + h2,
+.feed-content .note-blank-space + h1,
+.feed-content .note-blank-space + h2 {
+  margin-top: 0;
+}
+
+.rendered-note h1 + .note-blank-space,
+.rendered-note h2 + .note-blank-space,
+.feed-content h1 + .note-blank-space,
+.feed-content h2 + .note-blank-space {
+  display: none;
+}
+
 .rendered-note p,
 .rendered-note ul {
   margin: 0;
@@ -1287,6 +1315,16 @@ body[data-theme="dark"] .preview-note-card {
   box-sizing: border-box;
   min-width: 0;
   width: 100%;
+}
+
+/* La hauteur est posee en ligne par autoGrowQuizField, d'apres le contenu.
+   Sans resize: none, la poignee du navigateur laisserait croire a un reglage
+   manuel que le prochain rendu effacerait. */
+.quiz-bank-table .quiz-question-input,
+.quiz-bank-table .quiz-answer-input {
+  line-height: 1.35;
+  overflow-y: hidden;
+  resize: none;
 }
 
 .quiz-session-validate-inline {
@@ -4234,6 +4272,14 @@ body.feed-refresh-complete .feed-refresh-indicator::before {
 .feed-content h2,
 .feed-content h3 {
   line-height: 1.15;
+}
+
+/* Meme traitement que dans la page : le feed rend le meme balisage, il n'y a
+   aucune raison que ses sous-titres soient plus gros ou plus espaces. */
+.feed-content h2 {
+  font-size: 1.2em;
+  margin-bottom: 0.42rem;
+  margin-top: 0.9rem;
 }
 
 .feed-card-footer {

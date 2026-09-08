@@ -1353,7 +1353,10 @@
       if (options.editable) {
         const input = document.createElement("textarea");
         input.className = "text-input quiz-question-input";
-        input.rows = 2;
+        // Deux lignes figees coupaient les questions longues : au telephone la
+        // zone montrait 82 px pour un texte qui en demandait 173, et il fallait
+        // faire defiler l'interieur du champ pour se relire.
+        input.rows = 1;
         input.dataset.quizQuestionField = "question";
         input.dataset.quizQuestionIndex = String(index);
         input.placeholder = "Question";
@@ -1372,9 +1375,12 @@
 
       const answersCell = document.createElement("td");
       if (options.editable) {
-        const input = document.createElement("input");
+        // Un input d'une seule ligne ne revient jamais a la ligne : plusieurs
+        // reponses debordaient hors du champ, lisibles seulement en le faisant
+        // defiler de cote. Une zone de texte s'agrandit a la place.
+        const input = document.createElement("textarea");
         input.className = "text-input quiz-answer-input";
-        input.type = "text";
+        input.rows = 1;
         input.dataset.quizQuestionField = "answers";
         input.dataset.quizQuestionIndex = String(index);
         input.placeholder = "Reponse 1, Reponse 2";
@@ -1396,7 +1402,18 @@
       row.appendChild(answersCell);
 
       container.appendChild(row);
+      // Apres insertion seulement : scrollHeight ne vaut rien hors du document.
+      row.querySelectorAll("[data-quiz-question-field]").forEach(autoGrowQuizField);
     });
+  }
+
+  function autoGrowQuizField(field) {
+    if (!field || typeof field.scrollHeight !== "number") {
+      return;
+    }
+
+    field.style.height = "auto";
+    field.style.height = `${Math.max(field.scrollHeight, 34)}px`;
   }
 
   function hasKnownStructuredDate(value) {
@@ -2379,6 +2396,7 @@
     renderPublishCenter,
     renderQuickCapture,
     renderAiSettings,
+    autoGrowQuizField,
     renderQuizQuestionBank,
     renderVisualizationMode,
     renderSidebarDrawer,

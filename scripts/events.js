@@ -1605,6 +1605,9 @@
     }
 
     beginQuizQuestionWriting();
+    // Le tableau ne se redessine pas tant qu'un champ a le focus : la hauteur
+    // doit donc suivre la frappe ici, sinon elle ne bougerait qu'apres coup.
+    context.renderers.autoGrowQuizField?.(input);
     const index = Number(input.dataset.quizQuestionIndex);
     const field = input.dataset.quizQuestionField;
     const draft = context.state.editorQuizQuestions[index];
@@ -1618,7 +1621,7 @@
 
     if (field === "answers") {
       draft.answers = input.value
-        .split(",")
+        .split(/[,\n]/)
         .map((value) => value.trim())
         .filter(Boolean);
     }
