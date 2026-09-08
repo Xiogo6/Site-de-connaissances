@@ -144,7 +144,7 @@ Une page a ouvrir, rien a installer :
 tests/index.html
 ```
 
-Ouverte par double-clic, la page fonctionne : 44 tests s'executent. Cinq
+Ouverte par double-clic, la page fonctionne : 48 tests s'executent. Cinq
 lisent les fichiers du projet et ont besoin d'une vraie adresse HTTP, car le
 navigateur bloque ces lectures en `file://` ; ils sont alors ignores, et la
 page explique comment les lancer.

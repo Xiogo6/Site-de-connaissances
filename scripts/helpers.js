@@ -421,7 +421,11 @@
 
       flushBlankSpacing();
 
-      const checklistMatch = trimmed.match(/^-\s+\[( |x|X)\]\s+(.*)$/);
+      // Le marqueur `*` est accepte a l'egal de `-`. Sept pages ecrites avant
+      // que le prompt n'impose `-` s'affichaient sinon en paragraphes, avec
+      // l'etoile visible a l'ecran. L'espace apres le marqueur est exige :
+      // sans lui, `*Important*` serait pris pour une puce au lieu d'un italique.
+      const checklistMatch = trimmed.match(/^[-*]\s+\[( |x|X)\]\s+(.*)$/);
       if (checklistMatch) {
         flushParagraph();
         const checked = checklistMatch[1].toLowerCase() === "x";
@@ -434,9 +438,12 @@
         return;
       }
 
-      if (trimmed.startsWith("- ")) {
+      // La capture par groupe remplace un slice(2) qui supposait un espace unique :
+      // `*   Le drapeau` laissait deux espaces en tete du texte rendu.
+      const bulletMatch = trimmed.match(/^[-*]\s+(.*)$/);
+      if (bulletMatch) {
         flushParagraph();
-        listBuffer.push(`<li>${renderInline(trimmed.slice(2))}</li>`);
+        listBuffer.push(`<li>${renderInline(bulletMatch[1])}</li>`);
         return;
       }
 

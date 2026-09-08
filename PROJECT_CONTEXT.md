@@ -47,7 +47,7 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
   tokens, base, layout, components, features, themes. Chaque couche affine la
   precedente : c est voulu, pas un accident.
 - `tests/index.html`
-  44 tests a ouvrir dans un navigateur, sans dependance ni etape de build.
+  48 tests a ouvrir dans un navigateur, sans dependance ni etape de build.
   Servir en HTTP, sinon cinq tests sont ignores. Voir le README.
 - `scripts/version.sh`
   Avance d un cran les vingt-et-une references `?v=` de index.html et le

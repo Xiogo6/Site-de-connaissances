@@ -472,6 +472,20 @@
       attendre(helpers.renderNoteHtml("- [x] fait")).contient("checked");
     });
 
+    // Sept pages ecrites avant que le prompt n'impose `-` utilisent `*`. Elles
+    // s'affichaient en paragraphes, l'etoile visible a l'ecran.
+    test("l'etoile vaut aussi marqueur de puce", () => {
+      attendre(helpers.renderNoteHtml("*   un\n*   deux")).contient("<li>un</li>");
+      attendre(helpers.renderNoteHtml("* [x] fait")).contient("checked");
+    });
+
+    // Le garde-fou de la regle precedente : sans espace apres l'etoile, c'est
+    // un italique, et le confondre avec une puce mangerait la mise en forme.
+    test("l'italique en debut de ligne n'est pas pris pour une puce", () => {
+      attendre(helpers.renderNoteHtml("*Important* : ceci")).contient("<em>Important</em>");
+      attendre(helpers.renderNoteHtml("*Important* : ceci")).neContientPas("<li>");
+    });
+
     test("extractLinks retrouve les liens wiki", () => {
       attendre(helpers.extractLinks("voir [[A]] et [[B]]")).equivaut(["A", "B"]);
       attendre(helpers.extractLinks("aucun lien")).equivaut([]);
