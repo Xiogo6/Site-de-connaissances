@@ -25,12 +25,19 @@
     // dans lequel on se promene.
     const LAYOUT_FILL = 0.72;
 
-    // Les distances de la disposition sont multipliees par ce facteur, mais
-    // pas le rayon des noeuds ni la taille des etiquettes. C'est le seul
-    // reglage qui cree vraiment de l'air : agrandir tout dans les memes
-    // proportions redonne exactement la meme image, en plus petit.
+    // L'air entre les points vient de la repulsion, la longueur des traits
+    // vient des ressorts. Les deux etaient etires ensemble par un meme
+    // facteur : les liens mesuraient alors 385 unites a l'equilibre, d'ou ces
+    // traits interminables. La repulsion garde son etalement -- c'est elle qui
+    // cree l'espace -- mais les ressorts sont raccourcis et raidis, ce qui
+    // ramene les pages liees les unes contre les autres. Des amas denses
+    // separes par du vide : c'est ce qui donne l'aspect nuageux.
     const LAYOUT_SPREAD = 2.2;
-    const REPULSION = 10000 * LAYOUT_SPREAD * LAYOUT_SPREAD * LAYOUT_SPREAD;
+    const REPULSION = 40000;
+    const EDGE_LENGTH = 150;
+    const TAG_EDGE_LENGTH = 120;
+    const EDGE_STIFFNESS = 0.06;
+    const CENTER_PULL = 0.002;
 
     // Le zoom vaut le nombre de pixels par unite du monde. Au zoom 1 un noeud
     // occupe a l'ecran exactement ce qu'il occupait avant ce changement.
@@ -79,6 +86,12 @@
     // le tout en O(N2) et en bloquant l'onglet. Les conserver rend ce cout
     // ponctuel au lieu de quotidien, sans changer le dessin obtenu.
     const graphPositionsStorageKey = `${AtlasApp.config.appStorageKey}-graph-positions`;
+
+    // A incrementer des que la facon de placer les pages change. Les positions
+    // enregistrees ne sont validees que sur la taille du monde, qui elle ne
+    // bouge pas : sans ce numero, une nouvelle disposition ne serait jamais
+    // vue, l'ancienne etant relue telle quelle a chaque ouverture.
+    const LAYOUT_VERSION = 2;
     let savePositionsTimer = null;
 
     // Une seule disposition, desormais. Il fallait auparavant en garder une
@@ -96,6 +109,11 @@
         const parse = brut ? JSON.parse(brut) : null;
         const entree = parse && typeof parse === "object" ? parse[mode] : null;
         if (!entree || typeof entree.positions !== "object") {
+          return new Map();
+        }
+
+        // Disposition calculee par une version anterieure du placement.
+        if (entree.version !== LAYOUT_VERSION) {
           return new Map();
         }
 
@@ -143,7 +161,7 @@
           // indefiniment dans le stockage.
           window.localStorage.setItem(
             graphPositionsStorageKey,
-            JSON.stringify({ [mode]: { width, height, positions } })
+            JSON.stringify({ [mode]: { version: LAYOUT_VERSION, width, height, positions } })
           );
         } catch (error) {
           // Le graphe se recalculera au prochain chargement : rien de perdu.
@@ -221,7 +239,7 @@
         return;
       }
       dejaVues.add(cle);
-      edges.push({ from, to, kind: "note", distance: 140 * LAYOUT_SPREAD });
+      edges.push({ from, to, kind: "note", distance: EDGE_LENGTH });
     };
 
     notes.forEach((note) => {
@@ -265,7 +283,7 @@
               from: note.id,
               to: tagId,
               kind: "tag",
-              distance: 110 * LAYOUT_SPREAD,
+              distance: TAG_EDGE_LENGTH,
             });
           });
       });
@@ -304,6 +322,31 @@
     return { width: WORLD_WIDTH, height: WORLD_HEIGHT };
   }
 
+  // Le nuage tient dans l'ellipse inscrite dans la boite. Borner en x et en y
+  // separement refoulait les noeuds le long de quatre cotes droits et leur
+  // faisait des coins : le graphe finissait rectangulaire alors que rien dans
+  // les forces ne le demandait.
+  function getLayoutEllipse(box = getLayoutBox()) {
+    return {
+      centreX: box.x + box.width / 2,
+      centreY: box.y + box.height / 2,
+      rayonX: box.width / 2,
+      rayonY: box.height / 2,
+    };
+  }
+
+  function containInEllipse(position, ellipse) {
+    const dx = (position.x - ellipse.centreX) / ellipse.rayonX;
+    const dy = (position.y - ellipse.centreY) / ellipse.rayonY;
+    const distance = Math.hypot(dx, dy);
+    if (distance <= 1) {
+      return;
+    }
+
+    position.x = ellipse.centreX + (dx / distance) * ellipse.rayonX;
+    position.y = ellipse.centreY + (dy / distance) * ellipse.rayonY;
+  }
+
   // La zone dans laquelle la disposition est calculee : le centre du monde.
   // Ce qui deborde autour est le vide qu'on parcourt.
   function getLayoutBox() {
@@ -334,32 +377,80 @@
     return { width: viewport.width / safeZoom, height: viewport.height / safeZoom };
   }
 
+  function hashOfId(id) {
+    let hash = 0;
+    for (let index = 0; index < id.length; index += 1) {
+      hash = (hash * 31 + id.charCodeAt(index)) >>> 0;
+    }
+    return hash;
+  }
+
+  // Chaque page se pose en couronne autour d'une voisine deja placee, et
+  // seules les tetes de composante sont semees sur la spirale doree. Le semis
+  // precedent placait tout le monde sur la spirale, par nombre de liens : deux
+  // pages liees pouvaient donc demarrer aux deux bouts du graphe, et les
+  // ressorts n'avaient pas de quoi les rapprocher en 180 passes. D'ou des
+  // traits de 369 unites en moyenne pour une distance de repos de 150.
   function initializeOrganicPositions(graph, width, height, degreeByNode) {
+    const adjacency = buildAdjacency(graph);
     const activeId = context.notes.getActiveNote()?.id;
-    const nodes = [...graph.nodes].sort((left, right) => {
-      if (left.id === activeId) return -1;
-      if (right.id === activeId) return 1;
-      return (degreeByNode.get(right.id) || 0) - (degreeByNode.get(left.id) || 0);
-    });
-    const positions = new Map();
     const centerX = width / 2;
     const centerY = height / 2;
     const radiusX = width * 0.44;
     const radiusY = height * 0.44;
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    const positions = new Map();
+    const visited = new Set();
 
-    nodes.forEach((node, index) => {
-      const progress = nodes.length <= 1 ? 0 : Math.sqrt(index / (nodes.length - 1));
-      let hash = 0;
-      for (let characterIndex = 0; characterIndex < node.id.length; characterIndex += 1) {
-        hash = (hash * 31 + node.id.charCodeAt(characterIndex)) >>> 0;
+    const parDegreDecroissant = [...graph.nodes].sort((left, right) => {
+      if (left.id === activeId) return -1;
+      if (right.id === activeId) return 1;
+      return (degreeByNode.get(right.id) || 0) - (degreeByNode.get(left.id) || 0);
+    });
+
+    let grainesPlacees = 0;
+    const total = Math.max(graph.nodes.length - 1, 1);
+
+    parDegreDecroissant.forEach((racine) => {
+      if (visited.has(racine.id)) {
+        return;
       }
-      const angle = index * goldenAngle + ((hash % 37) / 37) * 0.48;
-      positions.set(node.id, {
-        x: centerX + Math.cos(angle) * radiusX * progress,
-        y: centerY + Math.sin(angle) * radiusY * progress,
+
+      // La tete de composante prend sa place sur la spirale : les composantes
+      // se repartissent ainsi dans toute l'ellipse au lieu de se superposer.
+      const progress = Math.sqrt(grainesPlacees / total);
+      const angleGraine = grainesPlacees * goldenAngle;
+      positions.set(racine.id, {
+        x: centerX + Math.cos(angleGraine) * radiusX * progress,
+        y: centerY + Math.sin(angleGraine) * radiusY * progress,
         locked: false,
       });
+      visited.add(racine.id);
+      grainesPlacees += 1;
+
+      const file = [racine.id];
+      while (file.length) {
+        const parentId = file.shift();
+        const parent = positions.get(parentId);
+        const enfants = [...(adjacency.get(parentId) || [])].filter((id) => !visited.has(id));
+
+        enfants.forEach((id, index) => {
+          visited.add(id);
+          const hash = hashOfId(id);
+          // Une couronne autour du parent, decalee par le nom pour que deux
+          // fratries voisines ne se superposent pas -- et de facon
+          // reproductible : la meme page retrouve la meme place.
+          const angle =
+            (index / Math.max(enfants.length, 1)) * Math.PI * 2 + ((hash % 360) / 360) * 0.9;
+          const rayon = EDGE_LENGTH * (0.85 + ((hash >> 9) % 100) / 100 * 0.5);
+          positions.set(id, {
+            x: parent.x + Math.cos(angle) * rayon,
+            y: parent.y + Math.sin(angle) * rayon,
+            locked: false,
+          });
+          file.push(id);
+        });
+      }
     });
 
     return positions;
@@ -530,79 +621,6 @@
     return adjacency;
   }
 
-  function computeLevels(rootId, adjacency, visited) {
-    const queue = [rootId];
-    const levels = new Map([[rootId, 0]]);
-    visited.add(rootId);
-
-    while (queue.length) {
-      const current = queue.shift();
-      const currentLevel = levels.get(current) || 0;
-      (adjacency.get(current) || []).forEach((neighbor) => {
-        if (visited.has(neighbor)) {
-          return;
-        }
-        visited.add(neighbor);
-        levels.set(neighbor, currentLevel + 1);
-        queue.push(neighbor);
-      });
-    }
-
-    return levels;
-  }
-
-  function segmentIntersects(a, b, c, d) {
-    const cross = (p1, p2, p3) =>
-      (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x);
-
-    const denominator =
-      (b.x - a.x) * (d.y - c.y) - (b.y - a.y) * (d.x - c.x);
-
-    if (Math.abs(denominator) < 0.0001) {
-      return false;
-    }
-
-    const t = ((c.x - a.x) * (d.y - c.y) - (c.y - a.y) * (d.x - c.x)) / denominator;
-    const u = ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x)) / denominator;
-
-    if (t <= 0 || t >= 1 || u <= 0 || u >= 1) {
-      return false;
-    }
-
-    const acb = cross(a, c, b);
-    const adb = cross(a, d, b);
-    const cad = cross(c, a, d);
-    const cbd = cross(c, b, d);
-    return acb * adb < 0 && cad * cbd < 0;
-  }
-
-  function countEdgeCrossings(graph, positions) {
-    let total = 0;
-    for (let i = 0; i < graph.edges.length; i += 1) {
-      for (let j = i + 1; j < graph.edges.length; j += 1) {
-        const first = graph.edges[i];
-        const second = graph.edges[j];
-        if (
-          first.from === second.from ||
-          first.from === second.to ||
-          first.to === second.from ||
-          first.to === second.to
-        ) {
-          continue;
-        }
-
-        const a = positions.get(first.from);
-        const b = positions.get(first.to);
-        const c = positions.get(second.from);
-        const d = positions.get(second.to);
-        if (a && b && c && d && segmentIntersects(a, b, c, d)) {
-          total += 1;
-        }
-      }
-    }
-    return total;
-  }
-
   // La disposition est calculee dans un repere local qui part de zero, puis
   // deposee au centre du monde. Les fonctions ci-dessous n'ont donc pas a
   // savoir ou se trouve la boite : elles raisonnent sur sa seule taille.
@@ -615,145 +633,26 @@
     return positions;
   }
 
+  // Une seule disposition, en nuage. Sur grand ecran le graphe etait dispose
+  // en couches : les niveaux etales sur toute la largeur, les composantes
+  // empilees en couloirs horizontaux. D'ou une silhouette rectangulaire et
+  // des traits qui traversaient l'ecran de part en part. Le semis en spirale
+  // dore, jusqu'ici reserve au telephone, part d'un disque et laisse les
+  // forces faire le reste.
   function computeLayoutPositions(graph, width, height) {
     const adjacency = buildAdjacency(graph);
     const degreeByNode = new Map(
       graph.nodes.map((node) => [node.id, (adjacency.get(node.id) || new Set()).size])
     );
 
-    if (isCompactGraphViewport()) {
-      return initializeOrganicPositions(graph, width, height, degreeByNode);
-    }
-
-    const activeId = context.notes.getActiveNote()?.id;
-    const remaining = [...graph.nodes].sort((left, right) => {
-      if (left.id === activeId) {
-        return -1;
-      }
-      if (right.id === activeId) {
-        return 1;
-      }
-      return (degreeByNode.get(right.id) || 0) - (degreeByNode.get(left.id) || 0);
-    });
-    const visited = new Set();
-    const components = [];
-
-    remaining.forEach((node) => {
-      if (visited.has(node.id)) {
-        return;
-      }
-      const levels = computeLevels(node.id, adjacency, visited);
-      components.push({ rootId: node.id, levels });
-    });
-
-    const laneCount = Math.max(components.length, 1);
-    const laneHeight = (height - 48) / laneCount;
-    const positions = new Map();
-
-    components.forEach((component, componentIndex) => {
-      const levelsMap = new Map();
-      component.levels.forEach((level, nodeId) => {
-        if (!levelsMap.has(level)) {
-          levelsMap.set(level, []);
-        }
-        levelsMap.get(level).push(nodeId);
-      });
-
-      const maxLevel = Math.max(...levelsMap.keys(), 0);
-      const sortedLevels = [...levelsMap.keys()].sort((left, right) => left - right);
-      const laneTop = 24 + componentIndex * laneHeight;
-      const laneCenter = laneTop + laneHeight / 2;
-
-      sortedLevels.forEach((level, index) => {
-        const ids = levelsMap.get(level);
-        const previousIds = levelsMap.get(level - 1) || [];
-        if (previousIds.length) {
-          ids.sort((leftId, rightId) => {
-            const leftNeighbors = [...(adjacency.get(leftId) || [])].filter((neighbor) =>
-              previousIds.includes(neighbor)
-            );
-            const rightNeighbors = [...(adjacency.get(rightId) || [])].filter((neighbor) =>
-              previousIds.includes(neighbor)
-            );
-            const barycenter = (neighbors) =>
-              neighbors.length
-                ? neighbors.reduce((sum, neighbor) => sum + previousIds.indexOf(neighbor), 0) /
-                  neighbors.length
-                : Number.MAX_SAFE_INTEGER;
-            return barycenter(leftNeighbors) - barycenter(rightNeighbors);
-          });
-        } else {
-          ids.sort((leftId, rightId) =>
-            (degreeByNode.get(rightId) || 0) - (degreeByNode.get(leftId) || 0)
-          );
-        }
-
-        const x =
-          maxLevel === 0
-            ? width / 2
-            : 90 + (index / Math.max(sortedLevels.length - 1, 1)) * (width - 180);
-        const stepY = laneHeight / Math.max(ids.length + 1, 2);
-        ids.forEach((nodeId, nodeIndex) => {
-          positions.set(nodeId, {
-            x,
-            y: laneCenter - (laneHeight / 2) + stepY * (nodeIndex + 1),
-            locked: false,
-          });
-        });
-      });
-    });
-
-    const levelEntries = new Map();
-    components.forEach((component) => {
-      component.levels.forEach((level, nodeId) => {
-        if (!levelEntries.has(level)) {
-          levelEntries.set(level, []);
-        }
-        levelEntries.get(level).push(nodeId);
-      });
-    });
-
-    [...levelEntries.values()].forEach((ids) => {
-      for (let pass = 0; pass < 3; pass += 1) {
-        for (let index = 0; index < ids.length - 1; index += 1) {
-          const firstId = ids[index];
-          const secondId = ids[index + 1];
-          const firstPosition = positions.get(firstId);
-          const secondPosition = positions.get(secondId);
-          const currentCrossings = countEdgeCrossings(graph, positions);
-          positions.set(firstId, { ...firstPosition, y: secondPosition.y });
-          positions.set(secondId, { ...secondPosition, y: firstPosition.y });
-          const swappedCrossings = countEdgeCrossings(graph, positions);
-          if (swappedCrossings <= currentCrossings) {
-            ids[index] = secondId;
-            ids[index + 1] = firstId;
-          } else {
-            positions.set(firstId, firstPosition);
-            positions.set(secondId, secondPosition);
-          }
-        }
-      }
-    });
-
-    graph.nodes.forEach((node) => {
-      const position = positions.get(node.id);
-      if (!position) {
-        positions.set(node.id, {
-          x: width / 2,
-          y: height / 2,
-          locked: false,
-        });
-      }
-    });
-
-    return positions;
+    return initializeOrganicPositions(graph, width, height, degreeByNode);
   }
 
   // Un nouveau noeud apparait au barycentre de ses voisins deja places,
   // legerement decale pour ne pas se superposer. Sans voisin connu, au centre.
   function placeNewNodes(nodes, adjacency) {
-    const world = getWorldSize();
     const box = getLayoutBox();
+    const ellipse = getLayoutEllipse(box);
     nodes.forEach((node, index) => {
       const voisins = [...(adjacency.get(node.id) || [])]
         .map((id) => context.state.graphPositions.get(id))
@@ -767,12 +666,14 @@
         : { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 
       const angle = (index / Math.max(nodes.length, 1)) * Math.PI * 2;
-      const ecart = 46 * LAYOUT_SPREAD;
-      context.state.graphPositions.set(node.id, {
-        x: clamp(base.x + Math.cos(angle) * ecart, 38, world.width - 38),
-        y: clamp(base.y + Math.sin(angle) * ecart, 38, world.height - 38),
+      const ecart = EDGE_LENGTH * 0.6;
+      const position = {
+        x: base.x + Math.cos(angle) * ecart,
+        y: base.y + Math.sin(angle) * ecart,
         locked: false,
-      });
+      };
+      containInEllipse(position, ellipse);
+      context.state.graphPositions.set(node.id, position);
     });
   }
 
@@ -970,6 +871,8 @@
           : 0;
     graphLayoutNeedsSettling = false;
 
+    const ellipse = getLayoutEllipse();
+
     for (let pass = 0; pass < simulationPasses; pass += 1) {
       const forces = new Map(graph.nodes.map((node) => [node.id, { x: 0, y: 0 }]));
 
@@ -1008,7 +911,7 @@
         let dx = to.x - from.x;
         let dy = to.y - from.y;
         const distance = Math.max(Math.hypot(dx, dy), 1);
-        const spring = (distance - edge.distance) * 0.008;
+        const spring = (distance - edge.distance) * EDGE_STIFFNESS;
         dx /= distance;
         dy /= distance;
 
@@ -1029,14 +932,9 @@
         }
 
         const force = forces.get(node.id);
-        position.x += force.x + (centerX - position.x) * 0.002;
-        position.y += force.y + (centerY - position.y) * 0.002;
-        // Les noeuds restent dans le monde, mais sans etre plaques contre ses
-        // bords : la marge garantit qu'il y a toujours du vide au-dela du nuage.
-        const margeX = width * 0.06;
-        const margeY = height * 0.06;
-        position.x = context.helpers.clamp(position.x, margeX, width - margeX);
-        position.y = context.helpers.clamp(position.y, margeY, height - margeY);
+        position.x += force.x + (centerX - position.x) * CENTER_PULL;
+        position.y += force.y + (centerY - position.y) * CENTER_PULL;
+        containInEllipse(position, ellipse);
       });
     }
 
