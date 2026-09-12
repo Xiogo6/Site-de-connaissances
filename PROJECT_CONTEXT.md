@@ -295,6 +295,27 @@ vit dans `data.js` que cette page ne charge pas. Sans elles, une premiere
 ouverture par l icone dediee n installerait jamais le cache, sans rien signaler
 tant qu il y a du reseau.
 
+### Debit audio, a regler avant la phase 2
+
+Safari enregistre par defaut autour de 128 kbit/s, soit 0,9 Mo la minute et
+9 Mo au plafond de dix minutes. Mesure du 2026-09-12 sur iPhone : 13 s de
+dictee pesaient 200 Ko.
+
+Ces fichiers n ont qu un seul auditeur, Gemini, et n existent que pour etre
+transcrits. Toute qualite au dela de l intelligibilite est donc perdue.
+`audioBitsPerSecond: 32000` a la creation du MediaRecorder divise le poids par
+quatre sans rien couter a la transcription : le telephone classique tourne a
+13 kbit/s.
+
+Le stockage local n est pas le probleme, vingt dictees en attente font vingt
+megaoctets. Ce qui coince est l envoi : Gemini recoit l audio encode en base64,
+ce qui gonfle de 33 %, et une requete de 12 Mo approche la limite au dela de
+laquelle il faut passer par une API de fichiers separee, donc par plus de code.
+S y ajoute le temps d envoi en 4G.
+
+Corollaire : une fois la transcription obtenue et verifiee, l audio n a plus de
+raison d etre conserve. La file est un tampon, pas une archive.
+
 ### Cloisonnement du stockage, mesure et non suppose
 
 Deux applications installees depuis la meme origine recoivent chacune leur
