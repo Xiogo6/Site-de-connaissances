@@ -263,6 +263,22 @@
       context.renderers.renderEverything();
     });
 
+    // La croix vide le champ et rend le focus : sans le focus, le clavier du
+    // telephone se referme et il faut retoucher le champ pour repartir.
+    context.elements.searchClear?.addEventListener("click", () => {
+      context.elements.searchInput.value = "";
+      context.state.filter = "";
+      context.elements.searchInput.focus();
+      context.renderers.renderEverything();
+    });
+
+    context.elements.feedSearchClear?.addEventListener("click", () => {
+      context.elements.feedSearchInput.value = "";
+      context.state.feedFilter = "";
+      context.elements.feedSearchInput.focus();
+      context.renderers.renderFeed();
+    });
+
     context.elements.filtersToggleButton.addEventListener("click", () => {
       context.state.sidebarFiltersOpen = !context.state.sidebarFiltersOpen;
       context.renderers.renderFiltersPanel();
@@ -276,12 +292,12 @@
         context.renderers.renderFeed();
       });
     });
+    // La recherche du feed est independante de celle de la bibliotheque : elle
+    // ecrit dans son propre etat et ne recopie plus sa valeur dans l'autre
+    // champ. Le type de page et les favoris, eux, restent communs.
     context.elements.feedSearchInput?.addEventListener("input", (event) => {
-      context.state.filter = event.target.value.trim().toLowerCase();
-      if (context.elements.searchInput) {
-        context.elements.searchInput.value = context.state.filter;
-      }
-      context.renderers.renderEverything();
+      context.state.feedFilter = event.target.value.trim().toLowerCase();
+      context.renderers.renderFeed();
     });
     context.elements.feedTypeFilter?.addEventListener("change", (event) => {
       context.state.typeFilter = event.target.value;
@@ -341,6 +357,7 @@
 
     context.elements.clearFiltersButton.addEventListener("click", () => {
       context.state.filter = "";
+      context.state.feedFilter = "";
       context.state.typeFilter = "all";
       context.state.tagFilter = "all";
       context.state.favoritesOnly = false;
@@ -416,6 +433,11 @@
     context.elements.aiQuestionsButton?.addEventListener("click", handleAiQuestionsClick);
     context.elements.aiPlacementButton?.addEventListener("click", handleAiPlacementClick);
     context.elements.aiPlacementSuggestion?.addEventListener("click", handlePlacementSuggestionClick);
+    context.elements.aiFactCheck?.addEventListener("click", (event) => {
+      if (event.target.closest("[data-dismiss-fact-check]")) {
+        context.ai?.clearFactCheck?.();
+      }
+    });
     context.elements.aiUndoButton?.addEventListener("click", handleAiUndoRewriteClick);
     context.elements.aiApiKeyInput?.addEventListener("input", () => {
       context.state.aiConfig = {
@@ -1107,6 +1129,7 @@
 
   function clearFeedFilters() {
     context.state.filter = "";
+    context.state.feedFilter = "";
     context.state.typeFilter = "all";
     context.state.tagFilter = "all";
     context.state.favoritesOnly = false;

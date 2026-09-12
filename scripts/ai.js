@@ -178,13 +178,23 @@
         );
 
         const payload = parseJsonPayload(content);
-        const rewrittenContent = normalizeRewritePayload(payload, draftTitle, note);
+        const { content: rewrittenContent, factCheck } = normalizeRewritePayload(
+          payload,
+          draftTitle,
+          note
+        );
         applyRewriteResult(note, rewrittenContent, draftTitle);
+        context.state.aiFactCheck = factCheck.length ? { noteId: note.id, entries: factCheck } : null;
+        context.renderers.renderFactCheck();
 
         setStatus({
           busy: false,
           type: "success",
-          message: "Reecriture appliquee. Tu peux l'annuler si besoin.",
+          message: factCheck.length
+            ? `Reecriture appliquee. ${factCheck.length} point${
+                factCheck.length > 1 ? "s" : ""
+              } a verifier.`
+            : "Reecriture appliquee. Tu peux l'annuler si besoin.",
           error: "",
           lastRunAt: new Date().toISOString(),
         });
@@ -428,6 +438,11 @@
       }
     }
 
+    function clearFactCheck() {
+      context.state.aiFactCheck = null;
+      context.renderers?.renderFactCheck?.();
+    }
+
     function clearPlacementSuggestion() {
       context.state.aiPlacementSuggestion = null;
       context.renderers?.renderEditorPlacementSuggestion?.();
@@ -549,6 +564,10 @@
       );
       context.state.editorQuizQuestionsNoteId = note.id;
       context.notes.handleEditorContentChange();
+      // Les signalements portaient sur le texte reecrit : annuler celui-ci les
+      // rend caducs.
+      context.state.aiFactCheck = null;
+      context.renderers?.renderFactCheck?.();
       clearRewriteBackup();
       context.notes.saveCurrentNote({ stayInEdit: true });
       setStatus({
@@ -616,25 +635,34 @@
 
     function buildRewritePrompt({ title, type, metadata, content }) {
       return [
-        "Tu es un correcteur qui relit une note personnelle. Tu ne l'enrichis pas.",
+        "Tu relis une note personnelle. Tu la reecris sans en changer le sens, et tu verifies ce qu elle affirme.",
         "",
         "Regle principale :",
-        "- tu n'ajoutes aucune information qui n'est pas deja dans la note",
-        "- le plafond porte sur le propos, pas sur le nombre de caracteres : corriger une faute ou aerer un paragraphe a le droit d'allonger le texte",
-        "- en cas d'hesitation sur le fond, choisis toujours la version la plus courte",
+        "- le sens ne change pas : ce que dit la note doit rester ce qu elle dit",
+        "- tu peux ajouter une precision courte quand une idee reste incomprehensible sans elle, jamais plus d une par idee",
+        "- une precision tient en une proposition, pas en un paragraphe",
+        "- en cas d hesitation sur le fond, choisis toujours la version la plus courte",
         "",
         "Objectif :",
-        "- corriger l'orthographe, la grammaire et la ponctuation",
+        "- corriger l orthographe, la grammaire et la ponctuation",
         "- reformuler au plus court et au plus simple",
         "- clarifier sans changer le sens",
         "- garder toutes les informations deja presentes",
         "- conserver le titre fourni sans le changer",
         "",
+        "Verification :",
+        "- verifie les affirmations verifiables de la note",
+        "- une affirmation fausse : corrige-la dans le texte, et signale-la",
+        "- une affirmation debattue ou sans consensus : laisse le texte tel quel, et signale-la",
+        "- ne signale rien d autre : ni le style, ni l orthographe, ni une reformulation que tu as faite",
+        "- ne signale jamais ce qui releve du vecu, de l opinion, d un projet ou d une note personnelle : ces phrases ne sont ni vraies ni fausses",
+        "- si tu n es pas sur de ton propre savoir, ne signale rien : mieux vaut manquer une erreur qu alerter a tort",
+        "- si la note ne contient aucune affirmation verifiable, renvoie une liste vide",
+        "",
         "Interdictions :",
-        "- ne pas ajouter de definition, de date, de contexte ou d exemple absent de la note",
-        "- ne pas completer une information partielle avec tes connaissances",
+        "- ne pas transformer la note en article : aucune nouvelle section, aucune rubrique, aucune liste de definitions",
         "- ne pas developper un point que la note se contente d evoquer",
-        "- ne pas creer de section ou de rubrique qui n existe pas deja",
+        "- ne pas depasser une fois et demie la longueur d origine",
         "- ne pas generer de questions",
         "",
         "Decoupage :",
@@ -654,8 +682,11 @@
         "",
         "Contraintes de sortie :",
         '- retourne uniquement un JSON valide, sans markdown ni commentaire',
-        '- le JSON doit contenir uniquement la cle "content"',
+        '- le JSON doit contenir les cles "content" et "factCheck"',
         "- content doit commencer par la ligne # avec le titre fourni",
+        '- factCheck est un tableau d objets avec les cles "claim" et "issue"',
+        '- "claim" recopie la phrase en cause, "issue" dit en une phrase courte ce qui ne va pas',
+        "- factCheck vaut [] quand il n y a rien a signaler, ce qui doit etre le cas le plus frequent",
         "",
         `Titre: ${title}`,
         `Type: ${type}`,
@@ -752,7 +783,23 @@
         throw new Error("La reponse ne contient pas de contenu exploitable.");
       }
 
-      return content;
+      return { content, factCheck: normalizeFactCheck(payload?.factCheck) };
+    }
+
+    // Un signalement sans phrase citee est inexploitable : impossible de savoir
+    // ce qu'il vise. On le jette plutot que d'afficher une alerte creuse.
+    function normalizeFactCheck(raw) {
+      if (!Array.isArray(raw)) {
+        return [];
+      }
+
+      return raw
+        .map((entree) => ({
+          claim: String(entree?.claim || "").trim(),
+          issue: String(entree?.issue || "").trim(),
+        }))
+        .filter((entree) => entree.claim && entree.issue)
+        .slice(0, 8);
     }
 
     function normalizeQuestionPayload(payload, note) {
@@ -864,6 +911,7 @@
       loadConfig,
       restoreLastRewrite,
       rewriteActiveNote,
+      clearFactCheck,
       clearPlacementSuggestion,
       saveConfig,
       setStatus,

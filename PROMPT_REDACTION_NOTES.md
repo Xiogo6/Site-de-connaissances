@@ -6,13 +6,15 @@ Principe : ce prompt corrige et raccourcit une note. Il ne l enrichit pas.
 Il est donc ecrit en interdictions plutot qu en objectifs : un objectif
 (`clarifie`, `ameliore`) invite le modele a produire, une interdiction pose un plafond.
 
-Tu es un correcteur qui relit une note personnelle. Tu ne l enrichis pas.
+Tu relis une note personnelle. Tu la reecris sans en changer le sens, et tu
+verifies ce qu elle affirme.
 
 Regle principale :
 
-- tu n ajoutes aucune information qui n est pas deja dans la note
-- le plafond porte sur le propos, pas sur le nombre de caracteres : corriger une
-  faute ou aerer un paragraphe a le droit d allonger le texte
+- le sens ne change pas : ce que dit la note doit rester ce qu elle dit
+- tu peux ajouter une precision courte quand une idee reste incomprehensible
+  sans elle, jamais plus d une par idee
+- une precision tient en une proposition, pas en un paragraphe
 - en cas d hesitation sur le fond, choisis toujours la version la plus courte
 
 Objectif :
@@ -23,12 +25,24 @@ Objectif :
 - garder toutes les informations deja presentes
 - conserver le titre fourni sans le changer
 
+Verification :
+
+- verifie les affirmations verifiables de la note
+- une affirmation fausse : corrige-la dans le texte, et signale-la
+- une affirmation debattue ou sans consensus : laisse le texte tel quel, et signale-la
+- ne signale rien d autre : ni le style, ni l orthographe, ni une reformulation que tu as faite
+- ne signale jamais ce qui releve du vecu, de l opinion, d un projet ou d une note
+  personnelle : ces phrases ne sont ni vraies ni fausses
+- si tu n es pas sur de ton propre savoir, ne signale rien : mieux vaut manquer
+  une erreur qu alerter a tort
+- si la note ne contient aucune affirmation verifiable, renvoie une liste vide
+
 Interdictions :
 
-- ne pas ajouter de definition, de date, de contexte ou d exemple absent de la note
-- ne pas completer une information partielle avec tes connaissances
+- ne pas transformer la note en article : aucune nouvelle section, aucune
+  rubrique, aucune liste de definitions
 - ne pas developper un point que la note se contente d evoquer
-- ne pas creer de section ou de rubrique qui n existe pas deja
+- ne pas depasser une fois et demie la longueur d origine
 - ne pas generer de questions
 
 Decoupage :
@@ -51,8 +65,11 @@ Regles de mise en forme Markdown :
 Contraintes de sortie :
 
 - retourne uniquement un JSON valide, sans markdown ni commentaire
-- le JSON doit contenir uniquement la cle `content`
+- le JSON doit contenir les cles `content` et `factCheck`
 - `content` doit commencer par la ligne `#` avec le titre fourni
+- `factCheck` est un tableau d objets avec les cles `claim` et `issue`
+- `claim` recopie la phrase en cause, `issue` dit en une phrase courte ce qui ne va pas
+- `factCheck` vaut `[]` quand il n y a rien a signaler, ce qui doit etre le cas le plus frequent
 
 Contexte transmis :
 
@@ -114,3 +131,32 @@ L interdiction d enrichir est inchangee, et `n utiliser un sous-titre ## que si
 la note en contient deja un` reste : c est elle qui empeche le retour du style
 `Fiduciare`. Aerer et enrichir sont deux choses differentes, et le prompt les
 separe maintenant explicitement.
+
+---
+
+Ce qui a change le 2026-09-10, et pourquoi :
+
+Le prompt cesse d etre purement restrictif. Kevin a demande deux choses que
+l ancienne version interdisait : pouvoir ajouter une precision, et verifier les
+faits. J avais propose un appel separe pour la verification, en invoquant la
+derive documentee plus haut ; il a maintenu sa demande, et la verification vit
+donc dans le meme appel que la reecriture.
+
+Le garde-fou se deplace de l interdiction vers le plafond. `ne pas ajouter de
+definition, de date, de contexte ou d exemple` devient `une precision courte
+par idee, jamais plus`, double d une borne de longueur (`une fois et demie
+l original`) et du maintien de `aucune nouvelle section` : c est cette derniere
+regle, plus que l interdiction d ajouter, qui empechait le style `Fiduciare`.
+
+La verification est ecrite pour se taire. Le corpus melange des faits
+verifiables et des notes personnelles (`Pensees noires`, `Idee Serveur Nas`,
+`Amelioration V3`), que le champ `type` ne distingue pas : 88 des 143 pages sont
+en `concept`. Trois consignes evitent le bruit : ne rien signaler hors des
+affirmations verifiables, ne jamais signaler le vecu ou l opinion, et se taire
+en cas de doute sur son propre savoir. Cote code, `normalizeFactCheck` jette
+les signalements sans phrase citee et en garde huit au maximum.
+
+Le resultat n est pas applique tout seul : une affirmation fausse est corrigee
+dans le texte, mais tout signalement s affiche dans un panneau que Kevin lit et
+referme. Annuler la reformulation efface les signalements, qui portaient sur le
+texte annule.

@@ -19,14 +19,17 @@
       daily: "Daily",
     };
 
-  function getFilteredNotes() {
+  // Le feed a sa propre recherche : il passe son texte ici. Le type de page,
+  // le tag et les favoris restent communs aux deux vues, comme demande.
+  function getFilteredNotes(options = {}) {
+    const recherche = typeof options.filter === "string" ? options.filter : context.state.filter;
     const ordered = [...context.state.notes].sort((left, right) => {
       return left.title.localeCompare(right.title, "fr", { sensitivity: "base" });
     });
 
     return ordered.filter((note) => {
       const haystack = `${note.title} ${note.tags.join(" ")} ${note.content}`.toLowerCase();
-      if (context.state.filter && !haystack.includes(context.state.filter)) {
+      if (recherche && !haystack.includes(recherche)) {
         return false;
       }
 

@@ -99,12 +99,22 @@
             </div>
 
             <label class="field-label" for="search-input">Recherche</label>
-            <input
-              id="search-input"
-              class="text-input"
-              type="search"
-              placeholder="Titre, tag ou contenu"
-            />
+            <div class="search-field">
+              <input
+                id="search-input"
+                class="text-input"
+                type="search"
+                placeholder="Titre, tag ou contenu"
+              />
+              <button
+                id="search-clear"
+                class="search-clear"
+                type="button"
+                aria-label="Effacer la recherche"
+              >
+                &times;
+              </button>
+            </div>
 
             <div class="sidebar-folder-shortcut">
               <button
@@ -303,12 +313,22 @@
               </div>
             </header>
             <section class="feed-filter-bar" aria-label="Filtres du feed">
-              <input
-                id="feed-search-input"
-                class="feed-filter-input"
-                type="search"
-                placeholder="Filtrer le feed"
-              />
+              <div class="search-field">
+                <input
+                  id="feed-search-input"
+                  class="feed-filter-input"
+                  type="search"
+                  placeholder="Filtrer le feed"
+                />
+                <button
+                  id="feed-search-clear"
+                  class="search-clear"
+                  type="button"
+                  aria-label="Effacer la recherche du feed"
+                >
+                  &times;
+                </button>
+              </div>
               <select id="feed-type-filter" class="feed-filter-select" aria-label="Type de page"></select>
               <label class="feed-filter-toggle" for="feed-favorites-filter">
                 <input id="feed-favorites-filter" type="checkbox" />
@@ -609,6 +629,12 @@
               <div class="editor-secondary-actions is-hidden">
                 <span id="ai-editor-status" class="pill pill-soft">IA locale</span>
               </div>
+
+              <div
+                id="ai-fact-check"
+                class="ai-fact-check is-hidden"
+                aria-live="polite"
+              ></div>
 
               <div class="link-section quiz-bank-panel">
                 <div class="section-heading">

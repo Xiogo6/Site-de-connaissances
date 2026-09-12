@@ -4,6 +4,7 @@
   AtlasApp.createElements = function createElements() {
     return {
       searchInput: document.querySelector("#search-input"),
+      searchClear: document.querySelector("#search-clear"),
       filtersToggleButton: document.querySelector("#filters-toggle-button"),
       filtersPanel: document.querySelector("#filters-panel"),
       clearFiltersButton: document.querySelector("#clear-filters-button"),
@@ -73,6 +74,7 @@
       feedModeButtons: [...document.querySelectorAll("[data-feed-mode]")],
       feedCount: document.querySelector("#feed-count"),
       feedSearchInput: document.querySelector("#feed-search-input"),
+      feedSearchClear: document.querySelector("#feed-search-clear"),
       feedTypeFilter: document.querySelector("#feed-type-filter"),
       feedFavoritesFilter: document.querySelector("#feed-favorites-filter"),
       feedFoldersFilter: document.querySelector("#feed-folders-filter"),
@@ -97,6 +99,7 @@
       parentField: document.querySelector(".editor-parent-field"),
       aiPlacementButton: document.querySelector("#ai-placement-button"),
       aiPlacementSuggestion: document.querySelector("#ai-placement-suggestion"),
+      aiFactCheck: document.querySelector("#ai-fact-check"),
       favoriteInput: document.querySelector("#note-favorite"),
       noteHasDate: document.querySelector("#note-has-date"),
       noteDateMode: document.querySelector("#note-date-mode"),

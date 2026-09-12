@@ -45,6 +45,7 @@
     renderKnowledgeList();
     hydrateEditorFromActiveNote();
     renderEditorPlacementSuggestion();
+    renderFactCheck();
     renderStructuredFields();
     syncEditorAvailability();
     renderPreview();
@@ -547,7 +548,9 @@
     }
 
     renderFeedControls();
-    const filtered = getFeedFilteredNotes(context.notes.getFilteredNotes());
+    const filtered = getFeedFilteredNotes(
+      context.notes.getFilteredNotes({ filter: context.state.feedFilter })
+    );
     const notes = getOrderedFeedNotes(filtered);
     context.elements.feedCount.textContent = `${notes.length} page${notes.length > 1 ? "s" : ""}`;
     context.elements.feedModeButtons.forEach((button) => {
@@ -585,7 +588,7 @@
 
   function renderFeedControls() {
     if (context.elements.feedSearchInput && document.activeElement !== context.elements.feedSearchInput) {
-      context.elements.feedSearchInput.value = context.state.filter || "";
+      context.elements.feedSearchInput.value = context.state.feedFilter || "";
     }
 
     if (context.elements.feedFavoritesFilter) {
@@ -844,6 +847,50 @@
           </div>
         </div>
       </div>
+    `;
+  }
+
+  // Les signalements de verification. Ils n'ont de sens que sur la page qui
+  // vient d'etre reecrite : rattaches a son identifiant, ils disparaissent des
+  // qu'on en ouvre une autre. Le panneau reste vide la plupart du temps, c'est
+  // voulu : le prompt demande de ne signaler qu'en cas de certitude.
+  function renderFactCheck() {
+    const zone = context.elements.aiFactCheck;
+    if (!zone) {
+      return;
+    }
+
+    const note = context.notes.getActiveNote();
+    const releve = context.state.aiFactCheck;
+    const pertinent = Boolean(releve && note && releve.noteId === note.id && releve.entries?.length);
+
+    zone.classList.toggle("is-hidden", !pertinent);
+    if (!pertinent) {
+      zone.innerHTML = "";
+      return;
+    }
+
+    const lignes = releve.entries
+      .map(
+        (entree) => `
+          <li class="fact-check-entry">
+            <p class="fact-check-claim">${escapeHtml(entree.claim)}</p>
+            <p class="fact-check-issue">${escapeHtml(entree.issue)}</p>
+          </li>
+        `
+      )
+      .join("");
+
+    zone.innerHTML = `
+      <div class="fact-check-head">
+        <strong>${releve.entries.length} point${
+          releve.entries.length > 1 ? "s" : ""
+        } a verifier</strong>
+        <button type="button" class="button button-ghost button-inline" data-dismiss-fact-check>
+          Ignorer
+        </button>
+      </div>
+      <ul class="fact-check-list">${lignes}</ul>
     `;
   }
 
@@ -2377,6 +2424,7 @@
   return {
     buildCompactNoteItem,
     renderEditorPlacementSuggestion,
+    renderFactCheck,
     hydrateEditorFromActiveNote,
     populateSelect,
     renderChipCollection,
