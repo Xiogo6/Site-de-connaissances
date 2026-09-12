@@ -18,6 +18,8 @@ Le projet a ete reorganise pour separer les responsabilites sans ajouter de buil
 - `scripts/graph.js` : modele et rendu du graphe
 - `scripts/quiz.js` : generation et rendu des quiz
 - `scripts/events.js` : branchement des interactions utilisateur
+- `voice.html` + `scripts/voice.js` + `voice.webmanifest` : second point d'entree,
+  la dictee vocale, qui ne charge rien de l'application
 - `styles/` : styles separes par couches (`tokens`, `base`, `layout`, `components`, `features`)
 
 ## Ouvrir le site
@@ -129,10 +131,10 @@ Avant de pousser, avancer le numero de version du cache :
 zsh ./scripts/version.sh
 ```
 
-Vingt-et-une references dans `index.html` plus `CACHE_NAME` dans
-`service-worker.js` doivent porter le meme numero, sans quoi le navigateur
-sert un melange d'anciennes et de nouvelles versions. Le script les avance
-toutes d'un cran, et un test verifie ensuite la coherence.
+Les vingt-et-une references de `index.html`, les six de `voice.html` et le
+`CACHE_NAME` de `service-worker.js` doivent porter le meme numero, sans quoi le
+navigateur sert un melange d'anciennes et de nouvelles versions. Le script les
+avance toutes d'un cran, et un test verifie ensuite la coherence.
 
 Pour imposer une valeur : `zsh ./scripts/version.sh 92`.
 
@@ -144,7 +146,7 @@ Une page a ouvrir, rien a installer :
 tests/index.html
 ```
 
-Ouverte par double-clic, la page fonctionne : 48 tests s'executent. Cinq
+Ouverte par double-clic, la page fonctionne : 49 tests s'executent. Sept
 lisent les fichiers du projet et ont besoin d'une vraie adresse HTTP, car le
 navigateur bloque ces lectures en `file://` ; ils sont alors ignores, et la
 page explique comment les lancer.
@@ -163,6 +165,8 @@ coherence du deploiement et valent d'etre relancees avant chaque publication :
 - tout script charge par `index.html` figure dans le cache du service worker
   (son absence empechait l'application de demarrer hors ligne)
 - toute feuille de style aussi
+- les fichiers de `voice.html` y figurent egalement : c'est un second point
+  d'entree, que les deux tests precedents ne voient pas
 - les numeros de version sont tous identiques
 - le lanceur de tests charge les memes scripts que l'application
 - aucun selecteur de `dom.js` ne pointe vers un element disparu, et aucun
@@ -172,6 +176,31 @@ coherence du deploiement et valent d'etre relancees avant chaque publication :
 
 Le harnais a lui-meme ete verifie : trois regressions connues ont ete
 reintroduites volontairement, les trois ont ete detectees et nommees.
+
+## Dictee vocale
+
+`voice.html` est un point d'entree separe, dans le meme dossier donc sur la meme
+origine. Il ne charge ni `dom.js`, ni `data.js`, ni les renderers : un ecran, un
+bouton, `config.js` et `auth.js`. Ce qui compte n'est pas le poids, tout etant en
+cache, mais le temps entre le toucher et le moment ou le bouton accepte un appui.
+
+- appui maintenu, ou mode bascule pour les enregistrements longs
+- l'audio est ecrit dans IndexedDB toutes les trois secondes, pas seulement a
+  l'arret : une page tuee ne coute que la derniere tranche
+- passage en arriere-plan, appel entrant : la capture s'arrete et se sauvegarde
+- au chargement suivant, une dictee restee inachevee est recuperee et signalee
+
+Rien ne part sur le reseau a ce stade. La file se videra vers Supabase plus tard.
+
+Deux facons d'y arriver : le lien `Dicter` du panneau de note rapide, ou une
+icone dediee installee depuis `voice.html` (manifeste `voice.webmanifest`).
+
+**Les deux ne partagent pas leur stockage.** Mesure faite sur iPhone avec
+`tests/stockage-partage/` : deux applications installees depuis la meme origine
+recoivent chacune leur conteneur. Une dictee faite depuis l'icone Dicter est donc
+invisible depuis Atlas, `localStorage` compris, donc la session Supabase aussi :
+il faut se connecter une fois depuis chaque icone. La page affiche dans quel
+contexte elle tourne plutot que de laisser croire a une file unique.
 
 ## Sauvegarde robuste
 

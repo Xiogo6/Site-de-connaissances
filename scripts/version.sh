@@ -2,8 +2,11 @@
 #
 # Incremente d'un cran le numero de version du cache, partout a la fois.
 #
-# Vingt references dans index.html plus CACHE_NAME dans service-worker.js
-# doivent porter le meme numero. Les tenir a la main est une source d'erreur :
+# Les references ?v= de index.html et de voice.html, plus CACHE_NAME dans
+# service-worker.js, doivent porter le meme numero. voice.html compte autant
+# que les autres : oubliee ici, elle reclamerait une version de voice.js que
+# plus rien n'ecrit, et le navigateur servirait l'ancienne sans rien signaler.
+# Les tenir a la main est une source d'erreur :
 # au 21 aout 2026 les fichiers etaient a v86 et le cache a v87, par simple
 # oubli. Le navigateur sert alors un melange d'anciennes et de nouvelles
 # versions, et le symptome est difficile a relier a sa cause.
@@ -19,9 +22,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 INDEX="$ROOT_DIR/index.html"
+VOICE="$ROOT_DIR/voice.html"
 WORKER="$ROOT_DIR/service-worker.js"
 
-for fichier in "$INDEX" "$WORKER"; do
+for fichier in "$INDEX" "$VOICE" "$WORKER"; do
   if [[ ! -f "$fichier" ]]; then
     echo "Fichier introuvable : $fichier" >&2
     exit 1
@@ -45,14 +49,14 @@ if ! [[ "$nouvelle" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
-sed -i '' -E "s/\?v=[0-9]+/?v=${nouvelle}/g" "$INDEX"
+sed -i '' -E "s/\?v=[0-9]+/?v=${nouvelle}/g" "$INDEX" "$VOICE"
 sed -i '' -E "s/atlas-connaissance-v[0-9]+/atlas-connaissance-v${nouvelle}/g" "$WORKER"
 
-references=$(grep -c '?v=' "$INDEX")
-distinctes=$(grep -o '?v=[0-9]*' "$INDEX" | sort -u | wc -l | tr -d ' ')
+references=$(cat "$INDEX" "$VOICE" | grep -c '?v=')
+distinctes=$(cat "$INDEX" "$VOICE" | grep -o '?v=[0-9]*' | sort -u | wc -l | tr -d ' ')
 cache=$(grep -o 'atlas-connaissance-v[0-9]*' "$WORKER" | head -1)
 
-echo "index.html      : ${references} references, ${distinctes} valeur(s) distincte(s)"
+echo "index + voice   : ${references} references, ${distinctes} valeur(s) distincte(s)"
 echo "service-worker  : ${cache}"
 
 if [[ "$distinctes" != "1" || "$cache" != "atlas-connaissance-v${nouvelle}" ]]; then

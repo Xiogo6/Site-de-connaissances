@@ -1,0 +1,18 @@
+{
+  "name": "Atlas Dictee",
+  "short_name": "Dicter",
+  "start_url": "./voice.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#12171b",
+  "theme_color": "#bf5b2c",
+  "description": "Capture vocale rapide pour l'Atlas de Connaissance.",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

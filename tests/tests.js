@@ -107,6 +107,28 @@
       attendre(manquants.join(", ")).vaut("");
     });
 
+    // voice.html est un second point d'entree : ses scripts, ses feuilles et
+    // elle-meme sont invisibles des deux tests precedents, qui ne lisent que
+    // index.html. Oubliee dans ASSETS, la page de dictee casse hors ligne
+    // exactement comme l'application l'avait fait avec ai.js (C-04). Pire :
+    // cache.addAll echoue en bloc si un seul chemin est faux, donc une faute
+    // de frappe ici emporte tout le hors-ligne, sans erreur visible.
+    test.surServeur("chaque fichier de voice.html est dans le cache du service worker", async () => {
+      const html = await (await fetch("../voice.html", { cache: "no-store" })).text();
+      const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
+
+      const fichiers = [
+        ...[...html.matchAll(/<script src="\.\/([^"?]+)/g)].map((m) => m[1]),
+        ...[...html.matchAll(/<link rel="stylesheet" href="\.\/([^"?]+)/g)].map((m) => m[1]),
+        ...[...html.matchAll(/<link rel="manifest" href="\.\/([^"?]+)/g)].map((m) => m[1]),
+        "voice.html",
+      ];
+      attendre(fichiers.length > 4).vrai();
+
+      const manquants = fichiers.filter((chemin) => !sw.includes(`"./${chemin}"`));
+      attendre(manquants.join(", ")).vaut("");
+    });
+
     // Vingt references dans index.html plus CACHE_NAME doivent porter le meme
     // numero. Les tenir a la main derape : au 21 aout les fichiers etaient a
     // v86 et le cache a v87. Le navigateur sert alors un melange d'anciennes
@@ -114,9 +136,15 @@
     // Pour tout avancer d'un cran : zsh ./scripts/version.sh
     test.surServeur("les numeros de version sont tous identiques", async () => {
       const html = await (await fetch("../index.html", { cache: "no-store" })).text();
+      const voice = await (await fetch("../voice.html", { cache: "no-store" })).text();
       const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
 
-      const versions = [...new Set([...html.matchAll(/\?v=(\d+)/g)].map((m) => m[1]))];
+      // voice.html porte ses propres ?v= : version.sh les avance avec ceux de
+      // index.html, et ce test verifie qu'aucune des deux pages n'est restee
+      // en arriere.
+      const versions = [
+        ...new Set([...`${html}\n${voice}`.matchAll(/\?v=(\d+)/g)].map((m) => m[1])),
+      ];
       attendre(versions.length > 0).vrai();
       attendre(versions.sort().join(", ")).vaut(versions[0]);
 

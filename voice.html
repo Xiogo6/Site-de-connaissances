@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Dictee — Atlas</title>
+    <meta name="theme-color" content="#bf5b2c" />
+    <!-- Le premier est la norme, le second est deprecie mais reste lu par iOS. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Dicter" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      // Meme bascule de theme que index.html, reduite aux deux clefs utiles.
+      // Elle doit rester en ligne et avant les feuilles de style : lue plus
+      // tard, l'ecran clignoterait en clair avant de passer en sombre.
+      (function applyStoredTheme() {
+        try {
+          const presetModes = {
+            "classic-dark": "dark",
+            "classic-light": "light",
+            forest: "dark",
+            ocean: "dark",
+            terracotta: "light",
+            atelier: "light",
+          };
+          const preset = window.localStorage.getItem("atlas-connaissance-theme-preset");
+          const theme =
+            presetModes[preset] ||
+            window.localStorage.getItem("atlas-connaissance-theme") ||
+            "dark";
+          const isDark = theme === "dark";
+          document.documentElement.dataset.theme = isDark ? "dark" : "light";
+          document.documentElement.classList.toggle("theme-dark", isDark);
+        } catch (error) {
+          document.documentElement.dataset.theme = "dark";
+          document.documentElement.classList.add("theme-dark");
+        }
+      })();
+    </script>
+    <link rel="manifest" href="./voice.webmanifest" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <!-- Deux feuilles seulement, 2,6 Ko. Le reste du style est ci-dessous :
+         charger layout, components, features et themes pour un ecran unique
+         couterait plus cher que de l'ecrire a la main. -->
+    <link rel="stylesheet" href="./styles/tokens.css?v=98" />
+    <link rel="stylesheet" href="./styles/base.css?v=98" />
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        padding: max(18px, env(safe-area-inset-top)) 16px
+          max(24px, env(safe-area-inset-bottom));
+      }
+
+      .dictee {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+        max-width: 520px;
+        width: 100%;
+      }
+
+      .dictee-tete {
+        display: grid;
+        gap: 4px;
+      }
+
+      .dictee-tete h1 {
+        font-family: var(--content-font);
+        font-size: 1.5rem;
+        margin: 0;
+      }
+
+      .dictee-session,
+      .dictee-contexte {
+        color: var(--text-soft);
+        font-size: 0.82rem;
+        margin: 0;
+      }
+
+      .dictee-contexte {
+        opacity: 0.75;
+      }
+
+      /* ---------- le bouton ---------- */
+
+      .dictee-scene {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .dictee-bouton {
+        align-items: center;
+        aspect-ratio: 1;
+        background:
+          radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.34), transparent 42%),
+          linear-gradient(150deg, var(--accent) 0%, var(--accent-strong) 100%);
+        border: 1px solid rgba(255, 239, 221, 0.26);
+        border-radius: 50%;
+        box-shadow: var(--shadow);
+        color: #fff9f1;
+        cursor: pointer;
+        display: flex;
+        font-size: 1.02rem;
+        font-weight: 700;
+        justify-content: center;
+        padding: 12px;
+        text-align: center;
+        transition: transform 120ms ease, opacity 120ms ease;
+        width: min(62vw, 224px);
+        /* touch-action evite le zoom au double-tap et le defilement qui
+           annulerait l'appui maintenu. user-select evite la selection du
+           libelle quand le doigt glisse un peu. */
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .dictee-bouton[disabled] {
+        cursor: default;
+        opacity: 0.45;
+      }
+
+      .dictee-bouton.is-arming {
+        opacity: 0.7;
+      }
+
+      .dictee-bouton.is-recording {
+        background:
+          radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.3), transparent 42%),
+          linear-gradient(150deg, #d8503a 0%, #a32c1c 100%);
+        transform: scale(0.97);
+        animation: dictee-pulse 1.6s ease-in-out infinite;
+      }
+
+      @keyframes dictee-pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(216, 80, 58, 0.42);
+        }
+        50% {
+          box-shadow: 0 0 0 18px rgba(216, 80, 58, 0);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dictee-bouton.is-recording {
+          animation: none;
+        }
+      }
+
+      .dictee-chrono {
+        font-size: 2.1rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .dictee-niveau {
+        background: var(--line);
+        border-radius: 999px;
+        height: 8px;
+        overflow: hidden;
+        width: min(100%, 260px);
+      }
+
+      .dictee-niveau span {
+        background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+        border-radius: 999px;
+        display: block;
+        height: 100%;
+        transition: width 90ms linear;
+        width: 0%;
+      }
+
+      .dictee-statut {
+        color: var(--text-soft);
+        font-size: 0.85rem;
+        margin: 0;
+        min-height: 1.2em;
+        text-align: center;
+      }
+
+      .dictee-statut.is-error {
+        color: #d8503a;
+      }
+
+      /* ---------- modes ---------- */
+
+      .dictee-modes {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        display: grid;
+        gap: 4px;
+        grid-template-columns: 1fr 1fr;
+        margin: 0 auto;
+        padding: 4px;
+        width: min(100%, 260px);
+      }
+
+      .dictee-mode {
+        background: transparent;
+        border: none;
+        border-radius: 999px;
+        color: var(--text-soft);
+        cursor: pointer;
+        font-size: 0.88rem;
+        min-height: 40px;
+      }
+
+      .dictee-mode.is-active {
+        background: var(--accent);
+        color: #fff9f1;
+        font-weight: 600;
+      }
+
+      /* ---------- file d'attente ---------- */
+
+      .dictee-file-tete {
+        align-items: baseline;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .dictee-file-tete h2 {
+        font-family: var(--content-font);
+        font-size: 1.05rem;
+        margin: 0;
+      }
+
+      .dictee-pastille {
+        color: var(--text-soft);
+        font-size: 0.78rem;
+      }
+
+      .dictee-liste {
+        display: grid;
+        gap: 10px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .dictee-item {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        display: grid;
+        gap: 8px;
+        padding: 12px 14px;
+      }
+
+      .dictee-item-titre {
+        font-weight: 600;
+      }
+
+      .dictee-item-meta {
+        color: var(--text-soft);
+        font-size: 0.78rem;
+      }
+
+      .dictee-item-meta .is-interrupted {
+        color: #c8892f;
+      }
+
+      .dictee-item-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .dictee-item-actions button {
+        background: transparent;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        color: var(--text);
+        cursor: pointer;
+        font-size: 0.82rem;
+        min-height: 38px;
+        padding: 0 14px;
+      }
+
+      .dictee-item audio {
+        width: 100%;
+      }
+
+      .dictee-vide {
+        color: var(--text-soft);
+        font-size: 0.85rem;
+        margin: 0;
+      }
+
+      .dictee-pied {
+        border-top: 1px solid var(--line);
+        color: var(--text-soft);
+        display: grid;
+        font-size: 0.8rem;
+        gap: 6px;
+        padding-top: 16px;
+      }
+
+      .dictee-pied a {
+        color: var(--accent-strong);
+      }
+
+      .dictee-pied p {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="dictee">
+      <header class="dictee-tete">
+        <p class="eyebrow">Atlas personnel</p>
+        <h1>Dictee</h1>
+        <p id="voice-session" class="dictee-session">Session : verification...</p>
+        <p id="voice-contexte" class="dictee-contexte"></p>
+      </header>
+
+      <section class="dictee-scene">
+        <!-- Desactive au depart : voice.js l'active des qu'il a branche
+             l'ecoute de l'appui. Mieux vaut un bouton franchement inerte
+             pendant quelques millisecondes qu'un bouton qui accepte un appui
+             sans rien enregistrer. -->
+        <button id="voice-record" class="dictee-bouton" type="button" disabled>
+          <span id="voice-record-label">Chargement...</span>
+        </button>
+        <p id="voice-chrono" class="dictee-chrono">00:00</p>
+        <div class="dictee-niveau" aria-hidden="true"><span id="voice-niveau"></span></div>
+        <p id="voice-statut" class="dictee-statut" role="status"></p>
+      </section>
+
+      <section class="dictee-modes" aria-label="Mode d'enregistrement">
+        <button id="voice-mode-hold" class="dictee-mode" type="button" data-voice-mode="hold">
+          Maintien
+        </button>
+        <button id="voice-mode-toggle" class="dictee-mode" type="button" data-voice-mode="toggle">
+          Bascule
+        </button>
+      </section>
+
+      <section class="dictee-file">
+        <div class="dictee-file-tete">
+          <h2>En attente</h2>
+          <span id="voice-file-resume" class="dictee-pastille"></span>
+        </div>
+        <ul id="voice-liste" class="dictee-liste"></ul>
+        <p id="voice-vide" class="dictee-vide">Aucun enregistrement en attente.</p>
+      </section>
+
+      <footer class="dictee-pied">
+        <p><a href="./index.html">Ouvrir Atlas</a></p>
+        <p>Rien ne part sur le reseau a ce stade : tout reste sur cet appareil.</p>
+      </footer>
+    </main>
+
+    <script src="./scripts/config.js?v=98"></script>
+    <script src="./scripts/auth.js?v=98"></script>
+    <script src="./scripts/voice.js?v=98"></script>
+  </body>
+</html>

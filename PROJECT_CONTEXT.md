@@ -46,11 +46,13 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
   Base visuelle et responsive. Six feuilles chargees en parallele, dans l ordre
   tokens, base, layout, components, features, themes. Chaque couche affine la
   precedente : c est voulu, pas un accident.
+- `voice.html`, `scripts/voice.js`, `voice.webmanifest`
+  Second point d'entree : la dictee vocale. Voir la section plus bas.
 - `tests/index.html`
-  48 tests a ouvrir dans un navigateur, sans dependance ni etape de build.
+  49 tests a ouvrir dans un navigateur, sans dependance ni etape de build.
   Servir en HTTP, sinon cinq tests sont ignores. Voir le README.
 - `scripts/version.sh`
-  Avance d un cran les vingt-et-une references `?v=` de index.html et le
+  Avance d un cran les references `?v=` de index.html et de voice.html, et le
   `CACHE_NAME` du service worker, ensemble. A lancer avant chaque publication,
   sinon le navigateur sert un melange d anciens et de nouveaux fichiers. Un
   test verifie la coherence.
@@ -268,6 +270,46 @@ et fait ressortir la page et ses voisins.
   questions de quiz (9 fonctions, aucune variable de module). Verifier ce
   partage avant de sortir quoi que ce soit : c est la seule chose qui rendait
   le bloc sport extractible.
+
+## Dictee vocale
+
+`voice.html` ne charge que `tokens.css`, `base.css`, `config.js` et `auth.js`.
+Aucun module d application, aucun `renderEverything()`. La metrique visee n est
+pas le poids transfere, tout etant en cache, mais le delai entre le toucher de
+l icone et le moment ou le bouton accepte un appui : `voice.js` branche l ecoute
+de l appui en premiere instruction et repousse tout le reste, ouverture de la
+base et enregistrement du service worker compris.
+
+L audio part dans IndexedDB toutes les trois secondes pendant la capture. Les
+morceaux ne sont pas lisibles separement : l en-tete est dans le premier, seule
+leur concatenation dans l ordre forme un fichier. Une dictee interrompue est donc
+recuperable, mais un morceau isole ne vaut rien.
+
+La duree affichee est celle que nous mesurons, jamais celle du fichier. Mesure
+sous Chromium : un enregistrement complet annonce `duration: Infinity`, un
+enregistrement tronque annonce une valeur plausible. Les deux se lisent
+correctement, mais aucune des deux durees n est fiable.
+
+L enregistrement du service worker est duplique ici, en trois lignes, parce qu il
+vit dans `data.js` que cette page ne charge pas. Sans elles, une premiere
+ouverture par l icone dediee n installerait jamais le cache, sans rien signaler
+tant qu il y a du reseau.
+
+### Cloisonnement du stockage, mesure et non suppose
+
+Deux applications installees depuis la meme origine recoivent chacune leur
+conteneur de stockage sur iOS. Mesure avec `tests/stockage-partage/`, deux pages
+et deux manifestes installes cote a cote : ce qu une icone ecrit, l autre ne le
+voit pas, ni dans IndexedDB ni dans `localStorage`. Suivre un lien interne reste
+dans le meme conteneur, d ou l illusion de partage si on ne teste que ca.
+
+Trois consequences :
+
+- la file de dictees appartient au contexte qui l a ecrite, definitivement
+- la session Supabase ne suit pas : une connexion par icone
+- le relais entre la dictee et Atlas ne peut pas passer par un stockage partage.
+  Il passera par Supabase, qui est de toute facon le seul chemin entre le
+  telephone et le Mac : IndexedDB ne franchit jamais un appareil.
 
 ## Regle de prudence
 
