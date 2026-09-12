@@ -1,0 +1,12 @@
+{
+  "name": "Sonde Lire",
+  "short_name": "Lire",
+  "start_url": "./lire.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#12171b",
+  "theme_color": "#2c6ebf",
+  "icons": [
+    { "src": "../../icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

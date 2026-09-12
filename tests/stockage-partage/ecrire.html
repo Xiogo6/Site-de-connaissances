@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sonde — Écrire</title>
+    <meta name="theme-color" content="#bf5b2c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Écrire" />
+    <link rel="manifest" href="./ecrire.webmanifest" />
+    <link rel="apple-touch-icon" href="../../icon.svg" />
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; padding: 24px 18px 48px; background: #12171b; color: #e6ebef;
+        font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      }
+      .contenu { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+      h1 { font-size: 1.35rem; margin: 0; }
+      .contexte { border: 1px solid #2a343c; border-radius: 10px; padding: 12px 14px; background: #1a2127; }
+      .contexte strong { color: #d9a23f; }
+      button {
+        font: inherit; font-weight: 600; min-height: 64px; border-radius: 14px;
+        border: none; background: #bf5b2c; color: #fff9f1; cursor: pointer;
+      }
+      pre {
+        margin: 0; padding: 12px 14px; border-radius: 10px; background: #0c1114;
+        border: 1px solid #2a343c; overflow-x: auto; font-size: .82rem;
+        font-family: ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word;
+      }
+      ol { margin: 0; padding-left: 20px; color: #93a3af; }
+      li { margin-bottom: 6px; }
+      a { color: #7fb5d9; }
+    </style>
+  </head>
+  <body>
+    <div class="contenu">
+      <h1>Sonde — Écrire</h1>
+      <p class="contexte">Contexte&nbsp;: <strong id="contexte">…</strong></p>
+
+      <button id="ecrire" type="button">Écrire une sonde</button>
+      <pre id="resultat">Rien écrit pour l'instant.</pre>
+
+      <h2 style="font-size: 1rem; margin: 8px 0 0">Protocole</h2>
+      <ol>
+        <li>Dans Safari, ouvrir cette page et écrire une sonde.</li>
+        <li>Dans Safari, ouvrir <a href="./lire.html">lire.html</a> : elle doit voir la sonde. C'est le témoin, il prouve seulement que le code marche.</li>
+        <li>Ajouter les <strong>deux</strong> pages à l'écran d'accueil (deux icônes, « Écrire » et « Lire »).</li>
+        <li>Ouvrir l'icône <strong>Écrire</strong>, écrire une sonde. Le contexte doit afficher « icône installée ».</li>
+        <li>Ouvrir l'icône <strong>Lire</strong>, relire. Voit-elle la sonde de l'étape 4&nbsp;?</li>
+        <li>Rouvrir lire.html dans Safari : voit-elle la sonde écrite depuis l'icône&nbsp;?</li>
+      </ol>
+    </div>
+
+    <script src="./sonde.js"></script>
+    <script>
+      const contexteElement = document.querySelector("#contexte");
+      const resultatElement = document.querySelector("#resultat");
+      contexteElement.textContent = window.Sonde.contexte().etiquette;
+
+      document.querySelector("#ecrire").addEventListener("click", async () => {
+        try {
+          const ecrit = await window.Sonde.ecrire(window.Sonde.contexte().etiquette);
+          resultatElement.textContent = `Écrit depuis « ${ecrit.contexte} »\n${JSON.stringify(ecrit, null, 2)}`;
+        } catch (erreur) {
+          resultatElement.textContent = `Échec : ${erreur.message || erreur}`;
+        }
+      });
+    </script>
+  </body>
+</html>

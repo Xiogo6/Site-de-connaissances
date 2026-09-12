@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sonde — Lire</title>
+    <meta name="theme-color" content="#2c6ebf" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Lire" />
+    <link rel="manifest" href="./lire.webmanifest" />
+    <link rel="apple-touch-icon" href="../../icon.svg" />
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; padding: 24px 18px 48px; background: #12171b; color: #e6ebef;
+        font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      }
+      .contenu { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+      h1 { font-size: 1.35rem; margin: 0; }
+      .contexte { border: 1px solid #2a343c; border-radius: 10px; padding: 12px 14px; background: #1a2127; }
+      .contexte strong { color: #d9a23f; }
+      button {
+        font: inherit; font-weight: 600; min-height: 64px; border-radius: 14px;
+        border: none; background: #2c6ebf; color: #f1f7ff; cursor: pointer;
+      }
+      .verdict { border-radius: 12px; padding: 14px; font-weight: 600; }
+      .verdict.partage { background: rgba(95, 191, 143, .14); border: 1px solid #5fbf8f; color: #9fe0bf; }
+      .verdict.cloisonne { background: rgba(232, 119, 108, .14); border: 1px solid #e8776c; color: #f3ada6; }
+      pre {
+        margin: 0; padding: 12px 14px; border-radius: 10px; background: #0c1114;
+        border: 1px solid #2a343c; overflow-x: auto; font-size: .82rem;
+        font-family: ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word;
+      }
+      a { color: #7fb5d9; }
+    </style>
+  </head>
+  <body>
+    <div class="contenu">
+      <h1>Sonde — Lire</h1>
+      <p class="contexte">Contexte&nbsp;: <strong id="contexte">…</strong></p>
+
+      <button id="relire" type="button">Relire</button>
+      <div id="verdict" class="verdict">Lecture…</div>
+      <pre id="resultat">…</pre>
+
+      <p><a href="./ecrire.html">Aller à la page qui écrit</a></p>
+    </div>
+
+    <script src="./sonde.js"></script>
+    <script>
+      const contexteElement = document.querySelector("#contexte");
+      const verdictElement = document.querySelector("#verdict");
+      const resultatElement = document.querySelector("#resultat");
+
+      async function relire() {
+        const lecture = await window.Sonde.lire();
+        contexteElement.textContent = lecture.contexte.etiquette;
+
+        const vuIndexedDb = Boolean(lecture.indexedDb);
+        const vuLocal = Boolean(lecture.local);
+
+        if (vuIndexedDb && vuLocal) {
+          verdictElement.className = "verdict partage";
+          verdictElement.textContent = `Sonde trouvée, écrite depuis « ${lecture.indexedDb.source} » le ${lecture.indexedDb.ecritLe}.`;
+        } else if (vuIndexedDb || vuLocal) {
+          verdictElement.className = "verdict cloisonne";
+          verdictElement.textContent = `Partage partiel : IndexedDB ${vuIndexedDb ? "voit" : "ne voit pas"}, localStorage ${vuLocal ? "voit" : "ne voit pas"}.`;
+        } else {
+          verdictElement.className = "verdict cloisonne";
+          verdictElement.textContent = "Aucune sonde visible depuis ce contexte.";
+        }
+
+        resultatElement.textContent = JSON.stringify(
+          {
+            contexte: lecture.contexte,
+            indexedDb: lecture.indexedDb,
+            erreurIndexedDb: lecture.erreurIndexedDb,
+            localStorage: lecture.local,
+            sessionAtlasVisible: lecture.sessionAtlas,
+          },
+          null,
+          2
+        );
+      }
+
+      document.querySelector("#relire").addEventListener("click", relire);
+      relire();
+    </script>
+  </body>
+</html>

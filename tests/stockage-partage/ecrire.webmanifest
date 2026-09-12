@@ -1,0 +1,12 @@
+{
+  "name": "Sonde Ecrire",
+  "short_name": "Ecrire",
+  "start_url": "./ecrire.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#12171b",
+  "theme_color": "#bf5b2c",
+  "icons": [
+    { "src": "../../icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
