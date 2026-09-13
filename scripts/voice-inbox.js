@@ -32,12 +32,34 @@
     // Le reste suivra au demarrage suivant.
     const maxParDemarrage = 50;
 
+    /*
+      La condition sur `remote.status` n'est pas decorative.
+
+      Creer une page appelle `saveNotes()`, qui renvoie a Supabase l'etat
+      COMPLET, reglages compris. Tant que l'espace distant n'a pas ete charge,
+      cet etat est celui du stockage local, qui peut etre vide ou en retard :
+      une ingestion automatique au demarrage ecraserait alors les reglages
+      distants sans que personne n'ait rien demande.
+
+      Deux etats seulement autorisent l'ingestion :
+
+      - "synced" : le contenu distant a ete charge et applique
+      - "idle"   : la base a repondu, mais elle est vide. Il n'y a alors rien
+                   a ecraser, et refuser d'ingerer condamnerait un Atlas encore
+                   vierge a ne jamais recevoir ses dictees.
+
+      Tout le reste est bloque, "error" et "loading" en tete : ce sont
+      precisement les cas ou l'etat local n'est pas celui de reference.
+    */
+    const etatsSurs = ["synced", "idle"];
+
     function isAvailable() {
       return Boolean(
         remote?.syncEnabled &&
           remote?.url &&
           context.auth?.isSignedIn() &&
-          !context.data?.isReadOnlyMode?.()
+          !context.data?.isReadOnlyMode?.() &&
+          etatsSurs.includes(context.state?.remote?.status)
       );
     }
 
@@ -160,6 +182,8 @@
           type: donnees.type,
           tags: donnees.tags,
           content: donnees.content,
+          // Toutes les dictees au meme endroit, a trier ensuite a la main.
+          parentId: context.notes.ensureVoiceFolder().id,
         });
 
         traitees.push(row.client_key);

@@ -17,6 +17,7 @@
       triage: "à trier",
       dailyRoot: "Kevin Barbet",
       daily: "Daily",
+      voice: "Dictées",
     };
 
   // Le feed a sa propre recherche : il passe son texte ici. Le type de page,
@@ -205,6 +206,14 @@
     });
 
     return didChange;
+  }
+
+  /*
+    Le dossier des dictees. Cree a la premiere dictee ingeree et pas avant :
+    un dossier vide de plus a la racine ne rend service a personne.
+  */
+  function ensureVoiceFolder() {
+    return ensureFolder(systemFolders.voice);
   }
 
   function getDefaultParentIdForType(type) {
@@ -1317,6 +1326,7 @@
     body = "",
     content = "",
     linkToTitle = "",
+    parentId = "",
   } = {}) {
     const safeTitle = String(title).trim() || generateUntitledName();
     const safeType = String(type).trim() || "concept";
@@ -1327,7 +1337,9 @@
       id: String(id).trim() || context.data.generateId(safeTitle),
       title: safeTitle,
       type: safeType,
-      parentId: getDefaultParentIdForType(safeType),
+      // Un parent impose l'emporte : l'ingestion vocale range ailleurs que
+      // le rangement par defaut du type.
+      parentId: String(parentId).trim() || getDefaultParentIdForType(safeType),
       favorite: false,
       tags: normalizeTagList(tags.map(String)),
       content: String(content).trim()
@@ -1676,6 +1688,7 @@ ${String(body).trim() || "Idee a developper."}${lien}`,
     moveNoteToParent,
     moveNoteToRoot,
     createNoteFromCapture,
+    ensureVoiceFolder,
     openOrCreateNote,
     openQuickCapture,
     discardPendingNewNote,

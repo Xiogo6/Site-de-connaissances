@@ -401,6 +401,23 @@ Il repond alors exactement a la question "cette dictee est-elle deja une page ?"
 Deux appareils qui ingereraient la meme ligne en meme temps produiraient le meme
 identifiant, donc une seule page apres synchronisation au lieu d un doublon.
 
+L ingestion n a lieu que si l espace distant a bien ete charge, `remote.status`
+valant `synced` ou `idle`. Ce n est pas decoratif : creer une page appelle
+`saveNotes()`, qui renvoie a Supabase l etat COMPLET, reglages compris. Tant que
+le contenu distant n a pas ete applique, cet etat est celui du stockage local,
+qui peut etre vide ou en retard. Une ingestion automatique au demarrage
+ecraserait alors les reglages distants, dossiers epingles compris, sans que
+personne n ait rien demande. `idle` est accepte parce qu il signifie une base
+joignable mais vide : il n y a rien a ecraser, et refuser condamnerait un Atlas
+encore vierge a ne jamais recevoir ses dictees.
+
+C est le premier endroit du projet ou Atlas ecrit vers Supabase sans action de
+l utilisateur. La regle de prudence sur la synchronisation s y applique donc
+pleinement.
+
+Les pages dictees vont dans un dossier `Dictées`, cree a la premiere ingestion
+et pas avant, pour etre triees ensuite a la main.
+
 Ordre non negociable la aussi : creer, enregistrer, PUIS supprimer la ligne
 distante. Dans l autre sens une coupure entre les deux perdrait la dictee, dont
 l audio a deja ete efface du telephone. Une suppression ratee ne coute rien :
