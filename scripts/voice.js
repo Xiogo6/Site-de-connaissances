@@ -1303,6 +1303,19 @@
       ? `Cle enregistree sur cet appareil. Modele : ${config.models.audio}`
       : "Aucune cle. La dictee marche, la transcription non.";
 
+    // L'etat de la session se lit dans le panneau, la ou on le saisit. La
+    // ligne du haut ne suffit pas : elle est hors de l'ecran quand on remplit
+    // le formulaire, et une connexion reussie semblait alors ne rien faire.
+    if (state.auth?.isSignedIn()) {
+      elements.authStatus.textContent = `Connecte : ${state.auth.getEmail() || "session ouverte"}`;
+      elements.authStatus.classList.add("est-ok");
+    } else {
+      elements.authStatus.textContent = state.auth?.isConfigured()
+        ? "Aucune session sur cet appareil."
+        : "Supabase n'est pas configure.";
+      elements.authStatus.classList.remove("est-ok");
+    }
+
     // Le panneau est replie : sans cette ligne, on pourrait dicter trois
     // minutes avant de decouvrir que rien ne peut partir.
     if (!config?.apiKey && state.status === "idle" && !elements.status.textContent) {
@@ -1349,13 +1362,15 @@
     try {
       await auth.signIn(elements.authEmail.value, elements.authPassword.value);
       elements.authPassword.value = "";
-      elements.authStatus.textContent = "";
       await showSession();
+      // renderConfig ecrit la confirmation dans le panneau lui-meme.
       renderConfig();
+      setStatus("Session ouverte sur cet appareil.");
       // Ce qui attendait une session peut maintenant partir.
       deliverTranscribed();
     } catch (error) {
       elements.authStatus.textContent = error.message || "Connexion impossible.";
+      elements.authStatus.classList.remove("est-ok");
     } finally {
       elements.authSubmit.disabled = false;
     }
