@@ -1297,29 +1297,44 @@
     context.renderers.renderTagSuggestions("quick");
   }
 
-  function saveQuickCapture() {
-    if (context.data.isReadOnlyMode()) {
-      return;
-    }
+  /*
+    Fabrique et insere une page a partir de donnees brutes, sans passer par le
+    DOM ni declencher de rendu. C'est le chemin qu'emprunte la note rapide, et
+    aussi l'ingestion des dictees vocales : une seule facon de creer une page,
+    donc une seule a corriger le jour ou elle change.
 
-    const title = context.elements.quickTitle.value.trim() || generateUntitledName();
-    const active = getActiveNote();
-    const shouldLink = context.elements.quickLinkActive.checked && active;
-    const tags = parseTags(context.elements.quickTags.value);
-    const body = context.elements.quickContent.value.trim();
-    const type = context.elements.quickType?.value || "concept";
-    const parentId = getDefaultParentIdForType(type);
+    `content` complet l'emporte quand il est fourni ; sinon il est compose a
+    partir du titre et du corps, comme le fait la note rapide.
+
+    `id` n'est passe que par l'ingestion vocale, qui a besoin d'un identifiant
+    previsible pour ne pas creer deux fois la meme page.
+  */
+  function createNoteFromCapture({
+    id = "",
+    title = "",
+    type = "concept",
+    tags = [],
+    body = "",
+    content = "",
+    linkToTitle = "",
+  } = {}) {
+    const safeTitle = String(title).trim() || generateUntitledName();
+    const safeType = String(type).trim() || "concept";
     const now = new Date().toISOString();
-    const note = {
-      id: context.data.generateId(title),
-      title,
-      type,
-      parentId,
-      favorite: false,
-      tags,
-      content: `# ${title}
+    const lien = linkToTitle ? `\n\nVoir aussi : [[${linkToTitle}]]` : "";
 
-${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title}]]` : ""}`,
+    const note = {
+      id: String(id).trim() || context.data.generateId(safeTitle),
+      title: safeTitle,
+      type: safeType,
+      parentId: getDefaultParentIdForType(safeType),
+      favorite: false,
+      tags: normalizeTagList(tags.map(String)),
+      content: String(content).trim()
+        ? `${String(content).trim()}${lien}`
+        : `# ${safeTitle}
+
+${String(body).trim() || "Idee a developper."}${lien}`,
       quizQuestions: [],
       metadata: createNoteMetadata(),
       createdAt: now,
@@ -1335,8 +1350,26 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     }
 
     context.state.notes.unshift(note);
-    context.state.activeNoteId = note.id;
     rememberEditedNote(note.id);
+    return note;
+  }
+
+  function saveQuickCapture() {
+    if (context.data.isReadOnlyMode()) {
+      return;
+    }
+
+    const active = getActiveNote();
+    const shouldLink = context.elements.quickLinkActive.checked && active;
+    const note = createNoteFromCapture({
+      title: context.elements.quickTitle.value.trim(),
+      type: context.elements.quickType?.value || "concept",
+      tags: parseTags(context.elements.quickTags.value),
+      body: context.elements.quickContent.value.trim(),
+      linkToTitle: shouldLink ? active.title : "",
+    });
+
+    context.state.activeNoteId = note.id;
     closeQuickCapture();
     context.data.saveNotes();
     context.data.saveAutomaticSnapshot("Note rapide");
@@ -1642,6 +1675,7 @@ ${body || "Idee a developper."}${shouldLink ? `\n\nVoir aussi : [[${active.title
     moveActiveNoteToRoot,
     moveNoteToParent,
     moveNoteToRoot,
+    createNoteFromCapture,
     openOrCreateNote,
     openQuickCapture,
     discardPendingNewNote,

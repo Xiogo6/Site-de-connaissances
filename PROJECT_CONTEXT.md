@@ -345,6 +345,10 @@ cause de format on retente une fois avec l etiquette voisine : `audio/mp4` vers
 `audio/aac`, `audio/webm` vers `audio/ogg`. On ne remplace jamais le format
 annonce par MediaRecorder, on traduit seulement son etiquette.
 
+Mesure du 2026-09-13 sur iPhone : Safari produit `audio/mp4`, et Gemini
+l accepte directement. Le repli n a donc jamais servi a ce jour ; il reste en
+place pour les navigateurs qui produiraient autre chose.
+
 La reprise automatique ne concerne que l etat `pending`. Relancer ce qui a deja
 echoue ferait boucler l erreur a chaque ouverture et consommerait l API pour
 rien : une reprise apres echec se demande a la main.
@@ -375,6 +379,36 @@ quatre-vingt-dix secondes avant l expiration.
 
 Une fois depose, la ligne reste visible avec son texte mais sans son audio :
 son bouton d ecoute disparait, et elle ne compte plus comme en attente.
+
+### Ingestion des dictees dans Atlas
+
+`scripts/voice-inbox.js`, appele par app.js apres le chargement de l espace de
+travail et avant le premier rendu : les dictees doivent etre la des l ouverture,
+sans geste.
+
+Aucune page n est fabriquee ici a sa facon. Tout passe par
+`context.notes.createNoteFromCapture()`, extrait de `saveQuickCapture()` qui
+l utilise desormais aussi : une seule fabrique de page, donc une seule a
+corriger le jour ou elle change.
+
+L identifiant de la page est derive du `client_key` de la dictee, sous la forme
+`voice-<douze caracteres>`. C est le coeur de l idempotence, et ce n est pas un
+detail de confort : `normalizeImportedNote` ne conserve que des champs connus,
+donc un marqueur pose sur la page serait efface au premier rechargement depuis
+Supabase. L identifiant, lui, survit a la synchronisation comme a l import.
+
+Il repond alors exactement a la question "cette dictee est-elle deja une page ?".
+Deux appareils qui ingereraient la meme ligne en meme temps produiraient le meme
+identifiant, donc une seule page apres synchronisation au lieu d un doublon.
+
+Ordre non negociable la aussi : creer, enregistrer, PUIS supprimer la ligne
+distante. Dans l autre sens une coupure entre les deux perdrait la dictee, dont
+l audio a deja ete efface du telephone. Une suppression ratee ne coute rien :
+la ligne est reconnue et ignoree au demarrage suivant.
+
+Une dictee dont la mise en forme manque garde sa transcription brute, et une
+dictee sans titre exploitable prend la date du jour : une page "Sans titre" de
+plus serait introuvable trois jours apres.
 
 ### Cloisonnement du stockage, mesure et non suppose
 

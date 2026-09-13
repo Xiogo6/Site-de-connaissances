@@ -121,6 +121,7 @@
   context.state.aiConfig = context.ai.loadConfig();
   context.state.sourceMode = context.data.getSourceMode();
   context.notes = AtlasApp.createNotesModule(context);
+  context.voiceInbox = AtlasApp.createVoiceInboxModule(context);
   context.graph = AtlasApp.createGraphModule(context);
   context.quiz = AtlasApp.createQuizModule(context);
   context.mascot = AtlasApp.createMascotModule(context);
@@ -138,6 +139,7 @@
     context.auth.bindEvents();
 
     await loadWorkspace();
+    await ingestVoiceInbox();
 
     context.renderers.syncDynamicControls();
     context.events.bindEvents();
@@ -152,9 +154,28 @@
   // seules les donnees et le rendu doivent etre refaits.
   context.onSignedIn = async function onSignedIn() {
     await loadWorkspace();
+    await ingestVoiceInbox();
     context.renderers.syncDynamicControls();
     context.renderers.renderEverything();
   };
+
+  // Les dictees deposees depuis le telephone deviennent des pages ici, avant
+  // le premier rendu : elles doivent etre la des l'ouverture, sans geste.
+  async function ingestVoiceInbox() {
+    try {
+      const resultat = await context.voiceInbox.ingest();
+      if (resultat.created) {
+        // Ouvrir sur la page dictee : c'est ce qu'on vient chercher.
+        context.state.activeNoteId = resultat.lastNoteId || context.state.activeNoteId;
+        console.info(
+          `Atlas : ${resultat.created} dictee(s) transformee(s) en page(s).`
+        );
+      }
+    } catch (error) {
+      // L'application s'ouvre meme quand la file est injoignable.
+      console.info("Atlas : file vocale injoignable pour l'instant.");
+    }
+  }
 
   async function loadWorkspace() {
     await context.data.bootstrapWorkspace();

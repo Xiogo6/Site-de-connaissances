@@ -18,6 +18,7 @@ Le projet a ete reorganise pour separer les responsabilites sans ajouter de buil
 - `scripts/graph.js` : modele et rendu du graphe
 - `scripts/quiz.js` : generation et rendu des quiz
 - `scripts/events.js` : branchement des interactions utilisateur
+- `scripts/voice-inbox.js` : transforme en pages les dictees deposees dans Supabase
 - `voice.html` + `scripts/voice.js` + `scripts/voice-send.js` + `voice.webmanifest` :
   second point d'entree, la dictee vocale, qui ne charge rien de l'application
 - `styles/` : styles separes par couches (`tokens`, `base`, `layout`, `components`, `features`)
@@ -202,6 +203,10 @@ La transcription obtenue est ensuite deposee dans la table `voice_inbox` de
 Supabase, et l'audio local est efface, mais seulement une fois le depot
 confirme. Chaque dictee porte un identifiant unique : une reprise apres echec
 ne cree jamais de doublon.
+
+A l'ouverture d'Atlas, les dictees deposees deviennent des pages, et les lignes
+traitees disparaissent de la file. Une dictee deja transformee en page n'est
+jamais reprise une seconde fois, meme si sa ligne n'avait pas pu etre supprimee.
 
 Cette page ayant son propre stockage, elle a sa propre cle Gemini et sa propre
 session : un bloc de configuration s'affiche tant qu'il manque l'une des deux.
