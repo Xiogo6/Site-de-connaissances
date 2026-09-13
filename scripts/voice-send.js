@@ -254,6 +254,77 @@
     return normalizeResult(parseJsonPayload(text), model);
   }
 
+  /* ---------- depot dans la file Supabase ---------- */
+
+  /*
+    Une ligne de voice_inbox ne contient que du texte. L'audio reste sur
+    l'appareil et n'ira nulle part : c'est ce qui evite Supabase Storage.
+
+    La table n'accepte qu'une fois chaque client_key. Un doublon revient donc
+    en 409, et ce refus est une CONFIRMATION, pas un echec : il signifie que
+    la ligne est deja arrivee lors d'une tentative precedente dont la
+    suppression locale avait echoue. Le traiter comme une erreur creerait
+    exactement le doublon que la contrainte empeche.
+  */
+  function looksLikeDuplicate(status, detail) {
+    if (status === 409) {
+      return true;
+    }
+    return /23505|duplicate key|already exists/i.test(String(detail || ""));
+  }
+
+  function buildPayload(recording) {
+    return {
+      clientKey: recording.clientKey,
+      capturedAt: recording.createdAt,
+      durationMs: recording.durationMs || 0,
+      mimeType: recording.mimeType || "",
+      model: recording.transcribedWith || "",
+      transcript: recording.transcript || "",
+      structured: recording.structured || null,
+    };
+  }
+
+  async function sendToInbox({ recording, accessToken }) {
+    const remote = AtlasApp.config.supabase;
+    if (!accessToken) {
+      throw new Error("Session Supabase absente ou expiree.");
+    }
+    if (!recording?.clientKey) {
+      throw new Error("Enregistrement sans identifiant de capture.");
+    }
+
+    const response = await fetch(`${remote.url}/rest/v1/voice_inbox`, {
+      method: "POST",
+      headers: {
+        apikey: remote.publishableKey,
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        // Rien a relire : on economise l'aller-retour.
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        client_key: recording.clientKey,
+        payload: buildPayload(recording),
+      }),
+    });
+
+    if (response.ok) {
+      return { delivered: true, duplicate: false };
+    }
+
+    const detail = await response.text();
+    if (looksLikeDuplicate(response.status, detail)) {
+      return { delivered: true, duplicate: true };
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("Refuse par Supabase : reconnecte-toi sur cette page.");
+    }
+
+    throw new Error(detail || `Supabase a repondu ${response.status}.`);
+  }
+
   /* ---------- configuration Gemini, cote page de dictee ---------- */
 
   // Meme cle de stockage et meme forme que l'application, via le normaliseur
@@ -285,6 +356,7 @@
     loadConfig,
     maxRequestBytes,
     saveConfig,
+    sendToInbox,
     transcribe,
   };
 })(window);

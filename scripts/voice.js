@@ -340,6 +340,29 @@
     );
   }
 
+  /*
+    Supprime l'audio en gardant la ligne. Appele une fois le depot confirme :
+    l'audio ne sert plus a rien, mais la ligne reste visible pour que la
+    dictee ne disparaisse pas sans explication.
+  */
+  async function deleteChunks(id) {
+    const database = await openDatabase();
+    const transaction = database.transaction(chunksStore, "readwrite");
+    const index = transaction.objectStore(chunksStore).index("recordingId");
+    const request = index.openCursor(IDBKeyRange.only(id));
+
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) {
+        return;
+      }
+      cursor.delete();
+      cursor.continue();
+    };
+
+    await promisifyTransaction(transaction);
+  }
+
   async function deleteRecording(id) {
     const database = await openDatabase();
     const transaction = database.transaction([chunksStore, recordingsStore], "readwrite");
@@ -739,6 +762,12 @@
         transcribedWith: result.model,
         transcribedAt: new Date().toISOString(),
       });
+
+      await renderList();
+      // Enchaine sur le depot : une dictee transcrite n'a aucune raison
+      // d'attendre une action de plus.
+      await deliverRecording(id);
+      return;
     } catch (error) {
       // Un echec ne perd jamais l'audio : la ligne reste, avec sa raison.
       await updateRecording(id, {
@@ -749,6 +778,78 @@
     }
 
     await renderList();
+  }
+
+  /*
+    Depot de la transcription dans Supabase, puis effacement de l'audio local.
+
+    L'ordre compte et n'est pas negociable : l'audio n'est efface qu'APRES
+    confirmation. Dans l'autre sens, un reseau qui lache entre les deux
+    perdrait la dictee pour de bon.
+  */
+  async function deliverRecording(id) {
+    const recording = await getRecording(id);
+    if (!recording || recording.delivery === "sending" || recording.delivery === "sent") {
+      return;
+    }
+    if (!recording.transcript && !recording.structured) {
+      return;
+    }
+
+    if (!state.auth?.isSignedIn()) {
+      await updateRecording(id, {
+        delivery: "transcribed",
+        deliveryError: "Transcrit. En attente d'une connexion Supabase sur cette page.",
+      });
+      await renderList();
+      return;
+    }
+
+    await updateRecording(id, { delivery: "sending", deliveryError: "" });
+    await renderList();
+
+    try {
+      // Une dictee peut avoir attendu des heures : on redemande un jeton
+      // plutot que d'en reutiliser un mis de cote, auth.js renouvelant
+      // quatre-vingt-dix secondes avant l'expiration.
+      const accessToken = await state.auth.getAccessToken();
+      const resultat = await AtlasApp.voiceSend.sendToInbox({ recording, accessToken });
+
+      // Un doublon refuse vaut confirmation : la ligne etait deja arrivee.
+      await deleteChunks(id);
+      await updateRecording(id, {
+        delivery: "sent",
+        deliveryError: "",
+        sizeBytes: 0,
+        sentAt: new Date().toISOString(),
+        wasDuplicate: Boolean(resultat.duplicate),
+      });
+    } catch (error) {
+      // L'audio est toujours la : la reprise reutilisera le meme clientKey.
+      await updateRecording(id, {
+        delivery: "error",
+        deliveryError: error.message || "Depot impossible.",
+        attempts: (recording.attempts || 0) + 1,
+      });
+    }
+
+    await renderList();
+  }
+
+  // Tout ce qui est transcrit mais pas encore depose. Un echec n'arrete pas
+  // les suivants.
+  async function deliverTranscribed() {
+    if (!state.auth?.isSignedIn() || navigator.onLine === false) {
+      return;
+    }
+
+    const prets = (await listRecordings()).filter(
+      (recording) => recording.delivery === "transcribed"
+    );
+
+    for (const recording of prets) {
+      await deliverRecording(recording.id);
+    }
   }
 
   /*
@@ -945,7 +1046,13 @@
       return { texte: "Transcription...", classe: "est-cours" };
     }
     if (delivery === "transcribed") {
-      return { texte: "Transcrit", classe: "est-fait" };
+      return { texte: "Transcrit, a deposer", classe: "est-cours" };
+    }
+    if (delivery === "sending") {
+      return { texte: "Depot...", classe: "est-cours" };
+    }
+    if (delivery === "sent") {
+      return { texte: "Depose dans Atlas", classe: "est-fait" };
     }
     if (delivery === "error") {
       return { texte: "Erreur", classe: "est-erreur" };
@@ -983,10 +1090,12 @@
     const actions = document.createElement("div");
     actions.className = "dictee-item-actions";
 
+    // L'audio est efface une fois le depot confirme : plus rien a ecouter.
     const ecouter = document.createElement("button");
     ecouter.type = "button";
     ecouter.dataset.action = "play";
     ecouter.textContent = state.playbackId === recording.id ? "Relire" : "Ecouter";
+    ecouter.hidden = recording.delivery === "sent";
 
     const supprimer = document.createElement("button");
     supprimer.type = "button";
@@ -995,13 +1104,24 @@
 
     actions.append(ecouter);
 
+    /*
+      Une erreur peut venir de la transcription comme du depot. Le bouton de
+      reprise doit reprendre la bonne etape : la presence d'une transcription
+      tranche, puisque c'est exactement ce qui separe les deux.
+    */
     const delivery = recording.delivery || "pending";
-    if (delivery === "pending" || delivery === "error") {
-      const transcrire = document.createElement("button");
-      transcrire.type = "button";
-      transcrire.dataset.action = "transcribe";
-      transcrire.textContent = delivery === "error" ? "Reessayer" : "Transcrire";
-      actions.append(transcrire);
+    const dejaTranscrit = Boolean(recording.transcript || recording.structured);
+
+    if (delivery !== "sent" && delivery !== "transcribing" && delivery !== "sending") {
+      const reprise = document.createElement("button");
+      reprise.type = "button";
+      reprise.dataset.action = dejaTranscrit ? "deliver" : "transcribe";
+      reprise.textContent = delivery === "error"
+        ? "Reessayer"
+        : dejaTranscrit
+          ? "Deposer"
+          : "Transcrire";
+      actions.append(reprise);
     }
 
     actions.append(supprimer);
@@ -1048,9 +1168,22 @@
     elements.empty.hidden = state.recordings.length > 0;
 
     const total = state.recordings.reduce((sum, item) => sum + (item.sizeBytes || 0), 0);
-    elements.summary.textContent = state.recordings.length
-      ? `${state.recordings.length} en attente · ${formatSize(total)}`
-      : "";
+    const deposees = state.recordings.filter((item) => item.delivery === "sent").length;
+    const enAttente = state.recordings.length - deposees;
+
+    // Compter les dictees deposees comme "en attente" serait faux : leur audio
+    // n'existe plus, elles ne sont la que pour etre relues.
+    const morceaux = [];
+    if (enAttente) {
+      morceaux.push(`${enAttente} en attente`);
+    }
+    if (deposees) {
+      morceaux.push(`${deposees} deposee${deposees > 1 ? "s" : ""}`);
+    }
+    if (total) {
+      morceaux.push(formatSize(total));
+    }
+    elements.summary.textContent = morceaux.join(" · ");
   }
 
   function revokePlayback() {
@@ -1190,8 +1323,10 @@
       await auth.signIn(elements.authEmail.value, elements.authPassword.value);
       elements.authPassword.value = "";
       elements.authStatus.textContent = "";
-      showSession();
+      await showSession();
       renderConfig();
+      // Ce qui attendait une session peut maintenant partir.
+      deliverTranscribed();
     } catch (error) {
       elements.authStatus.textContent = error.message || "Connexion impossible.";
     } finally {
@@ -1290,6 +1425,8 @@
       removeRecording(id);
     } else if (button.dataset.action === "transcribe") {
       transcribeRecording(id);
+    } else if (button.dataset.action === "deliver") {
+      deliverRecording(id);
     }
   }
 
@@ -1448,9 +1585,10 @@
     renderConfig();
     prewarmStream();
 
-    // Ce qui n'a jamais ete transcrit repart ici : une dictee faite hors
-    // reseau ne reste pas bloquee jusqu'a une action manuelle.
-    transcribePending();
+    // Ce qui n'a jamais ete transcrit repart ici, puis ce qui est transcrit
+    // sans avoir ete depose : une dictee faite hors reseau ne reste pas
+    // bloquee jusqu'a une action manuelle.
+    transcribePending().then(deliverTranscribed);
 
     // En dernier : cache.addAll telecharge tout Atlas, et ce n'est pas ce qui
     // doit concurrencer le premier appui.

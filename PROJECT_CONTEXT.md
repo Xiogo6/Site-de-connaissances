@@ -349,6 +349,33 @@ La reprise automatique ne concerne que l etat `pending`. Relancer ce qui a deja
 echoue ferait boucler l erreur a chaque ouverture et consommerait l API pour
 rien : une reprise apres echec se demande a la main.
 
+### Depot dans voice_inbox
+
+Une fois la transcription obtenue, la page depose une ligne dans
+`public.voice_inbox` par un simple POST PostgREST. `sync_app_payload` n est
+jamais approchee depuis cette page : c est toute la raison d etre d une table a
+part, cette fonction ecrasant l etat complet de l espace de travail.
+
+La ligne ne contient que du texte. L audio reste sur l appareil, puis disparait.
+
+Ordre non negociable : l audio n est efface qu APRES confirmation du depot.
+Dans l autre sens, un reseau qui lache entre les deux perdrait la dictee. En
+cas d echec la ligne passe en erreur avec sa raison, l audio intact, et la
+reprise se demande a la main.
+
+`client_key` est un uuid tire a la capture, unique en base. Un depot reussi
+suivi d une suppression locale ratee fait revenir la tentative suivante en 409 :
+ce refus vaut CONFIRMATION et non echec. Le traiter comme une erreur creerait
+exactement le doublon que la contrainte empeche. C est le mode de defaillance
+classique d une file d attente.
+
+Le jeton n est jamais mis de cote : une dictee peut attendre des heures, donc
+on repasse par `getAccessToken()` avant chaque depot, qui renouvelle
+quatre-vingt-dix secondes avant l expiration.
+
+Une fois depose, la ligne reste visible avec son texte mais sans son audio :
+son bouton d ecoute disparait, et elle ne compte plus comme en attente.
+
 ### Cloisonnement du stockage, mesure et non suppose
 
 Deux applications installees depuis la meme origine recoivent chacune leur

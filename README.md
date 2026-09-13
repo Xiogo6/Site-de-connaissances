@@ -198,8 +198,15 @@ dictee reste en attente et repart a la prochaine ouverture. L'audio ne quitte
 l'appareil que vers Gemini : la file qui alimentera Atlas ne transportera que du
 texte.
 
+La transcription obtenue est ensuite deposee dans la table `voice_inbox` de
+Supabase, et l'audio local est efface, mais seulement une fois le depot
+confirme. Chaque dictee porte un identifiant unique : une reprise apres echec
+ne cree jamais de doublon.
+
 Cette page ayant son propre stockage, elle a sa propre cle Gemini et sa propre
 session : un bloc de configuration s'affiche tant qu'il manque l'une des deux.
+La connexion demandee est celle du compte de l'application, cree dans
+`Authentication > Users`, et non le compte du tableau de bord Supabase.
 
 Deux facons d'y arriver : le lien `Dicter` du panneau de note rapide, ou une
 icone dediee installee depuis `voice.html` (manifeste `voice.webmanifest`).
