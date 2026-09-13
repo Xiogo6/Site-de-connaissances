@@ -7,40 +7,12 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <title>Dictee — Atlas</title>
-    <meta name="theme-color" content="#bf5b2c" />
+    <meta name="theme-color" content="#edf0eb" />
     <!-- Le premier est la norme, le second est deprecie mais reste lu par iOS. -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Dicter" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <script>
-      // Meme bascule de theme que index.html, reduite aux deux clefs utiles.
-      // Elle doit rester en ligne et avant les feuilles de style : lue plus
-      // tard, l'ecran clignoterait en clair avant de passer en sombre.
-      (function applyStoredTheme() {
-        try {
-          const presetModes = {
-            "classic-dark": "dark",
-            "classic-light": "light",
-            forest: "dark",
-            ocean: "dark",
-            terracotta: "light",
-            atelier: "light",
-          };
-          const preset = window.localStorage.getItem("atlas-connaissance-theme-preset");
-          const theme =
-            presetModes[preset] ||
-            window.localStorage.getItem("atlas-connaissance-theme") ||
-            "dark";
-          const isDark = theme === "dark";
-          document.documentElement.dataset.theme = isDark ? "dark" : "light";
-          document.documentElement.classList.toggle("theme-dark", isDark);
-        } catch (error) {
-          document.documentElement.dataset.theme = "dark";
-          document.documentElement.classList.add("theme-dark");
-        }
-      })();
-    </script>
     <link rel="manifest" href="./voice.webmanifest" />
     <!-- iOS ignore les icones SVG pour l'ecran d'accueil : sans ce PNG,
          le raccourci porterait une capture de la page. -->
@@ -48,9 +20,53 @@
     <!-- Deux feuilles seulement, 2,6 Ko. Le reste du style est ci-dessous :
          charger layout, components, features et themes pour un ecran unique
          couterait plus cher que de l'ecrire a la main. -->
-    <link rel="stylesheet" href="./styles/tokens.css?v=106" />
-    <link rel="stylesheet" href="./styles/base.css?v=106" />
+    <link rel="stylesheet" href="./styles/tokens.css?v=107" />
+    <link rel="stylesheet" href="./styles/base.css?v=107" />
     <style>
+      /*
+        Preset Atelier, recopie de styles/themes.css.
+
+        La page ne charge pas themes.css : quarante-huit kilooctets pour un
+        seul ecran, dont on n'utiliserait qu'une dizaine de lignes. Ce sont ces
+        lignes-la, et rien d'autre.
+
+        Contrepartie : cette page ne suit plus le theme choisi dans Atlas, elle
+        est en Atelier quoi qu'il arrive. Pour un outil qu'on ouvre dix
+        secondes, une apparence stable vaut mieux qu'une apparence qui depend
+        d'un reglage fait ailleurs.
+
+        Si le preset Atelier change un jour dans themes.css, ces valeurs ne
+        suivront pas toutes seules.
+      */
+      :root {
+        --surface: rgba(247, 248, 242, 0.94);
+        --line: rgba(55, 78, 77, 0.14);
+        --line-strong: rgba(55, 78, 77, 0.3);
+        --text: #253738;
+        --text-soft: #5f7370;
+        --accent: #4f7784;
+        --accent-strong: #284f5d;
+        --shadow: 0 24px 58px rgba(53, 73, 70, 0.13);
+        color-scheme: light;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 10% 6%, rgba(108, 143, 128, 0.2), transparent 30%),
+          radial-gradient(circle at 90% 16%, rgba(86, 120, 143, 0.18), transparent 32%),
+          linear-gradient(145deg, #f1f3ed 0%, #e8ece7 52%, #e0e6e2 100%);
+      }
+
+      /*
+        L'attribut hidden ne pose qu'un `display: none` de feuille par defaut,
+        que la moindre regle `display` de la page ecrase. Le panneau de
+        configuration, en `display: grid`, restait donc affiche alors que le
+        code le croyait cache.
+      */
+      [hidden] {
+        display: none !important;
+      }
+
       body {
         display: flex;
         justify-content: center;
@@ -101,12 +117,12 @@
         align-items: center;
         aspect-ratio: 1;
         background:
-          radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.34), transparent 42%),
-          linear-gradient(150deg, var(--accent) 0%, var(--accent-strong) 100%);
-        border: 1px solid rgba(255, 239, 221, 0.26);
+          radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.3), transparent 42%),
+          linear-gradient(150deg, #4f7784 0%, #234653 100%);
+        border: 1px solid rgba(248, 251, 250, 0.3);
         border-radius: 50%;
         box-shadow: var(--shadow);
-        color: #fff9f1;
+        color: #f8fbfa;
         cursor: pointer;
         display: flex;
         font-size: 1.02rem;
@@ -220,7 +236,7 @@
 
       .dictee-mode.is-active {
         background: var(--accent);
-        color: #fff9f1;
+        color: #f8fbfa;
         font-weight: 600;
       }
 
@@ -338,7 +354,7 @@
         background: var(--accent);
         border: none;
         border-radius: 999px;
-        color: #fff9f1;
+        color: #f8fbfa;
         cursor: pointer;
         font-weight: 600;
         min-height: 44px;
@@ -371,11 +387,20 @@
       .dictee-config-toggle {
         background: transparent;
         border: 1px solid var(--line-strong);
+        border-radius: 999px;
         color: var(--text-soft);
+        cursor: pointer;
         font-weight: 500;
         justify-self: start;
         min-height: 38px;
         padding: 0 14px;
+      }
+
+      /* Ce qui manque se voit sans ouvrir le panneau. */
+      .dictee-config-toggle.est-incomplete {
+        border-color: var(--accent);
+        color: var(--accent-strong);
+        font-weight: 600;
       }
 
       /* ---------- etats d'une ligne de la file ---------- */
@@ -388,8 +413,8 @@
       }
 
       .dictee-etat.est-attente { background: var(--line); color: var(--text-soft); }
-      .dictee-etat.est-cours { background: rgba(191, 91, 44, 0.18); color: var(--accent-strong); }
-      .dictee-etat.est-fait { background: rgba(95, 160, 120, 0.2); color: #3f8f63; }
+      .dictee-etat.est-cours { background: rgba(79, 119, 132, 0.16); color: var(--accent-strong); }
+      .dictee-etat.est-fait { background: rgba(111, 146, 123, 0.22); color: #47705a; }
       .dictee-etat.est-erreur { background: rgba(216, 80, 58, 0.18); color: #d8503a; }
 
       .dictee-item-transcript {
@@ -505,13 +530,16 @@
 
       <footer class="dictee-pied">
         <p><a href="./index.html">Ouvrir Atlas</a></p>
-        <p>Rien ne part sur le reseau a ce stade : tout reste sur cet appareil.</p>
+        <p>
+          L'audio part vers Gemini pour etre transcrit, puis seul le texte
+          rejoint Atlas. L'enregistrement est efface une fois depose.
+        </p>
       </footer>
     </main>
 
-    <script src="./scripts/config.js?v=106"></script>
-    <script src="./scripts/auth.js?v=106"></script>
-    <script src="./scripts/voice-send.js?v=106"></script>
-    <script src="./scripts/voice.js?v=106"></script>
+    <script src="./scripts/config.js?v=107"></script>
+    <script src="./scripts/auth.js?v=107"></script>
+    <script src="./scripts/voice-send.js?v=107"></script>
+    <script src="./scripts/voice.js?v=107"></script>
   </body>
 </html>

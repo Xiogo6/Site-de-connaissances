@@ -324,6 +324,25 @@ fichiers separee, donc par plus de code.
 Corollaire deja applique : une fois le depot confirme, l audio est efface. La
 file est un tampon, pas une archive.
 
+### Apparence de la page de dictee
+
+Elle ne charge pas themes.css : quarante-huit kilooctets pour un seul ecran,
+dont une dizaine de lignes servent. Les jetons du preset Atelier y sont donc
+recopies a la main, et la page est en Atelier quoi qu il arrive, sans suivre le
+theme choisi dans Atlas. Pour un outil qu on ouvre dix secondes, une apparence
+stable vaut mieux qu une apparence qui depend d un reglage fait ailleurs.
+Contrepartie : si le preset change dans themes.css, ces valeurs ne suivront pas.
+
+Le rouge de l enregistrement en cours ne vient d aucun preset : c est un signal,
+pas une couleur de marque.
+
+Le bloc de configuration est replie par defaut. Ce qui manque se lit sur le
+bouton qui l ouvre, et sous le bouton d enregistrement. Attention a l attribut
+`hidden` : il ne pose qu un `display: none` de feuille par defaut, que la
+moindre regle `display` de la page ecrase. Le panneau, en `display: grid`,
+restait affiche alors que le code le croyait cache ; une regle
+`[hidden] { display: none !important; }` ferme ce piege pour toute la page.
+
 ### Modeles Gemini nommes par role
 
 `AtlasApp.config.geminiModels` porte `{ text, audio }`, et `normalizeAiConfig`,

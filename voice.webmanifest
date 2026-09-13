@@ -4,8 +4,8 @@
   "start_url": "./voice.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#12171b",
-  "theme_color": "#bf5b2c",
+  "background_color": "#eef1ec",
+  "theme_color": "#edf0eb",
   "description": "Capture vocale rapide pour l'Atlas de Connaissance.",
   "icons": [
     {

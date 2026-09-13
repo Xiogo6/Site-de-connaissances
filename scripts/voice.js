@@ -1272,11 +1272,19 @@
 
   function renderConfig() {
     const complete = isConfigured();
-    const visible = state.configOpen || !complete;
+    // Repliee par defaut, meme incomplete : cet ecran sert a dicter, pas a se
+    // configurer. Ce qui manque est dit sous le bouton et sur le bouton de
+    // configuration lui-meme, ce qui suffit a le faire ouvrir.
+    const visible = state.configOpen;
 
     elements.config.hidden = !visible;
-    elements.configToggle.hidden = !complete;
-    elements.configToggle.textContent = visible ? "Masquer la configuration" : "Configuration";
+    elements.configToggle.hidden = false;
+    elements.configToggle.textContent = visible
+      ? "Masquer la configuration"
+      : complete
+        ? "Configuration"
+        : "Configuration a completer";
+    elements.configToggle.classList.toggle("est-incomplete", !complete);
 
     const config = AtlasApp.voiceSend?.loadConfig();
 
@@ -1295,11 +1303,10 @@
       ? `Cle enregistree sur cet appareil. Modele : ${config.models.audio}`
       : "Aucune cle. La dictee marche, la transcription non.";
 
-    // Le panneau est sous le bouton, donc hors du premier ecran sur telephone.
-    // Une ligne le signale, pour ne pas dicter trois minutes avant de decouvrir
-    // que rien ne peut partir.
+    // Le panneau est replie : sans cette ligne, on pourrait dicter trois
+    // minutes avant de decouvrir que rien ne peut partir.
     if (!config?.apiKey && state.status === "idle" && !elements.status.textContent) {
-      setStatus("Cle Gemini a saisir plus bas : sans elle, rien n'est transcrit.");
+      setStatus("Cle Gemini manquante : rien ne sera transcrit tant qu'elle l'est.");
     }
   }
 
