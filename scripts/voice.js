@@ -73,6 +73,7 @@
     config: document.querySelector("#voice-config"),
     configToggle: document.querySelector("#voice-config-toggle"),
     geminiKey: document.querySelector("#voice-gemini-key"),
+    geminiModel: document.querySelector("#voice-gemini-model"),
     geminiSave: document.querySelector("#voice-gemini-save"),
     geminiStatus: document.querySelector("#voice-gemini-status"),
     authEmail: document.querySelector("#voice-auth-email"),
@@ -1125,6 +1126,18 @@
     elements.configToggle.textContent = visible ? "Masquer la configuration" : "Configuration";
 
     const config = AtlasApp.voiceSend?.loadConfig();
+
+    // Les champs sont reremplis avec ce qui est enregistre. Les vider apres
+    // un enregistrement se lisait comme une suppression : le champ est en
+    // points, il n'y a aucune raison de le cacher davantage.
+    // La garde sur activeElement evite d'ecraser une saisie en cours.
+    if (elements.geminiKey && document.activeElement !== elements.geminiKey) {
+      elements.geminiKey.value = config?.apiKey || "";
+    }
+    if (elements.geminiModel && document.activeElement !== elements.geminiModel) {
+      elements.geminiModel.value = config?.models.audio || "";
+    }
+
     elements.geminiStatus.textContent = config?.apiKey
       ? `Cle enregistree sur cet appareil. Modele : ${config.models.audio}`
       : "Aucune cle. La dictee marche, la transcription non.";
@@ -1149,11 +1162,17 @@
       return;
     }
 
-    // On repart de la configuration existante pour ne pas ecraser les modeles.
+    // On repart de la configuration existante pour ne pas ecraser le modele
+    // texte, que cette page n'affiche pas.
     const current = AtlasApp.voiceSend.loadConfig();
-    AtlasApp.voiceSend.saveConfig({ ...current, apiKey });
-    elements.geminiKey.value = "";
+    AtlasApp.voiceSend.saveConfig({
+      ...current,
+      apiKey,
+      models: { ...current.models, audio: elements.geminiModel.value },
+    });
+
     renderConfig();
+    setStatus("Configuration enregistree.");
     // Ce qui attendait faute de cle peut maintenant partir.
     transcribePending();
   }
