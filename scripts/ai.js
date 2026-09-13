@@ -6,16 +6,10 @@
     const defaultModel = AtlasApp.config.geminiDefaultModel;
     const apiBaseUrl = AtlasApp.config.geminiBaseUrl;
 
+    // La forme vit dans config.js, partagee avec voice.html. Cette fonction
+    // n'est plus qu'un point d'entree local, pour ne rien changer aux appelants.
     function normalizeConfig(raw = {}) {
-      return {
-        apiKey: typeof raw.apiKey === "string" ? raw.apiKey.trim() : "",
-        model: sanitizeModel(raw.model),
-      };
-    }
-
-    function sanitizeModel(value) {
-      const model = String(value || "").trim();
-      return model || defaultModel;
+      return AtlasApp.normalizeAiConfig(raw);
     }
 
     function getDefaultStatus() {
@@ -581,8 +575,11 @@
     }
 
     async function callGemini(prompt, config, options = {}) {
+      // Le role est explicite : tous les appels d'ici sont du texte, mais le
+      // modele n'est plus ecrit en dur au moment de l'appel.
+      const model = options.model || config.models?.text || defaultModel;
       const response = await fetch(
-        `${apiBaseUrl}${encodeURIComponent(config.model)}:generateContent`,
+        `${apiBaseUrl}${encodeURIComponent(model)}:generateContent`,
         {
           method: "POST",
           headers: {

@@ -46,8 +46,9 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
   Base visuelle et responsive. Six feuilles chargees en parallele, dans l ordre
   tokens, base, layout, components, features, themes. Chaque couche affine la
   precedente : c est voulu, pas un accident.
-- `voice.html`, `scripts/voice.js`, `voice.webmanifest`
-  Second point d'entree : la dictee vocale. Voir la section plus bas.
+- `voice.html`, `scripts/voice.js`, `scripts/voice-send.js`, `voice.webmanifest`
+  Second point d'entree : la dictee vocale. `voice-send.js` est le seul endroit
+  d ou quelque chose quitte l appareil. Voir la section plus bas.
 - `tests/index.html`
   49 tests a ouvrir dans un navigateur, sans dependance ni etape de build.
   Servir en HTTP, sinon cinq tests sont ignores. Voir le README.
@@ -315,6 +316,38 @@ S y ajoute le temps d envoi en 4G.
 
 Corollaire : une fois la transcription obtenue et verifiee, l audio n a plus de
 raison d etre conserve. La file est un tampon, pas une archive.
+
+### Modeles Gemini nommes par role
+
+`AtlasApp.config.geminiModels` porte `{ text, audio }`, et `normalizeAiConfig`,
+dans config.js, est la forme unique de la configuration. Elle vit la et non dans
+ai.js parce que config.js est le seul fichier que chargent les deux pages : deux
+copies finiraient par diverger.
+
+Cette fonction reprend l ancien champ `model` des configurations deja
+enregistrees et le porte sur le role texte. Sans cette reprise, le modele choisi
+par l utilisateur serait remplace en silence par la valeur par defaut au premier
+chargement suivant la mise a jour. Le champ `#ai-model` des reglages reste le
+modele texte ; le modele audio n est pas expose, il vient de config.js.
+
+### Transcription, et etiquette de format
+
+La transcription a lieu dans voice.html, pas dans Atlas : la file ne transporte
+donc que du texte, jamais d audio. C est ce qui evite Supabase Storage.
+
+`status` decrit la capture (`ready`, `interrupted`), `delivery` decrit la
+livraison (`pending`, `transcribing`, `transcribed`, `error`). Deux axes, parce
+qu une dictee interrompue reste parfaitement transcriptible.
+
+Gemini n accepte pas n importe quelle etiquette de format. On retire le
+parametre `codecs`, que l API n attend jamais, et si l envoi est refuse pour
+cause de format on retente une fois avec l etiquette voisine : `audio/mp4` vers
+`audio/aac`, `audio/webm` vers `audio/ogg`. On ne remplace jamais le format
+annonce par MediaRecorder, on traduit seulement son etiquette.
+
+La reprise automatique ne concerne que l etat `pending`. Relancer ce qui a deja
+echoue ferait boucler l erreur a chaque ouverture et consommerait l API pour
+rien : une reprise apres echec se demande a la main.
 
 ### Cloisonnement du stockage, mesure et non suppose
 

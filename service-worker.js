@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-connaissance-v98";
+const CACHE_NAME = "atlas-connaissance-v99";
 const ASSETS = [
   "./",
   "./index.html",
@@ -19,6 +19,7 @@ const ASSETS = [
   "./scripts/renderers.js",
   "./scripts/events.js",
   "./scripts/voice.js",
+  "./scripts/voice-send.js",
   "./styles/tokens.css",
   "./styles/base.css",
   "./styles/layout.css",

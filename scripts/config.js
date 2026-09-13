@@ -153,6 +153,12 @@ Backlink : page qui cite la page actuelle.`,
     aiStorageKey: "atlas-connaissance-ai",
     geminiBaseUrl: "https://generativelanguage.googleapis.com/v1beta/models/",
     geminiDefaultModel: "gemini-3.5-flash",
+    // Nommes par ROLE et non par nom de modele : changer le modele qui
+    // transcrit ne demande alors de toucher a rien d'autre qu'a cette ligne.
+    geminiModels: {
+      text: "gemini-3.5-flash",
+      audio: "gemini-3.5-flash",
+    },
     dataVersion: 11,
     supabase: {
       url: "https://cmmlgojptwolqbriexse.supabase.co",
@@ -313,5 +319,36 @@ Pistes de reponse :
 `,
     },
     reviewIntervalsInHours: [0, 12, 24, 72, 168, 336],
+  };
+
+  /*
+    Forme de la configuration Gemini.
+
+    Elle vit ici, et non dans ai.js, parce que config.js est le seul fichier que
+    chargent a la fois index.html et voice.html. Deux copies de cette fonction
+    finiraient par diverger, et le reglage de l'utilisateur disparaitrait du
+    cote qui n'aurait pas ete mis a jour.
+  */
+  AtlasApp.normalizeAiConfig = function normalizeAiConfig(raw = {}) {
+    const defaults = AtlasApp.config.geminiModels;
+
+    function pickModel(value, fallback) {
+      const name = String(value || "").trim();
+      return name || fallback;
+    }
+
+    // Reprise des configurations deja enregistrees : elles portent un champ
+    // "model" unique, qui etait le modele texte. Sans cette ligne, le reglage
+    // de l'utilisateur serait remplace en silence par la valeur par defaut au
+    // premier chargement suivant la mise a jour.
+    const legacyModel = typeof raw.model === "string" ? raw.model.trim() : "";
+
+    return {
+      apiKey: typeof raw.apiKey === "string" ? raw.apiKey.trim() : "",
+      models: {
+        text: pickModel(raw.models?.text || legacyModel, defaults.text),
+        audio: pickModel(raw.models?.audio, defaults.audio),
+      },
+    };
   };
 })(window);

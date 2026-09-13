@@ -70,6 +70,15 @@
     empty: document.querySelector("#voice-vide"),
     summary: document.querySelector("#voice-file-resume"),
     modes: Array.from(document.querySelectorAll("[data-voice-mode]")),
+    config: document.querySelector("#voice-config"),
+    configToggle: document.querySelector("#voice-config-toggle"),
+    geminiKey: document.querySelector("#voice-gemini-key"),
+    geminiSave: document.querySelector("#voice-gemini-save"),
+    geminiStatus: document.querySelector("#voice-gemini-status"),
+    authEmail: document.querySelector("#voice-auth-email"),
+    authPassword: document.querySelector("#voice-auth-password"),
+    authSubmit: document.querySelector("#voice-auth-submit"),
+    authStatus: document.querySelector("#voice-auth-status"),
   };
 
   const state = {
@@ -93,6 +102,8 @@
     audioContext: null,
     analyser: null,
     meterSource: null,
+    auth: null,
+    configOpen: false,
     playbackId: "",
     playbackUrl: "",
     audio: null,
@@ -174,6 +185,24 @@
     return `rec-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  /*
+    Identifiant de capture, porte jusqu'a la ligne Supabase ou il est unique.
+    C'est lui qui rend la file idempotente : si l'insert reussit mais que la
+    suppression locale echoue, la tentative suivante est refusee au lieu de
+    creer un doublon. Sans cela, chaque reprise ajouterait une page de plus.
+  */
+  function makeClientKey() {
+    if (global.crypto?.randomUUID) {
+      return global.crypto.randomUUID();
+    }
+    // Repli : c'est l'unicite qui compte, pas le format uuid.
+    return [
+      Date.now().toString(36),
+      Math.random().toString(36).slice(2, 10),
+      Math.random().toString(36).slice(2, 10),
+    ].join("-");
+  }
+
   async function createRecording(mimeType) {
     const database = await openDatabase();
     const recording = {
@@ -188,9 +217,15 @@
       sizeBytes: 0,
       chunkCount: 0,
       endedReason: "",
-      // Reserves a la suite : transcription et page creee a partir d'elle.
-      // Rien ne les ecrit aujourd'hui.
+      clientKey: makeClientKey(),
+      // Avancement de la livraison, distinct de status qui decrit la capture :
+      // une dictee interrompue reste parfaitement transcriptible.
+      // pending -> transcribing -> transcribed -> sending -> sent
+      delivery: "pending",
+      deliveryError: "",
+      attempts: 0,
       transcript: null,
+      structured: null,
       noteId: null,
     };
 
@@ -264,6 +299,12 @@
       transaction.objectStore(recordingsStore).getAll()
     );
     return recordings.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  }
+
+  async function getRecording(id) {
+    const database = await openDatabase();
+    const transaction = database.transaction(recordingsStore, "readonly");
+    return promisifyRequest(transaction.objectStore(recordingsStore).get(id));
   }
 
   async function readChunks(id) {
@@ -350,6 +391,33 @@
     }
 
     return repaired;
+  }
+
+  /*
+    Les dictees capturees avant cette version n'ont ni clientKey ni etat de
+    livraison. On les complete au chargement plutot que de semer des tests
+    d'existence dans tout le code. Aucune version de base a changer : ce sont
+    des champs, pas un magasin ni un index.
+  */
+  async function upgradeRecords() {
+    const recordings = await listRecordings();
+    let upgraded = 0;
+
+    for (const recording of recordings) {
+      const patch = {};
+      if (!recording.clientKey) {
+        patch.clientKey = makeClientKey();
+      }
+      if (!recording.delivery) {
+        patch.delivery = recording.transcript ? "transcribed" : "pending";
+      }
+      if (Object.keys(patch).length) {
+        await updateRecording(recording.id, patch);
+        upgraded += 1;
+      }
+    }
+
+    return upgraded;
   }
 
   // Sans cela le navigateur peut vider la file pour recuperer de la place :
@@ -565,6 +633,8 @@
     state.recorder = null;
     const durationMs = state.durationMs;
     const reason = state.endedReason;
+    // Retenue hors du try : l'envoi, tout en bas, en a besoin.
+    let saved = null;
 
     try {
       await Promise.all(state.writes);
@@ -581,6 +651,7 @@
           mimeType: recorder?.mimeType || recording.mimeType,
         });
         setStatus(messageForReason(reason, durationMs));
+        saved = recording;
       }
     } catch (error) {
       setStatus("Enregistrement incomplet, il est dans la liste.", true);
@@ -597,6 +668,12 @@
     renderButton();
     await renderList();
     scheduleStreamRelease();
+
+    // L'envoi part tout de suite si le reseau et la cle sont la. Sinon la
+    // ligne reste en attente et repartira a la prochaine ouverture.
+    if (saved && canTranscribe()) {
+      transcribeRecording(saved.id);
+    }
   }
 
   function messageForReason(reason, durationMs) {
@@ -607,6 +684,92 @@
       return "Duree maximale atteinte, enregistrement sauvegarde.";
     }
     return `Enregistre : ${formatDuration(durationMs)}.`;
+  }
+
+  /* ================================================================
+     3 bis. Transcription
+
+     Le seul endroit ou quelque chose quitte l'appareil. L'audio part vers
+     Gemini, le texte revient et s'ecrit dans la file. Rien ne va vers Supabase
+     a ce stade.
+     ================================================================ */
+
+  function canTranscribe() {
+    return Boolean(AtlasApp.voiceSend?.loadConfig().apiKey) && navigator.onLine !== false;
+  }
+
+  async function transcribeRecording(id) {
+    const recording = await getRecording(id);
+    if (!recording || recording.delivery === "transcribing") {
+      return;
+    }
+
+    const config = AtlasApp.voiceSend.loadConfig();
+    if (!config.apiKey) {
+      await updateRecording(id, {
+        delivery: "error",
+        deliveryError: "Aucune cle Gemini enregistree sur cet appareil.",
+      });
+      await renderList();
+      openConfig();
+      return;
+    }
+
+    // L'etat est ecrit AVANT l'appel : si la page meurt pendant la requete,
+    // la ligne ne restera pas a "en attente" comme si rien n'avait ete tente.
+    await updateRecording(id, { delivery: "transcribing", deliveryError: "" });
+    await renderList();
+
+    try {
+      const blob = await buildRecordingBlob(recording);
+      const result = await AtlasApp.voiceSend.transcribe({
+        blob,
+        // Le format reel de CETTE dictee, jamais une valeur ecrite en dur.
+        mimeType: recording.mimeType,
+        apiKey: config.apiKey,
+        model: config.models.audio,
+      });
+
+      await updateRecording(id, {
+        delivery: "transcribed",
+        deliveryError: "",
+        transcript: result.transcript,
+        structured: result.structured,
+        transcribedWith: result.model,
+        transcribedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      // Un echec ne perd jamais l'audio : la ligne reste, avec sa raison.
+      await updateRecording(id, {
+        delivery: "error",
+        deliveryError: error.message || "Echec de la transcription.",
+        attempts: (recording.attempts || 0) + 1,
+      });
+    }
+
+    await renderList();
+  }
+
+  /*
+    Reprise des dictees jamais transcrites. Volontairement limitee a l'etat
+    "pending" : relancer automatiquement ce qui a deja echoue ferait boucler
+    l'erreur a chaque ouverture, et consommerait l'API pour rien. Une reprise
+    apres echec se demande a la main.
+  */
+  async function transcribePending() {
+    if (!canTranscribe()) {
+      return;
+    }
+
+    const pending = (await listRecordings()).filter(
+      (recording) => recording.delivery === "pending"
+    );
+
+    // En serie, pas en parallele : un envoi de plusieurs megaoctets a la fois
+    // sature la liaison et fait echouer les deux.
+    for (const recording of pending) {
+      await transcribeRecording(recording.id);
+    }
   }
 
   /* ================================================================
@@ -775,6 +938,20 @@
     return match ? match[1] : "audio";
   }
 
+  function deliveryLabel(recording) {
+    const delivery = recording.delivery || "pending";
+    if (delivery === "transcribing") {
+      return { texte: "Transcription...", classe: "est-cours" };
+    }
+    if (delivery === "transcribed") {
+      return { texte: "Transcrit", classe: "est-fait" };
+    }
+    if (delivery === "error") {
+      return { texte: "Erreur", classe: "est-erreur" };
+    }
+    return { texte: "En attente", classe: "est-attente" };
+  }
+
   function buildItem(recording) {
     const item = document.createElement("li");
     item.className = "dictee-item";
@@ -797,6 +974,11 @@
       meta.appendChild(marque);
     }
 
+    const etat = deliveryLabel(recording);
+    const pastille = document.createElement("span");
+    pastille.className = `dictee-etat ${etat.classe}`;
+    pastille.textContent = etat.texte;
+
     const actions = document.createElement("div");
     actions.className = "dictee-item-actions";
 
@@ -810,8 +992,34 @@
     supprimer.dataset.action = "delete";
     supprimer.textContent = "Supprimer";
 
-    actions.append(ecouter, supprimer);
-    item.append(titre, meta, actions);
+    actions.append(ecouter);
+
+    const delivery = recording.delivery || "pending";
+    if (delivery === "pending" || delivery === "error") {
+      const transcrire = document.createElement("button");
+      transcrire.type = "button";
+      transcrire.dataset.action = "transcribe";
+      transcrire.textContent = delivery === "error" ? "Reessayer" : "Transcrire";
+      actions.append(transcrire);
+    }
+
+    actions.append(supprimer);
+    item.append(titre, meta, pastille, actions);
+
+    if (recording.deliveryError) {
+      const erreur = document.createElement("p");
+      erreur.className = "dictee-item-erreur";
+      erreur.textContent = recording.deliveryError;
+      item.appendChild(erreur);
+    }
+
+    const texte = recording.structured?.content || recording.transcript;
+    if (texte) {
+      const transcription = document.createElement("p");
+      transcription.className = "dictee-item-transcript";
+      transcription.textContent = texte;
+      item.appendChild(transcription);
+    }
 
     // Le lecteur est un element unique deplace d'une ligne a l'autre : le
     // recreer a chaque rendu relancerait la lecture depuis le debut.
@@ -893,6 +1101,83 @@
 
     await deleteRecording(id);
     await renderList();
+  }
+
+  /* ---------- configuration de cet appareil ---------- */
+
+  /*
+    Le stockage etant cloisonne sur iOS, cette page ne voit ni la cle Gemini ni
+    la session d'Atlas : elle a les siennes. Le panneau s'ouvre tant qu'il
+    manque quelque chose, et se replie derriere un bouton une fois tout en
+    place. Savoir AVANT de dicter trois minutes que rien ne partira, c'est tout
+    l'interet de l'afficher.
+  */
+  function isConfigured() {
+    return Boolean(AtlasApp.voiceSend?.loadConfig().apiKey) && Boolean(state.auth?.isSignedIn());
+  }
+
+  function renderConfig() {
+    const complete = isConfigured();
+    const visible = state.configOpen || !complete;
+
+    elements.config.hidden = !visible;
+    elements.configToggle.hidden = !complete;
+    elements.configToggle.textContent = visible ? "Masquer la configuration" : "Configuration";
+
+    const config = AtlasApp.voiceSend?.loadConfig();
+    elements.geminiStatus.textContent = config?.apiKey
+      ? `Cle enregistree sur cet appareil. Modele : ${config.models.audio}`
+      : "Aucune cle. La dictee marche, la transcription non.";
+
+    // Le panneau est sous le bouton, donc hors du premier ecran sur telephone.
+    // Une ligne le signale, pour ne pas dicter trois minutes avant de decouvrir
+    // que rien ne peut partir.
+    if (!config?.apiKey && state.status === "idle" && !elements.status.textContent) {
+      setStatus("Cle Gemini a saisir plus bas : sans elle, rien n'est transcrit.");
+    }
+  }
+
+  function openConfig() {
+    state.configOpen = true;
+    renderConfig();
+  }
+
+  function saveGeminiKey() {
+    const apiKey = elements.geminiKey.value.trim();
+    if (!apiKey) {
+      elements.geminiStatus.textContent = "Colle la cle avant d'enregistrer.";
+      return;
+    }
+
+    // On repart de la configuration existante pour ne pas ecraser les modeles.
+    const current = AtlasApp.voiceSend.loadConfig();
+    AtlasApp.voiceSend.saveConfig({ ...current, apiKey });
+    elements.geminiKey.value = "";
+    renderConfig();
+    // Ce qui attendait faute de cle peut maintenant partir.
+    transcribePending();
+  }
+
+  async function signIn() {
+    const auth = state.auth;
+    if (!auth) {
+      return;
+    }
+
+    elements.authSubmit.disabled = true;
+    elements.authStatus.textContent = "Connexion...";
+
+    try {
+      await auth.signIn(elements.authEmail.value, elements.authPassword.value);
+      elements.authPassword.value = "";
+      elements.authStatus.textContent = "";
+      showSession();
+      renderConfig();
+    } catch (error) {
+      elements.authStatus.textContent = error.message || "Connexion impossible.";
+    } finally {
+      elements.authSubmit.disabled = false;
+    }
   }
 
   /* ================================================================
@@ -984,6 +1269,8 @@
       playRecording(id);
     } else if (button.dataset.action === "delete") {
       removeRecording(id);
+    } else if (button.dataset.action === "transcribe") {
+      transcribeRecording(id);
     }
   }
 
@@ -1025,6 +1312,13 @@
     });
 
     elements.list.addEventListener("click", handleListClick);
+
+    elements.geminiSave?.addEventListener("click", saveGeminiKey);
+    elements.authSubmit?.addEventListener("click", signIn);
+    elements.configToggle?.addEventListener("click", () => {
+      state.configOpen = !state.configOpen;
+      renderConfig();
+    });
 
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
@@ -1096,7 +1390,8 @@
 
   async function showSession() {
     try {
-      const auth = AtlasApp.createAuthModule?.({ elements: {} });
+      const auth = state.auth || AtlasApp.createAuthModule?.({ elements: {} });
+      state.auth = auth;
       if (!auth?.isConfigured()) {
         elements.session.textContent = "Session : Supabase non configure.";
         return;
@@ -1115,6 +1410,7 @@
     elements.context.textContent = describeContext();
 
     try {
+      await upgradeRecords();
       const repaired = await repairInterrupted();
       if (repaired) {
         setStatus(
@@ -1129,8 +1425,13 @@
     }
 
     requestPersistence();
-    showSession();
+    await showSession();
+    renderConfig();
     prewarmStream();
+
+    // Ce qui n'a jamais ete transcrit repart ici : une dictee faite hors
+    // reseau ne reste pas bloquee jusqu'a une action manuelle.
+    transcribePending();
 
     // En dernier : cache.addAll telecharge tout Atlas, et ce n'est pas ce qui
     // doit concurrencer le premier appui.

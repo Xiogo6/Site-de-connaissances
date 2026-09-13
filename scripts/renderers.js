@@ -2283,7 +2283,8 @@
     }
 
     if (context.elements.aiModelInput && document.activeElement !== context.elements.aiModelInput) {
-      context.elements.aiModelInput.value = config.model || AtlasApp.config.geminiDefaultModel;
+      context.elements.aiModelInput.value =
+        config.models?.text || AtlasApp.config.geminiModels.text;
     }
 
     if (context.elements.aiSettingsStatus) {

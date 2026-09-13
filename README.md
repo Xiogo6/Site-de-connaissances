@@ -18,8 +18,8 @@ Le projet a ete reorganise pour separer les responsabilites sans ajouter de buil
 - `scripts/graph.js` : modele et rendu du graphe
 - `scripts/quiz.js` : generation et rendu des quiz
 - `scripts/events.js` : branchement des interactions utilisateur
-- `voice.html` + `scripts/voice.js` + `voice.webmanifest` : second point d'entree,
-  la dictee vocale, qui ne charge rien de l'application
+- `voice.html` + `scripts/voice.js` + `scripts/voice-send.js` + `voice.webmanifest` :
+  second point d'entree, la dictee vocale, qui ne charge rien de l'application
 - `styles/` : styles separes par couches (`tokens`, `base`, `layout`, `components`, `features`)
 
 ## Ouvrir le site
@@ -190,7 +190,14 @@ cache, mais le temps entre le toucher et le moment ou le bouton accepte un appui
 - passage en arriere-plan, appel entrant : la capture s'arrete et se sauvegarde
 - au chargement suivant, une dictee restee inachevee est recuperee et signalee
 
-Rien ne part sur le reseau a ce stade. La file se videra vers Supabase plus tard.
+A l'arret de l'enregistrement, l'audio part vers Gemini qui renvoie une
+transcription mise en forme, affichee sous la ligne. Sans reseau ou sans cle, la
+dictee reste en attente et repart a la prochaine ouverture. L'audio ne quitte
+l'appareil que vers Gemini : la file qui alimentera Atlas ne transportera que du
+texte.
+
+Cette page ayant son propre stockage, elle a sa propre cle Gemini et sa propre
+session : un bloc de configuration s'affiche tant qu'il manque l'une des deux.
 
 Deux facons d'y arriver : le lien `Dicter` du panneau de note rapide, ou une
 icone dediee installee depuis `voice.html` (manifeste `voice.webmanifest`).
