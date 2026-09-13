@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-connaissance-v99";
+const CACHE_NAME = "atlas-connaissance-v100";
 const ASSETS = [
   "./",
   "./index.html",
@@ -32,6 +32,9 @@ const ASSETS = [
   "./manifest.webmanifest",
   "./voice.webmanifest",
   "./icon.svg",
+  "./voice-icon.svg",
+  "./voice-icon-180.png",
+  "./voice-icon-512.png",
   "./knowledge-base.json",
 ];
 

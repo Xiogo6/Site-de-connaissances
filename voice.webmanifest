@@ -9,7 +9,13 @@
   "description": "Capture vocale rapide pour l'Atlas de Connaissance.",
   "icons": [
     {
-      "src": "./icon.svg",
+      "src": "./voice-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./voice-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

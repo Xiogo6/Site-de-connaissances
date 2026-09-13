@@ -50,7 +50,7 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
   Second point d'entree : la dictee vocale. `voice-send.js` est le seul endroit
   d ou quelque chose quitte l appareil. Voir la section plus bas.
 - `tests/index.html`
-  49 tests a ouvrir dans un navigateur, sans dependance ni etape de build.
+  50 tests a ouvrir dans un navigateur, sans dependance ni etape de build.
   Servir en HTTP, sinon cinq tests sont ignores. Voir le README.
 - `scripts/version.sh`
   Avance d un cran les references `?v=` de index.html et de voice.html, et le

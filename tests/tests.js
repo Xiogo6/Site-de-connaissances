@@ -129,6 +129,27 @@
       attendre(manquants.join(", ")).vaut("");
     });
 
+    // cache.addAll echoue en bloc : un seul chemin faux dans ASSETS et le
+    // service worker ne s'installe pas du tout. Pas de hors-ligne, et rien ne
+    // le signale tant qu'il y a du reseau. Les tests precedents verifient que
+    // les fichiers charges sont bien listes ; celui-ci verifie l'inverse, que
+    // ce qui est liste existe.
+    test.surServeur("chaque fichier liste dans ASSETS existe vraiment", async () => {
+      const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
+      const bloc = sw.match(/const ASSETS = \[([\s\S]*?)\];/)?.[1] || "";
+      const chemins = [...bloc.matchAll(/"\.\/([^"]*)"/g)].map((m) => m[1]).filter(Boolean);
+      attendre(chemins.length > 20).vrai();
+
+      const manquants = [];
+      for (const chemin of chemins) {
+        const reponse = await fetch(`../${chemin}`, { cache: "no-store", method: "HEAD" });
+        if (!reponse.ok) {
+          manquants.push(chemin);
+        }
+      }
+      attendre(manquants.join(", ")).vaut("");
+    });
+
     // Vingt references dans index.html plus CACHE_NAME doivent porter le meme
     // numero. Les tenir a la main derape : au 21 aout les fichiers etaient a
     // v86 et le cache a v87. Le navigateur sert alors un melange d'anciennes

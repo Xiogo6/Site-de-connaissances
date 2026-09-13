@@ -146,7 +146,7 @@ Une page a ouvrir, rien a installer :
 tests/index.html
 ```
 
-Ouverte par double-clic, la page fonctionne : 49 tests s'executent. Sept
+Ouverte par double-clic, la page fonctionne : 50 tests s'executent. Huit
 lisent les fichiers du projet et ont besoin d'une vraie adresse HTTP, car le
 navigateur bloque ces lectures en `file://` ; ils sont alors ignores, et la
 page explique comment les lancer.
@@ -167,6 +167,8 @@ coherence du deploiement et valent d'etre relancees avant chaque publication :
 - toute feuille de style aussi
 - les fichiers de `voice.html` y figurent egalement : c'est un second point
   d'entree, que les deux tests precedents ne voient pas
+- et l'inverse : tout fichier liste dans le cache existe vraiment, `cache.addAll`
+  echouant en bloc au moindre chemin faux
 - les numeros de version sont tous identiques
 - le lanceur de tests charge les memes scripts que l'application
 - aucun selecteur de `dom.js` ne pointe vers un element disparu, et aucun
