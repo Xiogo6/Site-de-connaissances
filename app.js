@@ -66,7 +66,6 @@
       feedTagFilterOpen: false,
       visualizationMode: "graph",
       sourceMode: "workspace",
-      quickCaptureOpen: false,
       dragState: {
         noteId: null,
         dropTargetId: null,

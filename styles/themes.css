@@ -377,8 +377,7 @@ html[data-theme-preset][data-active-tab="timeline"] {
 .tabs,
 .utility-launcher,
 .sidebar-launcher,
-.utility-drawer-panel,
-.quick-capture-panel {
+.utility-drawer-panel {
   background: var(--theme-nav-background);
   border-color: var(--line);
 }
@@ -950,8 +949,7 @@ body[data-theme-preset] .sidebar-drawer-backdrop {
   background: var(--theme-overlay);
 }
 
-body[data-theme-preset] .utility-drawer-panel,
-body[data-theme-preset] .quick-capture-panel {
+body[data-theme-preset] .utility-drawer-panel {
   background:
     linear-gradient(145deg, var(--theme-accent-wash), transparent 35%),
     var(--theme-sidebar-surface);

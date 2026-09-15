@@ -3086,25 +3086,6 @@ body.utility-drawer-open .quick-capture-toggle {
   transform: translateY(8px) scale(0.96);
 }
 
-.quick-capture-panel {
-  background: rgba(255, 249, 240, 0.98);
-  border: 1px solid var(--line);
-  border-radius: 28px;
-  bottom: 88px;
-  box-shadow: var(--shadow);
-  display: grid;
-  gap: 14px;
-  padding: 20px;
-  position: fixed;
-  right: 24px;
-  width: min(520px, calc(100vw - 28px));
-  z-index: 110;
-}
-
-.quick-capture-panel.is-hidden {
-  display: none;
-}
-
 .utility-drawer {
   inset: 0;
   position: fixed;
@@ -3600,10 +3581,7 @@ body[data-theme="dark"] .utility-link span {
   color: var(--text-soft);
 }
 
-.quick-editor {
-  min-height: 260px;
-}:root[data-theme="dark"] .utility-drawer-panel,
-:root[data-theme="dark"] .quick-capture-panel,
+:root[data-theme="dark"] .utility-drawer-panel,
 :root[data-theme="dark"] .timeline-stage,
 :root[data-theme="dark"] .timeline-summary-card,
 :root[data-theme="dark"] .timeline-focus-card,
@@ -3611,7 +3589,6 @@ body[data-theme="dark"] .utility-link span {
 :root[data-theme="dark"] .timeline-range-bar,
 :root[data-theme="dark"] .timeline-moment,
 body[data-theme="dark"] .utility-drawer-panel,
-body[data-theme="dark"] .quick-capture-panel,
 body[data-theme="dark"] .timeline-stage,
 body[data-theme="dark"] .timeline-summary-card,
 body[data-theme="dark"] .timeline-focus-card,
@@ -3941,7 +3918,6 @@ body.graph-view-active .graph-panel {
     display: block;
   }
 
-  .quick-capture-panel,
   .quick-capture-toggle {
     bottom: 92px;
     right: 14px;
@@ -4021,16 +3997,6 @@ body.graph-view-active .graph-panel {
     padding-bottom: 88px;
   }
 
-  .quick-capture-panel {
-    bottom: 156px;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: min(calc(100vw - 24px), 460px);
-  }
-
-  body.quick-capture-open .tabs,
-  body.quick-capture-open .quick-capture-toggle,
   body.note-editor-active .tabs,
   body.note-editor-active .quick-capture-toggle {
     opacity: 0;
@@ -4459,10 +4425,6 @@ body.graph-view-active .graph-panel {
       height: calc(var(--editor-viewport-height, 100dvh) - 204px);
       overflow-y: auto;
     }
-  }
-
-  body.quick-capture-open .quick-capture-panel {
-    bottom: 22px;
   }
 
   .graph-controls {

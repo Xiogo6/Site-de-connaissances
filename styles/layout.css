@@ -892,8 +892,7 @@ body[data-theme="dark"] .tab.is-active {
     display: grid;
   }
 
-  .panel-editor .inline-actions,
-  .quick-capture-actions {
+  .panel-editor .inline-actions {
     display: flex;
     flex-wrap: nowrap;
     justify-content: flex-end;

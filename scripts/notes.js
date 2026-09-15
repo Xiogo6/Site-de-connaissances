@@ -1266,36 +1266,8 @@
     moveNoteToParent(active.id, null);
   }
 
-  function openQuickCapture() {
-    if (context.data.isReadOnlyMode()) {
-      return;
-    }
 
-    context.state.quickCaptureOpen = true;
-    context.elements.quickLinkActive.checked = false;
-    if (context.elements.quickType) {
-      context.elements.quickType.value = "concept";
-    }
-    context.renderers.renderQuickCapture();
-    context.elements.quickTitle.focus();
-  }
 
-  function closeQuickCapture() {
-    context.state.quickCaptureOpen = false;
-    resetQuickCaptureDraft();
-    context.renderers.renderQuickCapture();
-  }
-
-  function resetQuickCaptureDraft() {
-    context.elements.quickTitle.value = "";
-    context.elements.quickTags.value = "";
-    context.elements.quickContent.value = "";
-    context.elements.quickLinkActive.checked = false;
-    if (context.elements.quickType) {
-      context.elements.quickType.value = "concept";
-    }
-    context.renderers.renderTagSuggestions("quick");
-  }
 
   /*
     Fabrique et insere une page a partir de donnees brutes, sans passer par le
@@ -1354,27 +1326,6 @@ ${String(body).trim() || "Idee a developper."}${lien}`,
     return note;
   }
 
-  function saveQuickCapture() {
-    if (context.data.isReadOnlyMode()) {
-      return;
-    }
-
-    const active = getActiveNote();
-    const shouldLink = context.elements.quickLinkActive.checked && active;
-    const note = createNoteFromCapture({
-      title: context.elements.quickTitle.value.trim(),
-      type: context.elements.quickType?.value || "concept",
-      tags: parseTags(context.elements.quickTags.value),
-      body: context.elements.quickContent.value.trim(),
-      linkToTitle: shouldLink ? active.title : "",
-    });
-
-    context.state.activeNoteId = note.id;
-    closeQuickCapture();
-    context.data.saveNotes();
-    context.data.saveAutomaticSnapshot("Note rapide");
-    context.renderers.renderEverything();
-  }
 
   function getFolderDescendantNotes(folderId) {
     if (!folderId) {
@@ -1632,7 +1583,6 @@ ${String(body).trim() || "Idee a developper."}${lien}`,
     canMoveNote,
     clearOrganizationDropHighlights,
     collapseSidebarFolders,
-    closeQuickCapture,
     createEmptyNote,
     createFolderFromOrganization,
     createNamedFolder,
@@ -1677,7 +1627,6 @@ ${String(body).trim() || "Idee a developper."}${lien}`,
     moveNoteToRoot,
     createNoteFromCapture,
     openOrCreateNote,
-    openQuickCapture,
     discardPendingNewNote,
     removeWikiLinkLine,
     canPinFolder,
@@ -1688,7 +1637,6 @@ ${String(body).trim() || "Idee a developper."}${lien}`,
     sanitizeParentId,
     saveCurrentNote,
     persistEditorDraft,
-    saveQuickCapture,
     syncNewPageClassificationControls,
     toggleFolderCollapse,
     deleteCustomType,

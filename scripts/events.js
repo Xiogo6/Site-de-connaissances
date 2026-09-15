@@ -393,31 +393,7 @@
     context.elements.cancelNoteButton.addEventListener("click", () => {
       context.notes.cancelEditingNote();
     });
-    context.elements.newFullPageButton.addEventListener("click", () => {
-      if (context.state.activeTab === "knowledge" && context.state.noteViewMode === "edit") {
-        context.notes.saveCurrentNote();
-        return;
-      }
-
-      if (context.state.pendingNewNoteId) {
-        context.notes.discardPendingNewNote();
-      }
-      if (context.elements.directClassifyInput) {
-        context.elements.directClassifyInput.checked = false;
-      }
-      const note = context.notes.createEmptyNote();
-      context.state.previousActiveNoteId = context.state.activeNoteId;
-      context.state.pendingNewNoteId = note.id;
-      context.state.notes.unshift(note);
-      context.state.activeNoteId = note.id;
-      context.state.activeTab = "knowledge";
-      context.state.noteViewMode = "edit";
-      context.state.utilityDrawerOpen = false;
-      closeSidebarDrawer();
-      context.data.saveNotes({ skipRemote: true });
-      context.renderers.renderEverything();
-      focusEditorSurface("title", { select: true });
-    });
+    context.elements.newFullPageButton.addEventListener("click", startNewPageOrSave);
 
     context.elements.visualizationModeButtons?.forEach((button) => {
       button.addEventListener("click", () => {
@@ -532,12 +508,12 @@
     context.elements.titleInput.addEventListener("input", context.notes.handleEditorTitleChange);
     context.elements.typeInput.addEventListener("change", context.notes.handleEditorTypeChange);
     context.elements.tagsInput.addEventListener("input", () => {
-      context.renderers.renderTagSuggestions("note");
+      context.renderers.renderTagSuggestions();
       context.renderers.renderLivePreview();
       context.notes.persistEditorDraft();
     });
     context.elements.tagsInput.addEventListener("blur", () => {
-      window.setTimeout(() => context.renderers.renderTagSuggestions("note"), 80);
+      window.setTimeout(() => context.renderers.renderTagSuggestions(), 80);
     });
     context.elements.directClassifyInput?.addEventListener(
       "change",
@@ -829,39 +805,14 @@
         return;
       }
 
-      if (context.state.activeTab === "knowledge" && context.state.noteViewMode === "edit") {
-        context.notes.saveCurrentNote();
-        return;
-      }
-
-      context.notes.openQuickCapture();
+      startNewPageOrSave();
     });
-    context.elements.quickCaptureClose.addEventListener("click", context.notes.closeQuickCapture);
-    context.elements.quickCaptureCancel?.addEventListener("click", context.notes.closeQuickCapture);
-    context.elements.quickSaveButton.addEventListener("click", context.notes.saveQuickCapture);
-    context.elements.quickTags.addEventListener("input", () => {
-      context.renderers.renderTagSuggestions("quick");
-    });
-    context.elements.quickTags.addEventListener("blur", () => {
-      window.setTimeout(() => context.renderers.renderTagSuggestions("quick"), 80);
-    });
-    bindEnterFocusFlow([
-      context.elements.quickTitle,
-      context.elements.quickTags,
-      context.elements.quickType,
-      context.elements.quickContent,
-    ]);
     context.elements.noteTagSuggestions?.addEventListener("click", handleTagSuggestionClick);
-    context.elements.quickTagSuggestions?.addEventListener("click", handleTagSuggestionClick);
 
     window.addEventListener("keydown", (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         context.notes.saveCurrentNote();
-      }
-
-      if (event.key === "Escape" && context.state.quickCaptureOpen) {
-        context.notes.closeQuickCapture();
       }
 
       if (event.key === "Escape" && context.state.sidebarDrawerOpen) {
@@ -890,13 +841,6 @@
         context.elements.noteTagSuggestions.classList.add("is-hidden");
       }
 
-      if (
-        context.elements.quickTagSuggestions &&
-        !context.elements.quickTagSuggestions.contains(event.target) &&
-        event.target !== context.elements.quickTags
-      ) {
-        context.elements.quickTagSuggestions.classList.add("is-hidden");
-      }
     });
 
     window.addEventListener("scroll", handleBottomNavScroll, { passive: true });
@@ -986,7 +930,6 @@
       !window.matchMedia("(max-width: 780px)").matches ||
       context.state.activeTab === "quiz" ||
       context.state.utilityDrawerOpen ||
-      context.state.quickCaptureOpen ||
       event.target.closest?.("input, textarea, select, button, a, [contenteditable='true']")
     ) {
       resetSidebarSwipe();
@@ -1886,6 +1829,35 @@
     window.setTimeout(applyFocus, 260);
   }
 
+  // Le bouton du haut et le bouton flottant font exactement la meme chose :
+  // une seule fonction, appelee par les deux. Les dupliquer laisserait les deux
+  // comportements diverger a la premiere retouche.
+  function startNewPageOrSave() {
+    if (context.state.activeTab === "knowledge" && context.state.noteViewMode === "edit") {
+      context.notes.saveCurrentNote();
+      return;
+    }
+
+    if (context.state.pendingNewNoteId) {
+      context.notes.discardPendingNewNote();
+    }
+    if (context.elements.directClassifyInput) {
+      context.elements.directClassifyInput.checked = false;
+    }
+    const note = context.notes.createEmptyNote();
+    context.state.previousActiveNoteId = context.state.activeNoteId;
+    context.state.pendingNewNoteId = note.id;
+    context.state.notes.unshift(note);
+    context.state.activeNoteId = note.id;
+    context.state.activeTab = "knowledge";
+    context.state.noteViewMode = "edit";
+    context.state.utilityDrawerOpen = false;
+    closeSidebarDrawer();
+    context.data.saveNotes({ skipRemote: true });
+    context.renderers.renderEverything();
+    focusEditorSurface("title", { select: true });
+  }
+
   function handleKnowledgeListClick(event) {
     const toggleFolderButton = event.target.closest("[data-toggle-folder]");
     if (toggleFolderButton) {
@@ -2094,9 +2066,7 @@
       return;
     }
 
-    const target = button.dataset.tagSuggestionTarget;
-    const input =
-      target === "quick" ? context.elements.quickTags : context.elements.tagsInput;
+    const input = context.elements.tagsInput;
     const rawParts = input.value.split(",");
     rawParts[rawParts.length - 1] = ` ${button.dataset.tagSuggestion}`;
     input.value = rawParts
@@ -2104,14 +2074,9 @@
       .filter((part, index, list) => part || index < list.length - 1)
       .join(", ");
 
-    if (target === "quick") {
-      context.renderers.renderTagSuggestions("quick");
-      context.elements.quickTags.focus();
-    } else {
-      context.renderers.renderTagSuggestions("note");
-      context.renderers.renderLivePreview();
-      context.elements.tagsInput.focus();
-    }
+    context.renderers.renderTagSuggestions();
+    context.renderers.renderLivePreview();
+    context.elements.tagsInput.focus();
   }
 
   function handleRenderedLinkClick(event) {
@@ -2361,7 +2326,6 @@
     if (
       context.state.activeTab !== "knowledge" ||
       context.state.noteViewMode !== "read" ||
-      context.state.quickCaptureOpen ||
       event.target.closest(".preview-quiz-panel") ||
       event.target.closest("a, button, input, textarea, select")
     ) {

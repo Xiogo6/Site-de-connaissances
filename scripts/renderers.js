@@ -68,7 +68,6 @@
     renderTypeSettingsList();
     renderAiSettings();
     renderPublishCenter();
-    renderQuickCapture();
     context.todos?.render();
     renderTagSettings();
     context.mascot?.sync(true);
@@ -457,7 +456,7 @@
 
     const shouldSave =
       isEditing && context.state.activeTab === "knowledge" && !context.data.isReadOnlyMode();
-    context.elements.quickCaptureToggle.textContent = shouldSave ? "Enregistrer" : "Note rapide";
+    context.elements.quickCaptureToggle.textContent = shouldSave ? "Enregistrer" : "Nouvelle note";
     context.elements.quickCaptureToggle.classList.toggle("is-save-mode", shouldSave);
     context.elements.quickCaptureToggle.classList.remove("is-quiz-return-mode");
   }
@@ -492,12 +491,6 @@
       context.elements.cancelNoteButton,
       context.elements.quickCaptureToggle,
       context.elements.newFolderButton,
-      context.elements.quickTitle,
-      context.elements.quickTags,
-      context.elements.quickType,
-      context.elements.quickContent,
-      context.elements.quickLinkActive,
-      context.elements.quickSaveButton,
       context.elements.addQuizQuestionButton,
     ].forEach((element) => {
       if (!element) {
@@ -2231,13 +2224,12 @@
       disableMutating || !context.state.snapshots.length;
   }
 
-  function renderTagSuggestions(target) {
-    const input =
-      target === "quick" ? context.elements.quickTags : context.elements.tagsInput;
-    const container =
-      target === "quick"
-        ? context.elements.quickTagSuggestions
-        : context.elements.noteTagSuggestions;
+  // Le panneau de note rapide supprime, il ne reste qu'une zone de tags : celle
+  // de l'editeur. Le parametre `target` disparait, ses appelants n'en passent
+  // plus qu'une seule valeur.
+  function renderTagSuggestions() {
+    const input = context.elements.tagsInput;
+    const container = context.elements.noteTagSuggestions;
 
     if (!input || !container) {
       return;
@@ -2260,19 +2252,11 @@
       button.type = "button";
       button.className = "tag-suggestion";
       button.dataset.tagSuggestion = tag;
-      button.dataset.tagSuggestionTarget = target;
       button.textContent = tag;
       container.appendChild(button);
     });
   }
 
-  function renderQuickCapture() {
-    document.body.classList.toggle("quick-capture-open", context.state.quickCaptureOpen);
-    context.elements.quickCapturePanel.classList.toggle(
-      "is-hidden",
-      !context.state.quickCaptureOpen
-    );
-  }
 
   function renderAiSettings() {
     const config = context.ai?.getConfig?.() || context.state.aiConfig || {};
@@ -2307,15 +2291,6 @@
         label: entry.label,
       })),
       context.notes.getActiveNote()?.type || context.elements.typeInput.value
-    );
-
-    populateSelect(
-      context.elements.quickType,
-      context.data.getNoteTypeEntries().map((entry) => ({
-        value: entry.id,
-        label: entry.label,
-      })),
-      context.elements.quickType?.value || "concept"
     );
 
     populateSelect(
@@ -2443,7 +2418,6 @@
     renderEditorUpdatedAt,
     renderPreview,
     renderPublishCenter,
-    renderQuickCapture,
     renderAiSettings,
     autoGrowQuizField,
     renderQuizQuestionBank,

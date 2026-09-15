@@ -67,12 +67,12 @@
          chainees par @import depuis un styles.css, ce qui imposait un
          aller-retour reseau de plus avant meme de les decouvrir. L'ordre est
          celui des @import d'origine, la cascade est identique. -->
-    <link rel="stylesheet" href="./styles/tokens.css?v=104" />
-    <link rel="stylesheet" href="./styles/base.css?v=104" />
-    <link rel="stylesheet" href="./styles/layout.css?v=104" />
-    <link rel="stylesheet" href="./styles/components.css?v=104" />
-    <link rel="stylesheet" href="./styles/features.css?v=104" />
-    <link rel="stylesheet" href="./styles/themes.css?v=104" />
+    <link rel="stylesheet" href="./styles/tokens.css?v=105" />
+    <link rel="stylesheet" href="./styles/base.css?v=105" />
+    <link rel="stylesheet" href="./styles/layout.css?v=105" />
+    <link rel="stylesheet" href="./styles/components.css?v=105" />
+    <link rel="stylesheet" href="./styles/features.css?v=105" />
+    <link rel="stylesheet" href="./styles/themes.css?v=105" />
   </head>
   <body>
     <div class="shell">
@@ -276,6 +276,16 @@
             </span>
             <span id="new-full-page-label">Nouvelle page</span>
           </button>
+
+          <a id="voice-launcher" class="utility-launcher" href="./voice.html">
+            <span class="utility-launcher-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M12 4a2.5 2.5 0 0 1 2.5 2.5v5a2.5 2.5 0 0 1-5 0v-5A2.5 2.5 0 0 1 12 4z" />
+                <path d="M6.5 11.5a5.5 5.5 0 0 0 11 0M12 17v3" />
+              </svg>
+            </span>
+            <span class="utility-launcher-label">Dicter</span>
+          </a>
 
           <button
             id="utility-drawer-open"
@@ -1527,71 +1537,8 @@
     </div>
 
     <button id="quick-capture-toggle" class="quick-capture-toggle" type="button">
-      Note rapide
+      Nouvelle note
     </button>
-
-    <section id="quick-capture-panel" class="quick-capture-panel is-hidden">
-      <div class="panel-header">
-        <div>
-          <p class="eyebrow">Mobile</p>
-          <h3>Nouvelle idee</h3>
-        </div>
-        <a class="button" href="./voice.html">Dicter</a>
-        <button id="quick-capture-close" class="button" type="button">
-          Fermer
-        </button>
-      </div>
-
-      <label>
-        <span class="field-label">Titre</span>
-        <input id="quick-title" class="text-input" type="text" placeholder="Idee ou question" />
-      </label>
-
-      <label>
-        <span class="field-label">Tags</span>
-        <input id="quick-tags" class="text-input" type="text" placeholder="idee, capture" />
-        <div id="quick-tag-suggestions" class="tag-suggestion-list is-hidden"></div>
-      </label>
-
-      <label>
-        <span class="field-label">Type</span>
-        <select id="quick-type" class="select-input">
-          <option value="concept">Concept</option>
-          <option value="definition">Definition</option>
-          <option value="person">Personne</option>
-          <option value="event">Evenement</option>
-          <option value="experience">Experience</option>
-          <option value="daily">Daily</option>
-          <option value="folder">Dossier</option>
-          <option value="hub">Hub</option>
-          <option value="procedure">Procedure</option>
-          <option value="question">Question</option>
-        </select>
-      </label>
-
-      <label>
-        <span class="field-label">Contenu</span>
-        <textarea
-          id="quick-content"
-          class="editor quick-editor"
-          placeholder="Capturez l'essentiel, vous structurerez ensuite."
-        ></textarea>
-      </label>
-
-      <label class="toggle-row" for="quick-link-active">
-        <input id="quick-link-active" type="checkbox" />
-        <span>Lier a la page active</span>
-      </label>
-
-      <div class="inline-actions quick-capture-actions">
-        <button id="quick-capture-cancel" class="button button-ghost" type="button">
-          Annuler
-        </button>
-        <button id="quick-save-button" class="button button-primary" type="button">
-          Enregistrer la capture
-        </button>
-      </div>
-    </section>
 
     <section id="utility-drawer" class="utility-drawer is-hidden" aria-hidden="true">
       <button id="utility-drawer-backdrop" class="utility-drawer-backdrop" type="button" aria-label="Fermer le volet"></button>
@@ -1752,21 +1699,21 @@
       </div>
     </section>
 
-    <script src="./scripts/config.js?v=104"></script>
-    <script src="./scripts/dom.js?v=104"></script>
-    <script src="./scripts/helpers.js?v=104"></script>
-    <script src="./scripts/auth.js?v=104"></script>
-    <script src="./scripts/data.js?v=104"></script>
-    <script src="./scripts/ai.js?v=104"></script>
-    <script src="./scripts/notes.js?v=104"></script>
-    <script src="./scripts/voice-inbox.js?v=104"></script>
-    <script src="./scripts/graph.js?v=104"></script>
-    <script src="./scripts/quiz.js?v=104"></script>
-    <script src="./scripts/mascot.js?v=104"></script>
-    <script src="./scripts/todos.js?v=104"></script>
-    <script src="./scripts/sport.js?v=104"></script>
-    <script src="./scripts/renderers.js?v=104"></script>
-    <script src="./scripts/events.js?v=104"></script>
-    <script src="./app.js?v=104"></script>
+    <script src="./scripts/config.js?v=105"></script>
+    <script src="./scripts/dom.js?v=105"></script>
+    <script src="./scripts/helpers.js?v=105"></script>
+    <script src="./scripts/auth.js?v=105"></script>
+    <script src="./scripts/data.js?v=105"></script>
+    <script src="./scripts/ai.js?v=105"></script>
+    <script src="./scripts/notes.js?v=105"></script>
+    <script src="./scripts/voice-inbox.js?v=105"></script>
+    <script src="./scripts/graph.js?v=105"></script>
+    <script src="./scripts/quiz.js?v=105"></script>
+    <script src="./scripts/mascot.js?v=105"></script>
+    <script src="./scripts/todos.js?v=105"></script>
+    <script src="./scripts/sport.js?v=105"></script>
+    <script src="./scripts/renderers.js?v=105"></script>
+    <script src="./scripts/events.js?v=105"></script>
+    <script src="./app.js?v=105"></script>
   </body>
 </html>
