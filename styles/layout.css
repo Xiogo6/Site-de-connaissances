@@ -572,6 +572,13 @@ body[data-theme="dark"] .tab.is-active {
     justify-content: stretch;
   }
 
+  /* Le logo tient la colonne du milieu et s'y centre. Sans `justify-self`, il
+     se calait a gauche de sa cellule, a cote du bouton de menu. */
+  .top-navigation .atlas-logo {
+    align-self: center;
+    justify-self: center;
+  }
+
   .sidebar {
     border-radius: 0 24px 24px 0;
     bottom: 0;

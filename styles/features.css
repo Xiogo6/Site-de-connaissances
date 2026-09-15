@@ -4087,6 +4087,14 @@ body.graph-view-active .graph-panel {
     width: 1px;
   }
 
+  /* L'ordre visuel de cette rangee vient de `order`, pas du DOM. Dicter ouvre
+     la serie, immediatement a gauche d'Annuler. Sans cette declaration il y
+     serait quand meme, par le `order: 0` implicite : on l'ecrit pour que ce
+     soit un choix et non un hasard. */
+  body.note-editor-active #voice-launcher {
+    order: 0;
+  }
+
   body.note-editor-active #cancel-note-button {
     order: 1;
   }
