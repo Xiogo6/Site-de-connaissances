@@ -3975,6 +3975,25 @@ body[data-theme="dark"] .toggle-row-editor {
 /* La croix d'effacement. Sa visibilite tient a `:placeholder-shown`, vrai tant
    que le champ est vide : aucun etat JavaScript a tenir a jour, donc aucun
    risque qu'elle reste affichee sur un champ deja vide. */
+/* Le logo occupe la place du bouton principal, au repos. Hauteur fixe et
+   largeur automatique : c'est un mot, il doit garder ses proportions. */
+.atlas-logo {
+  align-self: center;
+  height: 26px;
+  object-fit: contain;
+  width: auto;
+}
+
+.atlas-logo.is-hidden {
+  display: none;
+}
+
+/* Le trace est noir : sur fond sombre il faut l'inverser pour qu'il existe. */
+:root[data-theme="dark"] .atlas-logo,
+body[data-theme="dark"] .atlas-logo {
+  filter: invert(1);
+}
+
 .search-field {
   position: relative;
 }

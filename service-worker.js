@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-connaissance-v109";
+const CACHE_NAME = "atlas-connaissance-v110";
 const ASSETS = [
   "./",
   "./index.html",
@@ -27,6 +27,7 @@ const ASSETS = [
   "./styles/components.css",
   "./styles/features.css",
   "./styles/themes.css",
+  "./assets/atlas-logo.png",
   "./assets/mascot/aster-neutral.png",
   "./assets/mascot/aster-happy.png",
   "./assets/mascot/aster-thinking.png",

@@ -272,6 +272,13 @@
   display: none;
 }
 
+/* `.utility-launcher` pose `display: inline-flex`, qui l'emporte sur le
+   `.is-hidden` generique : meme specificite, mais declare plus loin. Sans
+   cette regle, masquer un lanceur ne le masque pas. */
+.utility-launcher.is-hidden {
+  display: none;
+}
+
 .utility-launcher {
   align-items: center;
   background:

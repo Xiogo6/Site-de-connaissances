@@ -398,31 +398,24 @@
     }
   }
 
+  // Cet emplacement porte le logo au repos, et le bouton Enregistrer pendant
+  // l'edition. Les deux ne coexistent jamais : creer une page se fait par le
+  // bouton flottant, qui fait deja exactement cela.
   function renderPrimaryActionButton(isEditing) {
     if (!context.elements.newFullPageButton) {
       return;
     }
 
-    if (isEditing && context.state.activeTab === "knowledge" && !context.data.isReadOnlyMode()) {
+    const enEdition =
+      isEditing && context.state.activeTab === "knowledge" && !context.data.isReadOnlyMode();
+
+    context.elements.newFullPageButton.classList.toggle("is-hidden", !enEdition);
+    context.elements.atlasLogo?.classList.toggle("is-hidden", enEdition);
+
+    if (enEdition) {
       context.elements.newFullPageLabel.textContent = "Enregistrer";
       context.elements.newFullPageButton.classList.add("button-primary");
-      context.elements.newFullPageIcon.innerHTML = `
-        <svg viewBox="0 0 24 24" role="presentation">
-          <path d="M6 5h10l2 2v12H6z" />
-          <path d="M9 5v5h6V5" />
-          <path d="M9 19v-5h6v5" />
-        </svg>
-      `;
-      return;
     }
-
-    context.elements.newFullPageLabel.textContent = "Nouvelle page";
-    context.elements.newFullPageButton.classList.remove("button-primary");
-    context.elements.newFullPageIcon.innerHTML = `
-      <svg viewBox="0 0 24 24" role="presentation">
-        <path d="M12 5v14M5 12h14" />
-      </svg>
-    `;
   }
 
   function renderQuickActionButton(isEditing) {
