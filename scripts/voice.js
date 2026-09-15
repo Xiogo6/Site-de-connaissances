@@ -40,6 +40,15 @@
     maxDurationMs: 10 * 60 * 1000,
     // En dessous, c'est un appui accidentel, pas une dictee.
     minDurationMs: 500,
+    // Debit audio. La valeur par defaut de Safari tourne autour de 128 kbit/s,
+    // de la qualite musique pour de la parole : 0,9 Mo la minute, mesures a
+    // l'appui. Ces fichiers n'ont qu'un auditeur, Gemini, et n'existent que
+    // pour etre transcrits, donc toute qualite au dela de l'intelligibilite
+    // est perdue. Le telephone classique tourne a 13 kbit/s.
+    //
+    // Contrepartie assumee : reecouter une dictee donne un son de messagerie
+    // vocale. C'est exactement l'usage prevu.
+    audioBitsPerSecond: 32000,
     // Le micro reste chaud apres un arret pour que l'appui suivant demarre
     // sans delai. Relache passe ce delai, et tout de suite si la page part en
     // arriere-plan.
@@ -567,16 +576,27 @@
     }
 
     const mimeType = pickMimeType();
+    const options = { audioBitsPerSecond: settings.audioBitsPerSecond };
+    if (mimeType) {
+      options.mimeType = mimeType;
+    }
+
     let recorder;
     try {
-      recorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
+      recorder = new MediaRecorder(stream, options);
     } catch (error) {
-      state.status = "idle";
-      setStatus("Enregistrement impossible sur ce navigateur.", true);
-      renderButton();
-      return;
+      // Un navigateur qui refuse le debit demande ne doit pas empecher de
+      // dicter : on retente sans, quitte a produire un fichier plus lourd.
+      try {
+        recorder = mimeType
+          ? new MediaRecorder(stream, { mimeType })
+          : new MediaRecorder(stream);
+      } catch (secondError) {
+        state.status = "idle";
+        setStatus("Enregistrement impossible sur ce navigateur.", true);
+        renderButton();
+        return;
+      }
     }
 
     state.recorder = recorder;
@@ -1252,11 +1272,19 @@
 
   function renderConfig() {
     const complete = isConfigured();
-    const visible = state.configOpen || !complete;
+    // Repliee par defaut, meme incomplete : cet ecran sert a dicter, pas a se
+    // configurer. Ce qui manque est dit sous le bouton et sur le bouton de
+    // configuration lui-meme, ce qui suffit a le faire ouvrir.
+    const visible = state.configOpen;
 
     elements.config.hidden = !visible;
-    elements.configToggle.hidden = !complete;
-    elements.configToggle.textContent = visible ? "Masquer la configuration" : "Configuration";
+    elements.configToggle.hidden = false;
+    elements.configToggle.textContent = visible
+      ? "Masquer la configuration"
+      : complete
+        ? "Configuration"
+        : "Configuration a completer";
+    elements.configToggle.classList.toggle("est-incomplete", !complete);
 
     const config = AtlasApp.voiceSend?.loadConfig();
 
@@ -1275,11 +1303,23 @@
       ? `Cle enregistree sur cet appareil. Modele : ${config.models.audio}`
       : "Aucune cle. La dictee marche, la transcription non.";
 
-    // Le panneau est sous le bouton, donc hors du premier ecran sur telephone.
-    // Une ligne le signale, pour ne pas dicter trois minutes avant de decouvrir
-    // que rien ne peut partir.
+    // L'etat de la session se lit dans le panneau, la ou on le saisit. La
+    // ligne du haut ne suffit pas : elle est hors de l'ecran quand on remplit
+    // le formulaire, et une connexion reussie semblait alors ne rien faire.
+    if (state.auth?.isSignedIn()) {
+      elements.authStatus.textContent = `Connecte : ${state.auth.getEmail() || "session ouverte"}`;
+      elements.authStatus.classList.add("est-ok");
+    } else {
+      elements.authStatus.textContent = state.auth?.isConfigured()
+        ? "Aucune session sur cet appareil."
+        : "Supabase n'est pas configure.";
+      elements.authStatus.classList.remove("est-ok");
+    }
+
+    // Le panneau est replie : sans cette ligne, on pourrait dicter trois
+    // minutes avant de decouvrir que rien ne peut partir.
     if (!config?.apiKey && state.status === "idle" && !elements.status.textContent) {
-      setStatus("Cle Gemini a saisir plus bas : sans elle, rien n'est transcrit.");
+      setStatus("Cle Gemini manquante : rien ne sera transcrit tant qu'elle l'est.");
     }
   }
 
@@ -1322,13 +1362,15 @@
     try {
       await auth.signIn(elements.authEmail.value, elements.authPassword.value);
       elements.authPassword.value = "";
-      elements.authStatus.textContent = "";
       await showSession();
+      // renderConfig ecrit la confirmation dans le panneau lui-meme.
       renderConfig();
+      setStatus("Session ouverte sur cet appareil.");
       // Ce qui attendait une session peut maintenant partir.
       deliverTranscribed();
     } catch (error) {
       elements.authStatus.textContent = error.message || "Connexion impossible.";
+      elements.authStatus.classList.remove("est-ok");
     } finally {
       elements.authSubmit.disabled = false;
     }

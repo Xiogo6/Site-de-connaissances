@@ -296,26 +296,52 @@ vit dans `data.js` que cette page ne charge pas. Sans elles, une premiere
 ouverture par l icone dediee n installerait jamais le cache, sans rien signaler
 tant qu il y a du reseau.
 
-### Debit audio, a regler avant la phase 2
+### Debit audio, regle a 32 kbit/s
 
-Safari enregistre par defaut autour de 128 kbit/s, soit 0,9 Mo la minute et
-9 Mo au plafond de dix minutes. Mesure du 2026-09-12 sur iPhone : 13 s de
-dictee pesaient 200 Ko.
+Safari enregistrait par defaut autour de 128 kbit/s, soit 0,9 Mo la minute :
+de la qualite musique pour de la parole. Mesure du 2026-09-12 sur iPhone,
+13 s de dictee pesaient 200 Ko.
 
 Ces fichiers n ont qu un seul auditeur, Gemini, et n existent que pour etre
-transcrits. Toute qualite au dela de l intelligibilite est donc perdue.
-`audioBitsPerSecond: 32000` a la creation du MediaRecorder divise le poids par
-quatre sans rien couter a la transcription : le telephone classique tourne a
-13 kbit/s.
+transcrits : toute qualite au dela de l intelligibilite est perdue. Le
+telephone classique tourne a 13 kbit/s. `audioBitsPerSecond` est donc fixe a
+32000 a la creation du MediaRecorder, avec repli sans cette option pour un
+navigateur qui la refuserait.
 
-Le stockage local n est pas le probleme, vingt dictees en attente font vingt
-megaoctets. Ce qui coince est l envoi : Gemini recoit l audio encode en base64,
-ce qui gonfle de 33 %, et une requete de 12 Mo approche la limite au dela de
-laquelle il faut passer par une API de fichiers separee, donc par plus de code.
-S y ajoute le temps d envoi en 4G.
+Mesure apres coup, sous Chromium : 10,2 s pesent 34 Ko, soit 27 kbit/s
+effectifs et 200 Ko la minute. Le plafond de dix minutes represente desormais
+environ 2 Mo, contre 9 auparavant, et 2,7 Mo une fois encode en base64, loin
+sous la limite de 15 Mo que voice-send.js fait respecter.
 
-Corollaire : une fois la transcription obtenue et verifiee, l audio n a plus de
-raison d etre conserve. La file est un tampon, pas une archive.
+Contrepartie assumee : reecouter une dictee donne un son de messagerie vocale.
+C est exactement l usage prevu.
+
+Ce qui coincait n etait pas le stockage local, vingt dictees en attente faisant
+vingt megaoctets, mais l envoi : Gemini recoit l audio encode en base64, ce qui
+gonfle de 33 %, et une requete trop grosse imposerait de passer par une API de
+fichiers separee, donc par plus de code.
+
+Corollaire deja applique : une fois le depot confirme, l audio est efface. La
+file est un tampon, pas une archive.
+
+### Apparence de la page de dictee
+
+Elle ne charge pas themes.css : quarante-huit kilooctets pour un seul ecran,
+dont une dizaine de lignes servent. Les jetons du preset Atelier y sont donc
+recopies a la main, et la page est en Atelier quoi qu il arrive, sans suivre le
+theme choisi dans Atlas. Pour un outil qu on ouvre dix secondes, une apparence
+stable vaut mieux qu une apparence qui depend d un reglage fait ailleurs.
+Contrepartie : si le preset change dans themes.css, ces valeurs ne suivront pas.
+
+Le rouge de l enregistrement en cours ne vient d aucun preset : c est un signal,
+pas une couleur de marque.
+
+Le bloc de configuration est replie par defaut. Ce qui manque se lit sur le
+bouton qui l ouvre, et sous le bouton d enregistrement. Attention a l attribut
+`hidden` : il ne pose qu un `display: none` de feuille par defaut, que la
+moindre regle `display` de la page ecrase. Le panneau, en `display: grid`,
+restait affiche alors que le code le croyait cache ; une regle
+`[hidden] { display: none !important; }` ferme ce piege pour toute la page.
 
 ### Modeles Gemini nommes par role
 
@@ -400,6 +426,23 @@ Supabase. L identifiant, lui, survit a la synchronisation comme a l import.
 Il repond alors exactement a la question "cette dictee est-elle deja une page ?".
 Deux appareils qui ingereraient la meme ligne en meme temps produiraient le meme
 identifiant, donc une seule page apres synchronisation au lieu d un doublon.
+
+L ingestion n a lieu que si l espace distant a bien ete charge, `remote.status`
+valant `synced` ou `idle`. Ce n est pas decoratif : creer une page appelle
+`saveNotes()`, qui renvoie a Supabase l etat COMPLET, reglages compris. Tant que
+le contenu distant n a pas ete applique, cet etat est celui du stockage local,
+qui peut etre vide ou en retard. Une ingestion automatique au demarrage
+ecraserait alors les reglages distants, dossiers epingles compris, sans que
+personne n ait rien demande. `idle` est accepte parce qu il signifie une base
+joignable mais vide : il n y a rien a ecraser, et refuser condamnerait un Atlas
+encore vierge a ne jamais recevoir ses dictees.
+
+C est le premier endroit du projet ou Atlas ecrit vers Supabase sans action de
+l utilisateur. La regle de prudence sur la synchronisation s y applique donc
+pleinement.
+
+Les pages dictees vont dans un dossier `Dictées`, cree a la premiere ingestion
+et pas avant, pour etre triees ensuite a la main.
 
 Ordre non negociable la aussi : creer, enregistrer, PUIS supprimer la ligne
 distante. Dans l autre sens une coupure entre les deux perdrait la dictee, dont
