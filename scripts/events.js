@@ -201,13 +201,6 @@
   function bindEvents() {
     window.addEventListener("beforeunload", handleBeforeUnload);
 
-    context.elements.sidebarTabs.forEach((tab) => {
-      tab.addEventListener("click", () => {
-        context.state.sidebarTab = tab.dataset.sidebarTab;
-        context.renderers.renderSidebarTabs();
-      });
-    });
-
     context.elements.sidebarDrawerOpen.addEventListener("click", () => {
       context.state.sidebarDrawerOpen = true;
       context.renderers.renderSidebarDrawer();
@@ -647,8 +640,6 @@
     });
 
     context.elements.mobileSearchButton.addEventListener("click", () => {
-      context.state.sidebarTab = "library";
-      context.renderers.renderSidebarTabs();
       context.state.sidebarDrawerOpen = true;
       context.renderers.renderSidebarDrawer();
       scrollToTop(false);

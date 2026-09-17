@@ -680,9 +680,6 @@
       context.data.saveNotes();
       renderQuizDashboard();
       renderQuizCard({ force: true });
-      // La file de revision vient de changer : sans cela elle restait figee
-      // jusqu'au prochain rechargement de la page.
-      context.renderers?.renderDueReviewList();
 
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(finalizeRevealSequence);

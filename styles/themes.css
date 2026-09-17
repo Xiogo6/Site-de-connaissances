@@ -402,11 +402,9 @@ body[data-theme="dark"] .editor {
 .helper-card,
 .quiz-card,
 .quiz-summary,
-.sidebar-tab,
 .button,
 .workspace-callout,
 .insight-card,
-.due-item,
 .snapshot-item,
 .hierarchy-node,
 .utility-link,
@@ -414,7 +412,6 @@ body[data-theme="dark"] .knowledge-item,
 body[data-theme="dark"] .helper-card,
 body[data-theme="dark"] .quiz-card,
 body[data-theme="dark"] .quiz-summary,
-body[data-theme="dark"] .sidebar-tab,
 body[data-theme="dark"] .button,
 body[data-theme="dark"] .workspace-callout,
 body[data-theme="dark"] .utility-link {
@@ -425,13 +422,11 @@ body[data-theme="dark"] .utility-link {
 .knowledge-item:hover,
 .knowledge-item.is-active,
 .knowledge-item-shell.is-active,
-.sidebar-tab.is-active,
 .utility-link:hover,
 .utility-link.is-active,
 body[data-theme="dark"] .knowledge-item:hover,
 body[data-theme="dark"] .knowledge-item.is-active,
 body[data-theme="dark"] .knowledge-item-shell.is-active,
-body[data-theme="dark"] .sidebar-tab.is-active,
 body[data-theme="dark"] .utility-link:hover,
 body[data-theme="dark"] .utility-link.is-active {
   background: var(--theme-item-active);
@@ -611,7 +606,6 @@ body[data-theme-preset] .tab.is-active .tab-icon {
   color: var(--accent-strong);
 }
 
-body[data-theme-preset] .sidebar-tab,
 body[data-theme-preset] .button:not(.button-primary):not(.button-danger):not(.button-flat),
 body[data-theme-preset] .revision-choice-card,
 body[data-theme-preset] .quiz-view-button {
@@ -620,7 +614,6 @@ body[data-theme-preset] .quiz-view-button {
   color: var(--text);
 }
 
-body[data-theme-preset] .sidebar-tab:hover,
 body[data-theme-preset] .button:not(.button-primary):not(.button-danger):not(.button-flat):hover,
 body[data-theme-preset] .revision-choice-card:hover,
 body[data-theme-preset] .quiz-view-button:hover {
@@ -628,7 +621,6 @@ body[data-theme-preset] .quiz-view-button:hover {
   border-color: var(--theme-accent-line);
 }
 
-body[data-theme-preset] .sidebar-tab.is-active,
 body[data-theme-preset] .revision-choice-card.is-active,
 body[data-theme-preset] .quiz-view-button.is-active {
   background: var(--theme-item-active);
@@ -700,7 +692,6 @@ body[data-theme-preset] .knowledge-list {
   padding: 6px;
 }body[data-theme-preset] .knowledge-item,
 body[data-theme-preset] .insight-card,
-body[data-theme-preset] .due-item,
 body[data-theme-preset] .hierarchy-node,
 body[data-theme-preset] .snapshot-item,
 body[data-theme-preset] .stat-card,

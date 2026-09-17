@@ -33,7 +33,6 @@
   function renderEverything() {
     syncDynamicControls();
     renderTheme();
-    renderSidebarTabs();
     renderSidebarDrawer();
     renderFiltersPanel();
     renderTabs();
@@ -52,7 +51,6 @@
     renderQuizQuestionBank();
     renderConnections();
     renderQuizScopeFields();
-    renderDueReviewList();
     if (isTabVisible("graph")) {
       context.graph.drawGraph();
     }
@@ -160,15 +158,6 @@
     controls?.classList.toggle("is-open", isOpen);
   }
 
-  function renderSidebarTabs() {
-    context.elements.sidebarTabs.forEach((tab) => {
-      tab.classList.toggle("is-active", tab.dataset.sidebarTab === context.state.sidebarTab);
-    });
-
-    Object.entries(context.elements.sidebarPanels).forEach(([key, panel]) => {
-      panel.classList.toggle("is-active", key === context.state.sidebarTab);
-    });
-  }
 
   function renderFiltersPanel() {
     const hasActiveFilters =
@@ -1601,37 +1590,6 @@
     });
   }
 
-  function renderDueReviewList() {
-    const dueNotes = context.notes.getDueNotes().slice(0, 6);
-    context.elements.dueReviewCount.textContent = `${dueNotes.length} a revoir`;
-    context.elements.dueReviewList.innerHTML = "";
-
-    if (!dueNotes.length) {
-      const empty = document.createElement("span");
-      empty.className = "pill pill-soft";
-      empty.textContent = "Rien d'urgent pour l'instant";
-      context.elements.dueReviewList.appendChild(empty);
-      return;
-    }
-
-    dueNotes.forEach((note) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "due-item";
-      button.innerHTML = `
-        <strong>${escapeHtml(note.title)}</strong>
-        <p>${escapeHtml(context.data.getNoteTypeLabels()[note.type] || "Concept")} | ${escapeHtml(
-          note.tags.slice(0, 2).join(" | ") || "Sans tag"
-        )}</p>
-      `;
-      button.addEventListener("click", () => {
-        context.state.activeNoteId = note.id;
-        context.state.activeTab = "knowledge";
-        renderEverything();
-      });
-      context.elements.dueReviewList.appendChild(button);
-    });
-  }
 
   function renderHierarchyTree(container, nodes, depth, options = {}) {
     container.innerHTML = "";
@@ -2398,7 +2356,6 @@
     populateSelect,
     renderChipCollection,
     renderConnections,
-    renderDueReviewList,
     renderEverything,
     renderFeed,
     renderFiltersPanel,
@@ -2416,7 +2373,6 @@
     renderQuizQuestionBank,
     renderVisualizationMode,
     renderSidebarDrawer,
-    renderSidebarTabs,
     renderQuizScopeFields,
     renderStructuredFields,
     renderTagSuggestions,

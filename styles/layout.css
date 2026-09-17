@@ -573,9 +573,11 @@ body[data-theme="dark"] .tab.is-active {
   }
 
   /* Le logo tient la colonne du milieu et s'y centre. Sans `justify-self`, il
-     se calait a gauche de sa cellule, a cote du bouton de menu. */
+     se calait a gauche de sa cellule, a cote du bouton de menu. Plus grand
+     qu'en desktop : il y est seul au centre, la place ne manque pas. */
   .top-navigation .atlas-logo {
     align-self: center;
+    height: 38px;
     justify-self: center;
   }
 
@@ -591,7 +593,9 @@ body[data-theme="dark"] .tab.is-active {
     transform: translateX(calc(-100% - 16px));
     transition: transform 180ms ease;
     width: calc(100vw - 58px);
-    z-index: 41;
+    /* Au-dessus du bouton flottant "Nouvelle note" (80) et de la mascotte (70) :
+       a 41 le bouton restait pose sur le volet ouvert. */
+    z-index: 82;
   }
 
   .sidebar.is-open {

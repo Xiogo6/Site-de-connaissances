@@ -56,7 +56,7 @@
                 "cancelEditingNote", "deleteNoteById", "buildHierarchyForest",
                 "getFolderDescendantNotes", "isOrphanNote"],
         renderers: ["renderEverything", "renderTabs", "renderFeed", "renderKnowledgeList",
-                    "renderDueReviewList", "renderTypeSettingsList", "renderPreview",
+                    "renderTypeSettingsList", "renderPreview",
                     "renderWorkspaceBanner", "syncDynamicControls"],
         quiz: ["buildQuizSession", "validateQuizSession", "renderQuizCard",
                "renderQuizDashboard", "renderQuizViewMode"],

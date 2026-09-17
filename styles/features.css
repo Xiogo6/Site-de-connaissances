@@ -3099,7 +3099,9 @@ body.utility-drawer-open .quick-capture-toggle {
   inset: 0;
   position: fixed;
   transition: opacity 160ms ease;
-  z-index: 39;
+  /* Juste sous le volet, mais au-dessus du bouton flottant : sans cela le
+     bouton resterait cliquable a travers le fond. */
+  z-index: 81;
 }
 
 .sidebar-drawer-backdrop.is-hidden {

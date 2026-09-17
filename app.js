@@ -18,7 +18,6 @@
       sidebarFiltersOpen: false,
       utilityDrawerOpen: false,
       tagSuggestionTarget: null,
-      sidebarTab: "library",
       explorerMenuNoteId: null,
       filter: "",
       typeFilter: "all",

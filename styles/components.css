@@ -217,7 +217,6 @@
   margin: 0;
 }
 
-.due-list,
 .insight-list,
 .hierarchy-list,
 .hierarchy-tree,
@@ -820,34 +819,12 @@ body[data-theme="dark"] #knowledge-list .note-type-icon-folder + .knowledge-item
   flex-wrap: wrap;
   justify-content: flex-end;
 }
-
-.sidebar-tabs {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.sidebar-tab {
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  color: var(--text-soft);
-  cursor: pointer;
-  min-height: 42px;
-  padding: 0 10px;
-}
-
-.sidebar-tab.is-active {
-  background: rgba(255, 247, 232, 0.95);
-  border-color: rgba(191, 91, 44, 0.3);
-  color: var(--text);
-}.workspace-callout,
+.workspace-callout,
 .stat-card,
 .helper-card,
 .quiz-card,
 .quiz-summary,
 .insight-card,
-.due-item,
 .snapshot-item,
 .hierarchy-node {
   background: rgba(255, 255, 255, 0.62);
@@ -923,14 +900,12 @@ body[data-theme="dark"] .editor {
 :root[data-theme="dark"] .helper-card,
 :root[data-theme="dark"] .quiz-card,
 :root[data-theme="dark"] .quiz-summary,
-:root[data-theme="dark"] .sidebar-tab,
 :root[data-theme="dark"] .button,
 :root[data-theme="dark"] .workspace-callout,
 body[data-theme="dark"] .knowledge-item,
 body[data-theme="dark"] .helper-card,
 body[data-theme="dark"] .quiz-card,
 body[data-theme="dark"] .quiz-summary,
-body[data-theme="dark"] .sidebar-tab,
 body[data-theme="dark"] .button,
 body[data-theme="dark"] .workspace-callout {
   background: rgba(27, 31, 36, 0.78);
@@ -939,11 +914,9 @@ body[data-theme="dark"] .workspace-callout {
 :root[data-theme="dark"] .knowledge-item:hover,
 :root[data-theme="dark"] .knowledge-item.is-active,
 :root[data-theme="dark"] .knowledge-item-shell.is-active,
-:root[data-theme="dark"] .sidebar-tab.is-active,
 body[data-theme="dark"] .knowledge-item:hover,
 body[data-theme="dark"] .knowledge-item.is-active,
-body[data-theme="dark"] .knowledge-item-shell.is-active,
-body[data-theme="dark"] .sidebar-tab.is-active {
+body[data-theme="dark"] .knowledge-item-shell.is-active {
   background: rgba(39, 45, 52, 0.92);
   border-color: rgba(208, 122, 76, 0.4);
 }
@@ -1576,14 +1549,12 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   margin-top: 18px;
 }
 
-.insight-card,
-.due-item {
+.insight-card {
   border-radius: 16px;
   padding: 14px;
 }
 
-.insight-card p,
-.due-item p {
+.insight-card p {
   color: var(--text-soft);
   margin: 6px 0 0;
 }
@@ -3358,7 +3329,6 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
 :root[data-theme="dark"] .quiz-summary,
 :root[data-theme="dark"] .snapshot-item,
 :root[data-theme="dark"] .insight-card,
-:root[data-theme="dark"] .due-item,
 :root[data-theme="dark"] .hierarchy-node,
 :root[data-theme="dark"] .tag,
 :root[data-theme="dark"] .chip,
@@ -3370,7 +3340,6 @@ body[data-theme="dark"] .quiz-card,
 body[data-theme="dark"] .quiz-summary,
 body[data-theme="dark"] .snapshot-item,
 body[data-theme="dark"] .insight-card,
-body[data-theme="dark"] .due-item,
 body[data-theme="dark"] .hierarchy-node,
 body[data-theme="dark"] .tag,
 body[data-theme="dark"] .chip,
@@ -3581,9 +3550,7 @@ body[data-theme="dark"] .sport-row-menu {
 }
 
 :root[data-theme="dark"] .insight-card p,
-:root[data-theme="dark"] .due-item p,
-body[data-theme="dark"] .insight-card p,
-body[data-theme="dark"] .due-item p {
+body[data-theme="dark"] .insight-card p {
   color: var(--text-soft);
 }
 
