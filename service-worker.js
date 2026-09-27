@@ -3,6 +3,7 @@ const ASSETS = [
   "./",
   "./index.html",
   "./voice.html",
+  "./todo.html",
   "./app.js",
   "./scripts/config.js",
   "./scripts/dom.js",
@@ -21,6 +22,7 @@ const ASSETS = [
   "./scripts/events.js",
   "./scripts/voice.js",
   "./scripts/voice-send.js",
+  "./scripts/todo-quick.js",
   "./styles/tokens.css",
   "./styles/base.css",
   "./styles/layout.css",
@@ -37,6 +39,10 @@ const ASSETS = [
   "./voice-icon.svg",
   "./voice-icon-180.png",
   "./voice-icon-512.png",
+  "./todo.webmanifest",
+  "./todo-icon.svg",
+  "./todo-icon-180.png",
+  "./todo-icon-512.png",
   "./knowledge-base.json",
 ];
 

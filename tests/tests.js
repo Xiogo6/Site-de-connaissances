@@ -113,21 +113,25 @@
     // exactement comme l'application l'avait fait avec ai.js (C-04). Pire :
     // cache.addAll echoue en bloc si un seul chemin est faux, donc une faute
     // de frappe ici emporte tout le hors-ligne, sans erreur visible.
-    test.surServeur("chaque fichier de voice.html est dans le cache du service worker", async () => {
-      const html = await (await fetch("../voice.html", { cache: "no-store" })).text();
-      const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
+    // todo.html, le raccourci "Taches", est dans le meme cas.
+    for (const page of ["voice.html", "todo.html"]) {
+      test.surServeur(`chaque fichier de ${page} est dans le cache du service worker`, async () => {
+        const html = await (await fetch(`../${page}`, { cache: "no-store" })).text();
+        const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
 
-      const fichiers = [
-        ...[...html.matchAll(/<script src="\.\/([^"?]+)/g)].map((m) => m[1]),
-        ...[...html.matchAll(/<link rel="stylesheet" href="\.\/([^"?]+)/g)].map((m) => m[1]),
-        ...[...html.matchAll(/<link rel="manifest" href="\.\/([^"?]+)/g)].map((m) => m[1]),
-        "voice.html",
-      ];
-      attendre(fichiers.length > 4).vrai();
+        const fichiers = [
+          ...[...html.matchAll(/<script src="\.\/([^"?]+)/g)].map((m) => m[1]),
+          ...[...html.matchAll(/<link rel="stylesheet" href="\.\/([^"?]+)/g)].map((m) => m[1]),
+          ...[...html.matchAll(/<link rel="manifest" href="\.\/([^"?]+)/g)].map((m) => m[1]),
+          ...[...html.matchAll(/<link rel="apple-touch-icon" href="\.\/([^"?]+)/g)].map((m) => m[1]),
+          page,
+        ];
+        attendre(fichiers.length > 4).vrai();
 
-      const manquants = fichiers.filter((chemin) => !sw.includes(`"./${chemin}"`));
-      attendre(manquants.join(", ")).vaut("");
-    });
+        const manquants = fichiers.filter((chemin) => !sw.includes(`"./${chemin}"`));
+        attendre(manquants.join(", ")).vaut("");
+      });
+    }
 
     // cache.addAll echoue en bloc : un seul chemin faux dans ASSETS et le
     // service worker ne s'installe pas du tout. Pas de hors-ligne, et rien ne
@@ -158,13 +162,14 @@
     test.surServeur("les numeros de version sont tous identiques", async () => {
       const html = await (await fetch("../index.html", { cache: "no-store" })).text();
       const voice = await (await fetch("../voice.html", { cache: "no-store" })).text();
+      const todo = await (await fetch("../todo.html", { cache: "no-store" })).text();
       const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
 
       // voice.html porte ses propres ?v= : version.sh les avance avec ceux de
       // index.html, et ce test verifie qu'aucune des deux pages n'est restee
       // en arriere.
       const versions = [
-        ...new Set([...`${html}\n${voice}`.matchAll(/\?v=(\d+)/g)].map((m) => m[1])),
+        ...new Set([...`${html}\n${voice}\n${todo}`.matchAll(/\?v=(\d+)/g)].map((m) => m[1])),
       ];
       attendre(versions.length > 0).vrai();
       attendre(versions.sort().join(", ")).vaut(versions[0]);
@@ -653,6 +658,103 @@
       }];
       for (let i = 0; i < 20; i += 1) data.updateReviewState("n2", true);
       attendre(contexte.state.notes[0].review.streak).vaut(config.reviewIntervalsInHours.length - 1);
+    });
+  });
+
+  // Raccourci "Taches" (todo.html) : ses lignes passent par la meme file que
+  // les dictees, et doivent finir dans la liste de taches, sans doublon.
+  suite("Raccourci taches", () => {
+    function contexteTaches(lignes) {
+      const supprimees = [];
+      const contexte = {
+        state: {
+          notes: [],
+          settings: { todos: [], todoCategories: [{ id: "cat-maison", label: "Maison", order: 0 }] },
+          remote: { status: "synced" },
+        },
+        elements: {},
+        auth: { isSignedIn: () => true, getAccessToken: async () => "jeton" },
+        data: { isReadOnlyMode: () => false, saveNotes: () => { contexte.sauvegardes += 1; } },
+        notes: {},
+        sauvegardes: 0,
+        supprimees,
+      };
+      contexte.todos = global.AtlasApp.createTodosModule(contexte);
+      contexte.voiceInbox = global.AtlasApp.createVoiceInboxModule(contexte);
+      contexte.fetch = async (url, options = {}) => {
+        if (options.method === "DELETE") {
+          supprimees.push(decodeURIComponent(String(url).split("client_key=eq.")[1] || ""));
+          return new Response("", { status: 204 });
+        }
+        return new Response(JSON.stringify(lignes), { status: 200 });
+      };
+      return contexte;
+    }
+
+    async function ingerer(contexte) {
+      const config = global.AtlasApp.config.supabase;
+      const origine = { fetch: global.fetch, syncEnabled: config.syncEnabled, url: config.url };
+      global.fetch = contexte.fetch;
+      config.syncEnabled = true;
+      config.url = config.url || "https://exemple.invalid";
+      try {
+        return await contexte.voiceInbox.ingest();
+      } finally {
+        global.fetch = origine.fetch;
+        config.syncEnabled = origine.syncEnabled;
+        config.url = origine.url;
+      }
+    }
+
+    const ligne = {
+      client_key: "11111111-2222-3333-4444-555555555555",
+      created_at: "2026-09-27T08:00:00.000Z",
+      payload: {
+        kind: "todo",
+        capturedAt: "2026-09-27T08:00:00.000Z",
+        todos: [
+          { label: "Appeler le garage", categoryLabel: "maison" },
+          { label: "Racheter du cafe", categoryLabel: "Courses" },
+          { label: "   " },
+        ],
+        transcript: "- Appeler le garage\n- Racheter du cafe",
+      },
+    };
+
+    test("une ligne de taches rejoint la liste, pas l'arbre des pages", async () => {
+      const contexte = contexteTaches([ligne]);
+      const resultat = await ingerer(contexte);
+      const taches = contexte.state.settings.todos;
+
+      attendre(resultat.todosCreated).vaut(2);
+      attendre(resultat.created).vaut(0);
+      attendre(contexte.state.notes.length).vaut(0);
+      attendre(taches.map((t) => t.label)).equivaut(["Appeler le garage", "Racheter du cafe"]);
+      // categorie existante retrouvee sans tenir compte de la casse
+      attendre(taches[0].categoryId).vaut("cat-maison");
+      // categorie inconnue creee
+      const courses = contexte.state.settings.todoCategories.find((c) => c.label === "Courses");
+      attendre(Boolean(courses)).vrai();
+      attendre(taches[1].categoryId).vaut(courses.id);
+      attendre(contexte.sauvegardes).vaut(1);
+      attendre(contexte.supprimees).equivaut([ligne.client_key]);
+    });
+
+    test("une ligne deja ingeree n'ajoute rien une seconde fois", async () => {
+      const contexte = contexteTaches([ligne]);
+      await ingerer(contexte);
+      const resultat = await ingerer(contexte);
+      attendre(resultat.todosCreated).vaut(0);
+      attendre(contexte.state.settings.todos.length).vaut(2);
+    });
+
+    test("rien n'est ingere tant que l'espace distant n'est pas charge", async () => {
+      const contexte = contexteTaches([ligne]);
+      contexte.state.remote.status = "error";
+      const resultat = await ingerer(contexte);
+      attendre(resultat.todosCreated).vaut(0);
+      attendre(contexte.state.settings.todos.length).vaut(0);
+      attendre(contexte.supprimees.length).vaut(0);
     });
   });
 })(window);
