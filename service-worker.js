@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-connaissance-v119";
+const CACHE_NAME = "atlas-connaissance-v120";
 // Meme numero que les ?v= des pages (index, voice, write, todo) : version.sh les
 // avance ensemble, un test verifie qu'ils concordent.
 const VERSION = CACHE_NAME.split("-v").pop();
@@ -16,6 +16,7 @@ const ASSETS = [
   "./scripts/auth.js",
   "./scripts/ai.js",
   "./scripts/notes.js",
+  "./scripts/todo-inbox.js",
   "./scripts/voice-inbox.js",
   "./scripts/graph.js",
   "./scripts/quiz.js",

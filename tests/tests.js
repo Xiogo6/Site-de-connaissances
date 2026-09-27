@@ -749,6 +749,79 @@
       attendre(contexte.state.settings.todos.length).vaut(2);
     });
 
+    test("un geste du raccourci coche, renomme ou supprime la tache", async () => {
+      const contexte = contexteTaches([]);
+      contexte.state.settings.todos = [
+        { id: "a", label: "Garage", completed: false, updatedAt: "2026-09-27T08:00:00.000Z", order: 0 },
+        { id: "b", label: "Cafe", completed: false, updatedAt: "2026-09-27T08:00:00.000Z", order: 1 },
+        { id: "c", label: "Pain", completed: false, updatedAt: "2026-09-27T08:00:00.000Z", order: 2 },
+      ];
+      const apres = "2026-09-27T09:00:00.000Z";
+      const lignes = [{
+        client_key: "22222222-3333-4444-5555-666666666666",
+        created_at: apres,
+        payload: {
+          source: "todo-action",
+          actions: [
+            { todoId: "a", op: "update", patch: { completed: true }, at: apres },
+            { todoId: "b", op: "update", patch: { label: "Cafe moulu" }, at: apres },
+            { todoId: "c", op: "delete", at: apres },
+            { todoId: "inconnue", op: "delete", at: apres },
+          ],
+        },
+      }];
+      contexte.fetch = contexteTaches(lignes).fetch;
+      const resultat = await ingerer(contexte);
+      const taches = contexte.state.settings.todos;
+
+      attendre(resultat.todosCreated).vaut(3);
+      attendre(taches.map((t) => t.id)).equivaut(["a", "b"]);
+      attendre(taches[0].completed).vrai();
+      attendre(taches[1].label).vaut("Cafe moulu");
+      attendre(contexte.state.notes.length).vaut(0);
+      attendre(contexte.sauvegardes).vaut(1);
+    });
+
+    test("une modification faite dans Atlas apres le geste l'emporte", () => {
+      const listes = {
+        todos: [{ id: "a", label: "Renomme dans Atlas", completed: false, updatedAt: "2026-09-27T10:00:00.000Z" }],
+        categories: [],
+      };
+      const resultat = global.AtlasApp.todoInbox.applyPayload(
+        listes,
+        {
+          source: "todo-action",
+          actions: [
+            { todoId: "a", op: "update", patch: { label: "Ancien geste" }, at: "2026-09-27T09:00:00.000Z" },
+            { todoId: "a", op: "delete", at: "2026-09-27T09:30:00.000Z" },
+          ],
+        },
+        { clientKey: "33333333", createdAt: "2026-09-27T09:00:00.000Z", makeCategoryId: () => "x" }
+      );
+      attendre(resultat.changed).vaut(0);
+      attendre(resultat.todos[0].label).vaut("Renomme dans Atlas");
+    });
+
+    test("une tache a peine ajoutee peut deja etre cochee", () => {
+      const inbox = global.AtlasApp.todoInbox;
+      const cle = "44444444-5555-6666-7777-888888888888";
+      let listes = inbox.applyPayload(
+        { todos: [], categories: [] },
+        { source: "todo", capturedAt: "2026-09-27T09:00:00.000Z", todos: [{ label: "Garage" }] },
+        { clientKey: cle, createdAt: "2026-09-27T09:00:00.000Z", makeCategoryId: () => "x" }
+      );
+      listes = inbox.applyPayload(
+        listes,
+        {
+          source: "todo-action",
+          actions: [{ todoId: `${inbox.idPrefix(cle)}-0`, op: "update", patch: { completed: true }, at: "2026-09-27T09:00:05.000Z" }],
+        },
+        { clientKey: "55555555", createdAt: "2026-09-27T09:00:05.000Z", makeCategoryId: () => "x" }
+      );
+      attendre(listes.todos.length).vaut(1);
+      attendre(listes.todos[0].completed).vrai();
+    });
+
     test("rien n'est ingere tant que l'espace distant n'est pas charge", async () => {
       const contexte = contexteTaches([ligne]);
       contexte.state.remote.status = "error";

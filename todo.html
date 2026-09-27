@@ -16,8 +16,8 @@
     <!-- iOS ignore les icones SVG pour l'ecran d'accueil. -->
     <link rel="apple-touch-icon" href="./todo-icon-180.png" />
     <!-- Comme voice.html : deux feuilles seulement, le reste est ci-dessous. -->
-    <link rel="stylesheet" href="./styles/tokens.css?v=119" />
-    <link rel="stylesheet" href="./styles/base.css?v=119" />
+    <link rel="stylesheet" href="./styles/tokens.css?v=120" />
+    <link rel="stylesheet" href="./styles/base.css?v=120" />
     <style>
       /* Preset Atelier, recopie de voice.html (et donc de themes.css). */
       :root {
@@ -143,34 +143,103 @@
         color: #d8503a;
       }
 
+      .taches-vue {
+        display: grid;
+        gap: 14px;
+      }
+
+      .taches-fraicheur {
+        color: var(--text-soft);
+        font-size: 0.75rem;
+        margin: 0;
+        min-height: 1em;
+      }
+
+      .taches-groupes {
+        display: grid;
+        gap: 16px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .taches-groupe h2 {
+        color: var(--text-soft);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        margin: 0 0 8px;
+        text-transform: uppercase;
+      }
+
       .taches-liste {
         display: grid;
-        gap: 8px;
+        gap: 6px;
         list-style: none;
         margin: 0;
         padding: 0;
       }
 
       .taches-item {
-        align-items: baseline;
+        align-items: center;
         background: var(--surface);
         border: 1px solid var(--line);
-        border-radius: var(--radius);
-        display: flex;
+        border-radius: 14px;
+        display: grid;
         gap: 10px;
-        justify-content: space-between;
-        padding: 10px 14px;
+        grid-template-columns: auto 1fr auto;
+        padding: 4px 6px 4px 12px;
       }
 
-      .taches-etat {
+      .taches-coche {
+        accent-color: var(--accent);
+        height: 22px;
+        margin: 0;
+        width: 22px;
+      }
+
+      .taches-libelle {
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        color: var(--text);
+        font: inherit;
+        /* 16px minimum : en dessous, Safari zoome sur le champ au focus. */
+        font-size: 16px;
+        min-height: 40px;
+        min-width: 0;
+        padding: 0 6px;
+        width: 100%;
+      }
+
+      .taches-libelle:focus {
+        border-color: var(--line-strong);
+        outline: none;
+      }
+
+      .est-faite .taches-libelle {
+        color: var(--text-soft);
+        text-decoration: line-through;
+      }
+
+      .taches-supprimer {
+        background: transparent;
+        border: none;
         border-radius: 999px;
-        flex-shrink: 0;
-        font-size: 0.72rem;
-        padding: 2px 10px;
+        color: var(--text-soft);
+        cursor: pointer;
+        font-size: 1.3rem;
+        height: 40px;
+        line-height: 1;
+        width: 40px;
       }
 
-      .taches-etat.est-attente { background: var(--line); color: var(--text-soft); }
-      .taches-etat.est-fait { background: rgba(111, 146, 123, 0.22); color: #47705a; }
+      .taches-faites summary {
+        color: var(--text-soft);
+        cursor: pointer;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+      }
 
       .taches-vide {
         color: var(--text-soft);
@@ -200,7 +269,7 @@
     <main class="taches">
       <header class="taches-tete">
         <p class="eyebrow">Atlas personnel</p>
-        <h1>Nouvelle tache</h1>
+        <h1>Taches</h1>
         <p id="todo-quick-session" class="taches-session">Session : verification...</p>
       </header>
 
@@ -244,22 +313,28 @@
         <p id="todo-quick-auth-status" class="taches-note"></p>
       </section>
 
-      <section>
-        <ul id="todo-quick-list" class="taches-liste"></ul>
-        <p id="todo-quick-empty" class="taches-vide">Rien en attente.</p>
+      <section class="taches-vue" aria-label="Taches en cours">
+        <p id="todo-quick-freshness" class="taches-fraicheur"></p>
+        <ul id="todo-quick-list" class="taches-groupes"></ul>
+        <p id="todo-quick-empty" class="taches-vide">La liste s'affichera une fois connecte.</p>
+        <details id="todo-quick-done" class="taches-faites" hidden>
+          <summary id="todo-quick-done-summary">Faites</summary>
+          <ul id="todo-quick-done-list" class="taches-liste"></ul>
+        </details>
       </section>
 
       <footer class="taches-pied">
         <p><a href="./index.html">Ouvrir Atlas</a></p>
         <p>
-          Les taches rejoignent la liste d'Atlas a sa prochaine ouverture.
-          Sans reseau, elles attendent ici et partent d'elles-memes ensuite.
+          Ajouts et changements rejoignent Atlas a sa prochaine ouverture.
+          Sans reseau, ils attendent ici et partent d'eux-memes ensuite.
         </p>
       </footer>
     </main>
 
-    <script src="./scripts/config.js?v=119"></script>
-    <script src="./scripts/auth.js?v=119"></script>
-    <script src="./scripts/todo-quick.js?v=119"></script>
+    <script src="./scripts/config.js?v=120"></script>
+    <script src="./scripts/auth.js?v=120"></script>
+    <script src="./scripts/todo-inbox.js?v=120"></script>
+    <script src="./scripts/todo-quick.js?v=120"></script>
   </body>
 </html>
