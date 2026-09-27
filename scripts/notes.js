@@ -1294,7 +1294,8 @@
     partir du titre et du corps, comme le fait la note rapide.
 
     `id` n'est passe que par l'ingestion vocale, qui a besoin d'un identifiant
-    previsible pour ne pas creer deux fois la meme page.
+    previsible pour ne pas creer deux fois la meme page. `favorite` et
+    `metadata` viennent de la page d'ecriture rapide, qui reprend l'editeur.
   */
   function createNoteFromCapture({
     id = "",
@@ -1305,6 +1306,8 @@
     content = "",
     linkToTitle = "",
     parentId = "",
+    favorite = false,
+    metadata = null,
   } = {}) {
     const safeTitle = String(title).trim() || generateUntitledName();
     const safeType = String(type).trim() || "concept";
@@ -1316,9 +1319,13 @@
       title: safeTitle,
       type: safeType,
       // Un parent impose l'emporte : l'ingestion vocale range ailleurs que
-      // le rangement par defaut du type.
-      parentId: String(parentId).trim() || getDefaultParentIdForType(safeType),
-      favorite: false,
+      // le rangement par defaut du type. `null` explicite veut dire la racine,
+      // comme "Aucun dossier (racine)" dans l'editeur.
+      parentId:
+        parentId === null
+          ? null
+          : String(parentId).trim() || getDefaultParentIdForType(safeType),
+      favorite: Boolean(favorite),
       tags: normalizeTagList(tags.map(String)),
       content: String(content).trim()
         ? `${String(content).trim()}${lien}`
@@ -1326,7 +1333,7 @@
 
 ${String(body).trim() || "Idee a developper."}${lien}`,
       quizQuestions: [],
-      metadata: createNoteMetadata(),
+      metadata: createNoteMetadata(metadata && typeof metadata === "object" ? metadata : {}),
       createdAt: now,
       updatedAt: now,
       review: context.data.createReviewState(),

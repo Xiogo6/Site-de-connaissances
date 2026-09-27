@@ -50,9 +50,10 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
   Second point d'entree : la dictee vocale. `voice-send.js` est le seul endroit
   d ou quelque chose quitte l appareil. Voir la section plus bas.
 - `write.html`, `scripts/write.js`, `write.webmanifest`
-  Troisieme point d'entree : l'ecriture rapide. Depose dans `voice_inbox` avec
-  `source: "texte"` ; l'ingestion range ces pages dans `Notes rapides`, avec un
-  identifiant `ecrit-<douze caracteres>`.
+  Troisieme point d'entree : l'ecriture rapide. Reprend l'editeur "Nouvelle
+  page" (memes classes, memes feuilles, memes regles) et depose dans
+  `voice_inbox` avec `source: "texte"` et `payload.note`. L'ingestion applique
+  le rangement de l'editeur ; identifiant `ecrit-<douze caracteres>`.
 - `tests/index.html`
   51 tests a ouvrir dans un navigateur, sans dependance ni etape de build.
   Servir en HTTP, sinon cinq tests sont ignores. Voir le README.
