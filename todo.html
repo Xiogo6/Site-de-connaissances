@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Taches — Atlas</title>
+    <meta name="theme-color" content="#edf0eb" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Taches" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="./todo.webmanifest" />
+    <!-- iOS ignore les icones SVG pour l'ecran d'accueil. -->
+    <link rel="apple-touch-icon" href="./todo-icon-180.png" />
+    <!-- Comme voice.html : deux feuilles seulement, le reste est ci-dessous. -->
+    <link rel="stylesheet" href="./styles/tokens.css?v=116" />
+    <link rel="stylesheet" href="./styles/base.css?v=116" />
+    <style>
+      /* Preset Atelier, recopie de voice.html (et donc de themes.css). */
+      :root {
+        --surface: rgba(247, 248, 242, 0.94);
+        --line: rgba(55, 78, 77, 0.14);
+        --line-strong: rgba(55, 78, 77, 0.3);
+        --text: #253738;
+        --text-soft: #5f7370;
+        --accent: #4f7784;
+        --accent-strong: #284f5d;
+        --shadow: 0 24px 58px rgba(53, 73, 70, 0.13);
+        color-scheme: light;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      body {
+        background:
+          radial-gradient(circle at 10% 6%, rgba(108, 143, 128, 0.2), transparent 30%),
+          radial-gradient(circle at 90% 16%, rgba(86, 120, 143, 0.18), transparent 32%),
+          linear-gradient(145deg, #f1f3ed 0%, #e8ece7 52%, #e0e6e2 100%);
+        display: flex;
+        justify-content: center;
+        padding: max(18px, env(safe-area-inset-top)) 16px
+          max(24px, env(safe-area-inset-bottom));
+      }
+
+      .taches {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        max-width: 520px;
+        width: 100%;
+      }
+
+      .taches-tete {
+        display: grid;
+        gap: 4px;
+      }
+
+      .taches-tete h1 {
+        font-family: var(--content-font);
+        font-size: 1.5rem;
+        margin: 0;
+      }
+
+      .taches-session {
+        color: var(--text-soft);
+        font-size: 0.82rem;
+        margin: 0;
+      }
+
+      .taches-saisie,
+      .taches-config {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .taches-saisie input,
+      .taches-config input {
+        background: transparent;
+        border: 1px solid var(--line-strong);
+        border-radius: 10px;
+        color: var(--text);
+        /* 16px minimum : en dessous, Safari zoome sur le champ au focus. */
+        font-size: 16px;
+        min-height: 48px;
+        padding: 0 12px;
+        width: 100%;
+      }
+
+      .taches-ligne {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: 1fr auto;
+      }
+
+      .taches-saisie button,
+      .taches-config button {
+        background: var(--accent);
+        border: none;
+        border-radius: 999px;
+        color: #f8fbfa;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 600;
+        min-height: 48px;
+        padding: 0 20px;
+      }
+
+      .taches-saisie button[disabled] {
+        opacity: 0.45;
+      }
+
+      .taches-config h2 {
+        font-family: var(--content-font);
+        font-size: 1rem;
+        margin: 0;
+      }
+
+      .taches-config label {
+        display: grid;
+        font-size: 0.8rem;
+        gap: 4px;
+      }
+
+      .taches-note,
+      .taches-statut {
+        color: var(--text-soft);
+        font-size: 0.8rem;
+        margin: 0;
+        min-height: 1.2em;
+      }
+
+      .taches-statut.is-error {
+        color: #d8503a;
+      }
+
+      .taches-liste {
+        display: grid;
+        gap: 8px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .taches-item {
+        align-items: baseline;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+        padding: 10px 14px;
+      }
+
+      .taches-etat {
+        border-radius: 999px;
+        flex-shrink: 0;
+        font-size: 0.72rem;
+        padding: 2px 10px;
+      }
+
+      .taches-etat.est-attente { background: var(--line); color: var(--text-soft); }
+      .taches-etat.est-fait { background: rgba(111, 146, 123, 0.22); color: #47705a; }
+
+      .taches-vide {
+        color: var(--text-soft);
+        font-size: 0.85rem;
+        margin: 0;
+      }
+
+      .taches-pied {
+        border-top: 1px solid var(--line);
+        color: var(--text-soft);
+        display: grid;
+        font-size: 0.8rem;
+        gap: 6px;
+        padding-top: 16px;
+      }
+
+      .taches-pied a {
+        color: var(--accent-strong);
+      }
+
+      .taches-pied p {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="taches">
+      <header class="taches-tete">
+        <p class="eyebrow">Atlas personnel</p>
+        <h1>Nouvelle tache</h1>
+        <p id="todo-quick-session" class="taches-session">Session : verification...</p>
+      </header>
+
+      <form id="todo-quick-form" class="taches-saisie" autocomplete="off">
+        <div class="taches-ligne">
+          <input
+            id="todo-quick-input"
+            type="text"
+            enterkeyhint="send"
+            placeholder="Ajouter une tache"
+            aria-label="Tache"
+            autofocus
+          />
+          <!-- Desactive jusqu'au branchement du formulaire par todo-quick.js. -->
+          <button id="todo-quick-submit" type="submit" disabled>Ajouter</button>
+        </div>
+        <input
+          id="todo-quick-category"
+          type="text"
+          list="todo-quick-categories"
+          placeholder="Categorie (facultatif)"
+          aria-label="Categorie"
+        />
+        <datalist id="todo-quick-categories"></datalist>
+        <p id="todo-quick-status" class="taches-statut" role="status"></p>
+      </form>
+
+      <!-- Le stockage etant cloisonne sur iOS, cette icone a sa propre session,
+           saisie une fois. Le bloc disparait des qu'elle est ouverte. -->
+      <section id="todo-quick-config" class="taches-config" hidden>
+        <h2>Session Supabase</h2>
+        <label>
+          <span>Adresse e-mail</span>
+          <input id="todo-quick-auth-email" type="email" autocomplete="username" />
+        </label>
+        <label>
+          <span>Mot de passe</span>
+          <input id="todo-quick-auth-password" type="password" autocomplete="current-password" />
+        </label>
+        <button id="todo-quick-auth-submit" type="button">Se connecter</button>
+        <p id="todo-quick-auth-status" class="taches-note"></p>
+      </section>
+
+      <section>
+        <ul id="todo-quick-list" class="taches-liste"></ul>
+        <p id="todo-quick-empty" class="taches-vide">Rien en attente.</p>
+      </section>
+
+      <footer class="taches-pied">
+        <p><a href="./index.html">Ouvrir Atlas</a></p>
+        <p>
+          Les taches rejoignent la liste d'Atlas a sa prochaine ouverture.
+          Sans reseau, elles attendent ici et partent d'elles-memes ensuite.
+        </p>
+      </footer>
+    </main>
+
+    <script src="./scripts/config.js?v=116"></script>
+    <script src="./scripts/auth.js?v=116"></script>
+    <script src="./scripts/todo-quick.js?v=116"></script>
+  </body>
+</html>

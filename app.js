@@ -169,6 +169,9 @@
           `Atlas : ${resultat.created} dictee(s) transformee(s) en page(s).`
         );
       }
+      if (resultat.todosCreated) {
+        console.info(`Atlas : ${resultat.todosCreated} tache(s) ajoutee(s) depuis le raccourci.`);
+      }
     } catch (error) {
       // L'application s'ouvre meme quand la file est injoignable.
       console.info("Atlas : file vocale injoignable pour l'instant.");
