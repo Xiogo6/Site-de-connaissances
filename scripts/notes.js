@@ -1272,6 +1272,31 @@
     return { created: true, folder };
   }
 
+  /*
+    Cree le dossier que Gemini a propose pour ranger la page ouverte. Rien
+    d'autre ne change : la page active, l'editeur et son brouillon restent
+    tels quels, et le choix de l'emplacement reste a enregistrer par
+    l'utilisateur. Un dossier du meme nom au meme endroit est reutilise.
+  */
+  function createFolderForPlacement(title, parentId = null) {
+    if (context.data.isReadOnlyMode()) {
+      return null;
+    }
+
+    const normalizedTitle = String(title || "").trim();
+    if (!normalizedTitle) {
+      return null;
+    }
+
+    const parent = parentId
+      ? context.state.notes.find((note) => note.id === parentId && note.type === "folder")
+      : null;
+    const folder = ensureFolder(normalizedTitle, parent?.id || null);
+    context.data.saveNotes();
+    context.data.saveAutomaticSnapshot(`Creation dossier ${folder.title}`);
+    return folder;
+  }
+
   function moveActiveNoteToRoot() {
     const active = getActiveNote();
     if (!active || context.data.isReadOnlyMode()) {
@@ -1648,6 +1673,7 @@ ${String(body).trim() || "Idee a developper."}${lien}`,
     isOrphanNote,
     renameTag,
     moveActiveNoteToRoot,
+    createFolderForPlacement,
     moveNoteToParent,
     moveNoteToRoot,
     createNoteFromCapture,
