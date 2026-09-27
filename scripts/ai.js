@@ -182,7 +182,7 @@
           {
             temperature: 0,
             json: true,
-            thinking: "low",
+            thinking: "medium",
             onProgress: (seconds) => showProgress(`Gemini re-ecrit la note... ${seconds} s`),
           }
         );
@@ -262,7 +262,7 @@
           {
             temperature: 0.35,
             json: true,
-            thinking: "low",
+            thinking: "medium",
             onProgress: (seconds) => showProgress(`Gemini genere les questions... ${seconds} s`),
           }
         );
@@ -614,7 +614,7 @@
         return { thinkingLevel: level };
       }
       if (/^gemini-2\.5-flash/.test(name)) {
-        return { thinkingBudget: level === "low" ? 0 : -1 };
+        return { thinkingBudget: { low: 0, medium: 2048 }[level] ?? -1 };
       }
       return null;
     }
