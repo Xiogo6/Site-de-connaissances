@@ -49,11 +49,15 @@ Application web statique de gestion de connaissances personnelles, pensée pour 
 - `voice.html`, `scripts/voice.js`, `scripts/voice-send.js`, `voice.webmanifest`
   Second point d'entree : la dictee vocale. `voice-send.js` est le seul endroit
   d ou quelque chose quitte l appareil. Voir la section plus bas.
+- `write.html`, `scripts/write.js`, `write.webmanifest`
+  Troisieme point d'entree : l'ecriture rapide. Depose dans `voice_inbox` avec
+  `source: "texte"` ; l'ingestion range ces pages dans `Notes rapides`, avec un
+  identifiant `ecrit-<douze caracteres>`.
 - `tests/index.html`
-  50 tests a ouvrir dans un navigateur, sans dependance ni etape de build.
+  51 tests a ouvrir dans un navigateur, sans dependance ni etape de build.
   Servir en HTTP, sinon cinq tests sont ignores. Voir le README.
 - `scripts/version.sh`
-  Avance d un cran les references `?v=` de index.html et de voice.html, et le
+  Avance d un cran les references `?v=` de index.html, voice.html et write.html, et le
   `CACHE_NAME` du service worker, ensemble. A lancer avant chaque publication,
   sinon le navigateur sert un melange d anciens et de nouveaux fichiers. Un
   test verifie la coherence.
