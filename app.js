@@ -173,7 +173,7 @@
         );
       }
       if (resultat.todosCreated) {
-        console.info(`Atlas : ${resultat.todosCreated} tache(s) ajoutee(s) depuis le raccourci.`);
+        console.info(`Atlas : ${resultat.todosCreated} tache(s) ajoutee(s) ou modifiee(s) depuis le raccourci.`);
       }
     } catch (error) {
       // L'application s'ouvre meme quand la file est injoignable.

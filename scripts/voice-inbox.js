@@ -81,11 +81,7 @@
     }
 
     function todoIdPrefixForClientKey(clientKey) {
-      const empreinte = String(clientKey || "")
-        .replace(/[^a-z0-9]/gi, "")
-        .slice(0, 12)
-        .toLowerCase();
-      return `todo-inbox-${empreinte || "inconnue"}`;
+      return AtlasApp.todoInbox.idPrefix(clientKey);
     }
 
     async function buildHeaders() {
@@ -199,14 +195,15 @@
       let todosCreated = 0;
 
       rows.forEach((row) => {
-        // Taches deposees par le raccourci todo.html : meme file, autre
-        // destination. Elles rejoignent la liste de taches, pas l'arbre.
-        if (row?.payload?.source === "todo" && context.todos?.addFromInbox) {
+        // Lignes du raccourci todo.html (ajouts et gestes sur la liste) :
+        // meme file, autre destination. Elles touchent la liste de taches,
+        // pas l'arbre des pages.
+        if (AtlasApp.todoInbox?.isTodoPayload(row?.payload) && context.todos?.applyInboxPayload) {
           if (row.client_key) {
-            todosCreated += context.todos.addFromInbox({
-              idPrefix: todoIdPrefixForClientKey(row.client_key),
-              entries: row.payload.todos,
-              capturedAt: row.payload.capturedAt || row.created_at,
+            todosCreated += context.todos.applyInboxPayload({
+              payload: row.payload,
+              clientKey: row.client_key,
+              createdAt: row.created_at,
             });
           }
           traitees.push(row.client_key);
