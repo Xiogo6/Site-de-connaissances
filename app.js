@@ -136,6 +136,9 @@
     await context.auth.restore();
     context.auth.bindEvents();
 
+    // La file vocale est lue pendant que l'espace distant se charge : c'est
+    // un aller-retour reseau de moins avant le premier affichage.
+    context.voiceInbox.prefetch();
     await loadWorkspace();
     await ingestVoiceInbox();
 
