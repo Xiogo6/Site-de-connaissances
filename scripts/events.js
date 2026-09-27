@@ -1595,11 +1595,35 @@
     }
 
     const index = Number(button.dataset.removeQuizQuestion);
+    const restoreScroll = captureScrollPositions(context.elements.noteQuizQuestionsBody);
     context.state.editorQuizQuestions.splice(index, 1);
     persistQuizQuestionDrafts();
     context.renderers.renderQuizQuestionBank({ force: true });
     context.renderers.renderPreview(context.notes.getActiveNote(), true);
     context.quiz.renderQuizDashboard();
+    restoreScroll();
+    window.requestAnimationFrame(restoreScroll);
+  }
+
+  // Memorise la position de defilement de la page et des conteneurs defilants
+  // autour d un element, pour la retablir apres un re-rendu complet.
+  function captureScrollPositions(element) {
+    const entries = [];
+    for (let node = element?.parentElement; node; node = node.parentElement) {
+      if (node.scrollHeight > node.clientHeight || node.scrollWidth > node.clientWidth) {
+        entries.push([node, node.scrollTop, node.scrollLeft]);
+      }
+    }
+    const pageX = window.scrollX;
+    const pageY = window.scrollY;
+
+    return () => {
+      entries.forEach(([node, top, left]) => {
+        node.scrollTop = top;
+        node.scrollLeft = left;
+      });
+      window.scrollTo({ top: pageY, left: pageX, behavior: "auto" });
+    };
   }
 
   function persistQuizQuestionDrafts() {
