@@ -137,7 +137,56 @@
       })}`;
     }
 
+    /*
+      Une page tapee dans write.html porte `payload.note` : les champs de
+      l'editeur "Nouvelle page", deja composes comme saveCurrentNote() l'aurait
+      fait. Seul l'emplacement se decide ici, parce que lui seul depend de
+      l'etat d'Atlas au moment de l'ingestion :
+
+      - sans "Classer directement" : le rangement par defaut du type, comme
+        une nouvelle page d'Atlas (a trier, Daily, racine pour un dossier)
+      - avec : le dossier choisi s'il existe toujours, la racine si c'est ce
+        qui avait ete choisi, et le rangement par defaut si le dossier a
+        disparu entre-temps.
+    */
+    function resolveWrittenParent(note) {
+      if (!note.directClassify) {
+        return "";
+      }
+      if (!note.parentId) {
+        return null;
+      }
+      const dossier = context.state.notes.find(
+        (candidate) => candidate.id === note.parentId && candidate.type === "folder"
+      );
+      return dossier ? dossier.id : "";
+    }
+
+    function readWrittenNote(row) {
+      const note = row?.payload?.note;
+      if (!note || typeof note !== "object") {
+        return null;
+      }
+      const title = String(note.title || "").trim() || "Sans titre";
+      return {
+        clientKey: row?.client_key || "",
+        written: true,
+        title,
+        type: String(note.type || "").trim() || "concept",
+        tags: Array.isArray(note.tags) ? note.tags : [],
+        favorite: Boolean(note.favorite),
+        metadata: note.metadata && typeof note.metadata === "object" ? note.metadata : null,
+        content: String(note.content || "").trim() || `# ${title}`,
+        parentId: resolveWrittenParent(note),
+      };
+    }
+
     function readRow(row) {
+      const ecrit = isWritten(row) ? readWrittenNote(row) : null;
+      if (ecrit) {
+        return ecrit;
+      }
+
       const structured = row?.payload?.structured || {};
       const title = String(structured.title || "").trim() || fallbackTitle(row);
       const contenu = String(structured.content || "").trim();
@@ -236,11 +285,17 @@
           type: donnees.type,
           tags: donnees.tags,
           content: donnees.content,
+          favorite: donnees.favorite,
+          metadata: donnees.metadata,
           // Toutes les dictees au meme endroit, a trier ensuite a la main.
-          // Les pages tapees ont le leur.
-          parentId: donnees.written
-            ? context.notes.ensureWrittenFolder().id
-            : context.notes.ensureVoiceFolder().id,
+          // Une page tapee suit les regles de l'editeur ; celles d'une
+          // ancienne version de write.html gardent leur dossier.
+          parentId:
+            donnees.parentId !== undefined
+              ? donnees.parentId
+              : donnees.written
+              ? context.notes.ensureWrittenFolder().id
+              : context.notes.ensureVoiceFolder().id,
         });
 
         traitees.push(row.client_key);
