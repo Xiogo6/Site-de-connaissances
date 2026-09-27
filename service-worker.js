@@ -1,5 +1,5 @@
 const CACHE_NAME = "atlas-connaissance-v117";
-// Meme numero que les ?v= des pages (index, voice, write) : version.sh les
+// Meme numero que les ?v= des pages (index, voice, write, todo) : version.sh les
 // avance ensemble, un test verifie qu'ils concordent.
 const VERSION = CACHE_NAME.split("-v").pop();
 const ASSETS = [
@@ -7,6 +7,7 @@ const ASSETS = [
   "./index.html",
   "./voice.html",
   "./write.html",
+  "./todo.html",
   "./app.js",
   "./scripts/config.js",
   "./scripts/dom.js",
@@ -26,6 +27,7 @@ const ASSETS = [
   "./scripts/voice.js",
   "./scripts/voice-send.js",
   "./scripts/write.js",
+  "./scripts/todo-quick.js",
   "./styles/tokens.css",
   "./styles/base.css",
   "./styles/layout.css",
@@ -46,6 +48,10 @@ const ASSETS = [
   "./write-icon.svg",
   "./write-icon-180.png",
   "./write-icon-512.png",
+  "./todo.webmanifest",
+  "./todo-icon.svg",
+  "./todo-icon-180.png",
+  "./todo-icon-512.png",
   "./knowledge-base.json",
 ];
 

@@ -80,6 +80,14 @@
       return `${prefix}-${empreinte || "inconnue"}`;
     }
 
+    function todoIdPrefixForClientKey(clientKey) {
+      const empreinte = String(clientKey || "")
+        .replace(/[^a-z0-9]/gi, "")
+        .slice(0, 12)
+        .toLowerCase();
+      return `todo-inbox-${empreinte || "inconnue"}`;
+    }
+
     async function buildHeaders() {
       const accessToken = await context.auth.getAccessToken();
       if (!accessToken) {
@@ -174,13 +182,13 @@
       lectureAnticipee = null;
 
       if (!isAvailable()) {
-        return { created: 0, skipped: 0, lastNoteId: null };
+        return { created: 0, skipped: 0, lastNoteId: null, todosCreated: 0 };
       }
 
       // Une lecture anticipee ratee se rattrape ici par une lecture normale.
       const rows = (anticipee && (await anticipee)) || (await fetchRows());
       if (!rows.length) {
-        return { created: 0, skipped: 0, lastNoteId: null };
+        return { created: 0, skipped: 0, lastNoteId: null, todosCreated: 0 };
       }
 
       const traitees = [];
@@ -188,7 +196,23 @@
       let skipped = 0;
       let lastNoteId = null;
 
+      let todosCreated = 0;
+
       rows.forEach((row) => {
+        // Taches deposees par le raccourci todo.html : meme file, autre
+        // destination. Elles rejoignent la liste de taches, pas l'arbre.
+        if (row?.payload?.source === "todo" && context.todos?.addFromInbox) {
+          if (row.client_key) {
+            todosCreated += context.todos.addFromInbox({
+              idPrefix: todoIdPrefixForClientKey(row.client_key),
+              entries: row.payload.todos,
+              capturedAt: row.payload.capturedAt || row.created_at,
+            });
+          }
+          traitees.push(row.client_key);
+          return;
+        }
+
         const donnees = readRow(row);
         if (!donnees.clientKey || !donnees.content) {
           // Ligne inexploitable : on la retire plutot que de la relire a chaque
@@ -228,7 +252,7 @@
       });
 
       // Enregistrement AVANT toute suppression distante.
-      if (created) {
+      if (created || todosCreated) {
         context.data.saveNotes();
       }
 
@@ -244,9 +268,9 @@
         )
       );
 
-      return { created, skipped, lastNoteId, suppressions };
+      return { created, skipped, lastNoteId, todosCreated, suppressions };
     }
 
-    return { ingest, prefetch, isAvailable, noteIdForClientKey };
+    return { ingest, prefetch, isAvailable, noteIdForClientKey, todoIdPrefixForClientKey };
   };
 })(window);

@@ -71,6 +71,76 @@
       return true;
     }
 
+    /*
+      Taches deposees depuis le raccourci "Taches" (todo.html), via la file
+      voice_inbox. Appele par voice-inbox.js au demarrage, avant le premier
+      rendu : on modifie l'etat sans enregistrer ni dessiner, l'appelant fait
+      une seule sauvegarde pour toute la file.
+
+      Les identifiants derivent du client_key de la ligne, pour la meme raison
+      que les pages dictees : une ligne dont la suppression distante a echoue
+      est reconnue au demarrage suivant, au lieu de dupliquer ses taches.
+
+      Une categorie est retrouvee par son nom, sans tenir compte de la casse.
+      Inconnue, elle est creee : le raccourci ne voit pas les categories
+      d'Atlas, et le nom tape est la seule intention dont on dispose.
+    */
+    function addFromInbox({ idPrefix, entries, capturedAt }) {
+      const prefixe = `${idPrefix}-`;
+      if (getItems().some((item) => String(item.id).startsWith(prefixe))) {
+        return 0;
+      }
+
+      const valides = (Array.isArray(entries) ? entries : [])
+        .map((entry) => ({
+          label: String(entry?.label || "").trim().slice(0, 500),
+          categoryLabel: String(entry?.categoryLabel || "").trim().slice(0, 80),
+        }))
+        .filter((entry) => entry.label);
+
+      if (!valides.length) {
+        return 0;
+      }
+
+      const categories = [...getCategories()];
+      function categoryIdFor(label) {
+        if (!label) {
+          return null;
+        }
+        const trouvee = categories.find(
+          (category) => category.label.toLowerCase() === label.toLowerCase()
+        );
+        if (trouvee) {
+          return trouvee.id;
+        }
+        const nouvelle = { id: createId("todo-cat"), label, order: categories.length };
+        categories.push(nouvelle);
+        return nouvelle.id;
+      }
+
+      const date = new Date(capturedAt || Date.now());
+      const createdAt = Number.isNaN(date.getTime())
+        ? new Date().toISOString()
+        : date.toISOString();
+      const now = new Date().toISOString();
+      const existants = getItems();
+
+      context.state.settings.todos = [
+        ...existants,
+        ...valides.map((entry, index) => ({
+          id: `${prefixe}${index}`,
+          label: entry.label,
+          categoryId: categoryIdFor(entry.categoryLabel),
+          completed: false,
+          createdAt,
+          updatedAt: now,
+          order: existants.length + index,
+        })),
+      ];
+      context.state.settings.todoCategories = categories;
+      return valides.length;
+    }
+
     function updateItem(id, patch) {
       const now = new Date().toISOString();
       save(
@@ -432,6 +502,7 @@
     }
 
     return {
+      addFromInbox,
       bindEvents,
       render,
     };
