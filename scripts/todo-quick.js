@@ -4,13 +4,13 @@
   Meme principe que la dictee (voice.html), en plus court : la page depose la
   tache dans la file Supabase voice_inbox, et Atlas la range dans sa liste au
   demarrage suivant (voice-inbox.js, puis todos.addFromInbox). Pas de nouvelle
-  table : la ligne porte `payload.kind = "todo"`, c'est ce qui la distingue
+  table : la ligne porte `payload.source = "todo"`, c'est ce qui la distingue
   d'une dictee.
 
   Forme deposee, contrat avec voice-inbox.js :
 
     {
-      "kind":       "todo",
+      "source":     "todo",
       "clientKey":  "uuid, le meme que la colonne client_key",
       "capturedAt": "2026-09-27T08:14:22.000Z",
       "todos":      [{ "label": "Appeler le garage", "categoryLabel": "Maison" }],
@@ -18,7 +18,7 @@
     }
 
   `transcript` n'est lu par personne de nouveau : il est la pour un Atlas reste
-  en ancienne version dans un cache. Celui-la ne connait pas `kind`, prendrait
+  en ancienne version dans un cache. Celui-la ne connait pas `source`, prendrait
   la ligne pour une dictee et, sans texte, la supprimerait comme
   inexploitable. Avec ce texte, il en fait une page : la tache n'est pas a sa
   place, mais elle n'est pas perdue.
@@ -114,7 +114,7 @@
 
   function buildPayload(entry) {
     return {
-      kind: "todo",
+      source: "todo",
       clientKey: entry.clientKey,
       capturedAt: entry.capturedAt,
       todos: entry.todos,

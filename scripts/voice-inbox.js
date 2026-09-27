@@ -168,7 +168,7 @@
       rows.forEach((row) => {
         // Taches deposees par le raccourci todo.html : meme file, autre
         // destination. Elles rejoignent la liste de taches, pas l'arbre.
-        if (row?.payload?.kind === "todo" && context.todos?.addFromInbox) {
+        if (row?.payload?.source === "todo" && context.todos?.addFromInbox) {
           if (row.client_key) {
             todosCreated += context.todos.addFromInbox({
               idPrefix: todoIdPrefixForClientKey(row.client_key),

@@ -710,7 +710,7 @@
       client_key: "11111111-2222-3333-4444-555555555555",
       created_at: "2026-09-27T08:00:00.000Z",
       payload: {
-        kind: "todo",
+        source: "todo",
         capturedAt: "2026-09-27T08:00:00.000Z",
         todos: [
           { label: "Appeler le garage", categoryLabel: "maison" },
