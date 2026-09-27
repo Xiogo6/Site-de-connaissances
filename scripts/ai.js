@@ -60,6 +60,18 @@
       context.renderers?.renderKnowledgeMode();
     }
 
+    // Compteur de secondes pendant un appel : on ne touche qu'a la ligne de
+    // statut, sans re-rendre l'editeur chaque seconde.
+    function showProgress(message) {
+      if (!context.state.aiStatus?.busy) {
+        return;
+      }
+      context.state.aiStatus = { ...context.state.aiStatus, message };
+      if (context.elements.aiEditorStatus) {
+        context.elements.aiEditorStatus.textContent = message;
+      }
+    }
+
     function readConfigFromInputs() {
       return normalizeConfig({
         apiKey: context.elements.aiApiKeyInput?.value,
@@ -105,6 +117,7 @@
       try {
         const content = await callGemini("Reponds uniquement par pong.", config, {
           temperature: 0,
+          thinking: "low",
         });
 
         if (String(content || "").trim().toLowerCase() !== "pong") {
@@ -168,6 +181,9 @@
           config,
           {
             temperature: 0,
+            json: true,
+            thinking: "medium",
+            onProgress: (seconds) => showProgress(`Gemini re-ecrit la note... ${seconds} s`),
           }
         );
 
@@ -245,6 +261,9 @@
           config,
           {
             temperature: 0.35,
+            json: true,
+            thinking: "medium",
+            onProgress: (seconds) => showProgress(`Gemini genere les questions... ${seconds} s`),
           }
         );
 
@@ -439,7 +458,7 @@
             folders,
           }),
           config,
-          { temperature: 0 }
+          { temperature: 0, json: true, thinking: "low" }
         );
 
         const suggestion = normalizePlacementPayload(parseJsonPayload(content), folders);
@@ -610,44 +629,145 @@
       return true;
     }
 
+    // Reglages d'un appel. La reecriture etait lente pour trois raisons :
+    // le modele "reflechissait" longuement avant d'ecrire (reflexion par
+    // defaut, poussee par la verification des faits), il pouvait enrober son
+    // JSON de texte, et un refus passager (503 surcharge, 429 quota) faisait
+    // tout echouer d'un coup, sans delai maximal ni nouvelle tentative.
+    const requestTimeoutMs = 90000;
+    const retryDelaysMs = [1500, 4000];
+    const retryableStatuses = new Set([429, 500, 502, 503, 504]);
+
+    // Gemini 3 se regle par niveau, Gemini 2.5 par budget de jetons. Un
+    // modele qui ne connait pas le reglage le refuse (400) : on retente alors
+    // sans lui, plutot que de bloquer l'utilisateur.
+    function buildThinkingConfig(model, level) {
+      if (!level) {
+        return null;
+      }
+      const name = String(model || "").toLowerCase();
+      if (/^gemini-[3-9]/.test(name)) {
+        return { thinkingLevel: level };
+      }
+      if (/^gemini-2\.5-flash/.test(name)) {
+        return { thinkingBudget: { low: 0, medium: 2048 }[level] ?? -1 };
+      }
+      return null;
+    }
+
+    function wait(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function describeGeminiError(status, text) {
+      let detail = "";
+      try {
+        detail = JSON.parse(text)?.error?.message || "";
+      } catch (error) {
+        detail = "";
+      }
+      if (status === 429) {
+        return "Quota Gemini atteint pour le moment. Reessaie dans une minute.";
+      }
+      if (status === 503 || status === 500 || status === 502 || status === 504) {
+        return "Gemini est surcharge en ce moment. Reessaie dans un instant.";
+      }
+      return detail || text || `Gemini a repondu avec le statut ${status}.`;
+    }
+
     async function callGemini(prompt, config, options = {}) {
       // Le role est explicite : tous les appels d'ici sont du texte, mais le
       // modele n'est plus ecrit en dur au moment de l'appel.
       const model = options.model || config.models?.text || defaultModel;
-      const response = await fetch(
-        `${apiBaseUrl}${encodeURIComponent(model)}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "x-goog-api-key": config.apiKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: String(prompt || "") }],
+      const generationConfig = {
+        temperature: typeof options.temperature === "number" ? options.temperature : 0.2,
+      };
+      if (options.json) {
+        generationConfig.responseMimeType = "application/json";
+      }
+      const thinkingConfig = buildThinkingConfig(model, options.thinking);
+      if (thinkingConfig) {
+        generationConfig.thinkingConfig = thinkingConfig;
+      }
+
+      const startedAt = Date.now();
+      const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
+      const ticker = onProgress
+        ? window.setInterval(() => onProgress(Math.round((Date.now() - startedAt) / 1000)), 1000)
+        : null;
+
+      try {
+        for (let attempt = 0; ; attempt += 1) {
+          const controller = typeof AbortController === "function" ? new AbortController() : null;
+          const timer = controller
+            ? window.setTimeout(() => controller.abort(), requestTimeoutMs)
+            : null;
+          let response;
+          try {
+            response = await fetch(`${apiBaseUrl}${encodeURIComponent(model)}:generateContent`, {
+              method: "POST",
+              headers: {
+                "x-goog-api-key": config.apiKey,
+                "Content-Type": "application/json",
               },
-            ],
-            generationConfig: {
-              temperature: typeof options.temperature === "number" ? options.temperature : 0.2,
-            },
-          }),
+              body: JSON.stringify({
+                contents: [
+                  {
+                    role: "user",
+                    parts: [{ text: String(prompt || "") }],
+                  },
+                ],
+                generationConfig,
+              }),
+              signal: controller?.signal,
+            });
+          } catch (error) {
+            if (error?.name === "AbortError") {
+              throw new Error(
+                `Gemini n'a pas repondu en ${Math.round(requestTimeoutMs / 1000)} s. Reessaie.`
+              );
+            }
+            if (attempt < retryDelaysMs.length) {
+              await wait(retryDelaysMs[attempt]);
+              continue;
+            }
+            throw new Error("Connexion a Gemini impossible. Verifie le reseau.");
+          } finally {
+            if (timer) {
+              window.clearTimeout(timer);
+            }
+          }
+
+          if (!response.ok) {
+            const text = await response.text();
+            if (
+              response.status === 400 &&
+              generationConfig.thinkingConfig &&
+              /thinking/i.test(text)
+            ) {
+              delete generationConfig.thinkingConfig;
+              continue;
+            }
+            if (retryableStatuses.has(response.status) && attempt < retryDelaysMs.length) {
+              await wait(retryDelaysMs[attempt]);
+              continue;
+            }
+            throw new Error(describeGeminiError(response.status, text));
+          }
+
+          const data = await response.json();
+          const content = extractTextFromResponse(data);
+          if (typeof content !== "string" || !content.trim()) {
+            throw new Error("Gemini a renvoye une reponse vide.");
+          }
+
+          return content;
         }
-      );
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `Gemini a repondu avec le statut ${response.status}.`);
+      } finally {
+        if (ticker) {
+          window.clearInterval(ticker);
+        }
       }
-
-      const data = await response.json();
-      const content = extractTextFromResponse(data);
-      if (typeof content !== "string" || !content.trim()) {
-        throw new Error("Gemini a renvoye une reponse vide.");
-      }
-
-      return content;
     }
 
     function extractTextFromResponse(data) {
@@ -661,7 +781,7 @@
       }
 
       return parts
-        .map((part) => (typeof part?.text === "string" ? part.text : ""))
+        .map((part) => (typeof part?.text === "string" && !part.thought ? part.text : ""))
         .join("")
         .trim();
     }
