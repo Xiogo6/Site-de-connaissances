@@ -3,6 +3,33 @@
 
   AtlasApp.createTodosModule = function createTodosModule(context) {
     const SANS_CATEGORIE = "Sans catégorie";
+    // Categories repliees sur cet appareil. Un choix d'affichage, garde en
+    // local : l'envoyer a Supabase replierait aussi la liste du telephone.
+    const collapsedStorageKey = "atlas-todo-collapsed-categories";
+
+    function readCollapsed() {
+      try {
+        const value = JSON.parse(global.localStorage.getItem(collapsedStorageKey) || "[]");
+        return new Set(Array.isArray(value) ? value : []);
+      } catch (error) {
+        return new Set();
+      }
+    }
+
+    function toggleCollapsed(key) {
+      const replies = readCollapsed();
+      if (replies.has(key)) {
+        replies.delete(key);
+      } else {
+        replies.add(key);
+      }
+      try {
+        global.localStorage.setItem(collapsedStorageKey, JSON.stringify([...replies]));
+      } catch (error) {
+        // Stockage indisponible : le repli vaut pour cette visite seulement.
+      }
+      render();
+    }
 
     function getItems() {
       return Array.isArray(context.state.settings.todos) ? context.state.settings.todos : [];
@@ -222,8 +249,23 @@
       section.className = "todo-group";
       section.dataset.todoCategory = groupe.id || "";
 
+      const cle = groupe.id || "";
+      const replie = readCollapsed().has(cle);
+      section.classList.toggle("is-collapsed", replie);
+
       const header = document.createElement("div");
       header.className = "todo-group-header";
+
+      const repli = document.createElement("button");
+      repli.className = "todo-group-toggle";
+      repli.type = "button";
+      repli.dataset.todoCollapse = cle;
+      repli.setAttribute("aria-expanded", String(!replie));
+      repli.setAttribute(
+        "aria-label",
+        `${replie ? "Déplier" : "Replier"} la catégorie ${groupe.label}`
+      );
+      header.appendChild(repli);
 
       if (groupe.id) {
         const titre = document.createElement("input");
@@ -277,6 +319,7 @@
         );
       }
 
+      list.hidden = replie;
       section.append(header, list);
       return section;
     }
@@ -427,6 +470,12 @@
     }
 
     function handleGroupsClick(event) {
+      const repli = event.target.closest(".todo-group-toggle");
+      if (repli) {
+        toggleCollapsed(repli.dataset.todoCollapse || "");
+        return;
+      }
+
       const removeCategoryButton = event.target.closest(".todo-group-remove");
       if (removeCategoryButton) {
         const groupe = removeCategoryButton.closest(".todo-group");

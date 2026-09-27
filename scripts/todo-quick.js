@@ -42,6 +42,9 @@
   const cacheKey = "atlas-todo-quick-cache";
   const categoriesKey = "atlas-todo-quick-categories";
   const lastCategoryKey = "atlas-todo-quick-last-category";
+  // Categories repliees sur cet appareil. Un reglage d'affichage, pas une
+  // donnee : il ne remonte pas dans Atlas.
+  const collapsedKey = "atlas-todo-quick-collapsed";
   const maxRememberedCategories = 12;
   const sansCategorie = "Sans categorie";
 
@@ -49,7 +52,7 @@
     form: document.querySelector("#todo-quick-form"),
     input: document.querySelector("#todo-quick-input"),
     category: document.querySelector("#todo-quick-category"),
-    categoryList: document.querySelector("#todo-quick-categories"),
+    categoryChips: document.querySelector("#todo-quick-category-chips"),
     submit: document.querySelector("#todo-quick-submit"),
     status: document.querySelector("#todo-quick-status"),
     session: document.querySelector("#todo-quick-session"),
@@ -423,6 +426,9 @@
   }
 
   function handleListClick(event) {
+    if (handleGroupToggle(event)) {
+      return;
+    }
     const button = event.target.closest(".taches-supprimer");
     const todoId = button?.closest(".taches-item")?.dataset.todoId;
     if (todoId) {
@@ -478,9 +484,9 @@
     return [...items].sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
   }
 
-  function renderCategories(categories) {
+  function knownCategoryLabels(categories) {
     const known = readJson(categoriesKey, []);
-    const labels = [
+    return [
       ...categories.map((category) => category.label),
       ...(Array.isArray(known) ? known : []),
     ].filter(
@@ -489,13 +495,72 @@
         all.findIndex((other) => String(other).toLowerCase() === String(label).toLowerCase()) ===
           index
     );
-    elements.categoryList.replaceChildren(
-      ...labels.map((label) => {
-        const option = document.createElement("option");
-        option.value = label;
-        return option;
+  }
+
+  /*
+    Comme les suggestions de tags des pages : les categories existantes en
+    pastilles sous le champ, filtrees par ce qui est tape. Un toucher remplit
+    le champ, un second le vide. Taper un nom inconnu reste possible : la
+    categorie sera creee dans Atlas.
+  */
+  function renderCategoryChips(categories = computeView().categories) {
+    const typed = elements.category.value.trim().toLowerCase();
+    const labels = knownCategoryLabels(sortItems(categories));
+    const exact = labels.find((label) => label.toLowerCase() === typed);
+    const shown = exact
+      ? labels
+      : labels.filter((label) => !typed || label.toLowerCase().includes(typed));
+
+    elements.categoryChips.replaceChildren(
+      ...shown.map((label) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "taches-pastille";
+        chip.dataset.category = label;
+        chip.textContent = label;
+        const choisie = Boolean(exact) && label === exact;
+        chip.classList.toggle("est-choisie", choisie);
+        chip.setAttribute("aria-pressed", String(choisie));
+        return chip;
       })
     );
+    elements.categoryChips.hidden = shown.length === 0;
+  }
+
+  function handleChipClick(event) {
+    const chip = event.target.closest(".taches-pastille");
+    if (!chip) {
+      return;
+    }
+    const label = chip.dataset.category;
+    const dejaChoisie = elements.category.value.trim().toLowerCase() === label.toLowerCase();
+    elements.category.value = dejaChoisie ? "" : label;
+    writeJson(lastCategoryKey, elements.category.value);
+    renderCategoryChips();
+    // Retour a la saisie : on choisit la categorie, puis on tape la tache.
+    elements.input.focus();
+  }
+
+  function readCollapsed() {
+    const value = readJson(collapsedKey, []);
+    return new Set(Array.isArray(value) ? value : []);
+  }
+
+  function handleGroupToggle(event) {
+    const bouton = event.target.closest(".taches-groupe-tete");
+    if (!bouton) {
+      return false;
+    }
+    const cle = bouton.dataset.groupKey;
+    const replies = readCollapsed();
+    if (replies.has(cle)) {
+      replies.delete(cle);
+    } else {
+      replies.add(cle);
+    }
+    writeJson(collapsedKey, [...replies]);
+    render();
+    return true;
   }
 
   function render() {
@@ -514,23 +579,45 @@
 
     const groups = [
       ...ordered.map((category) => ({
+        // Le nom plutot que l'identifiant : une categorie creee depuis ce
+        // raccourci n'a qu'un identifiant provisoire tant qu'Atlas n'est pas
+        // passe, son nom ne change pas.
+        key: String(category.label).toLowerCase(),
         label: category.label,
         items: open.filter((item) => item.categoryId === category.id),
       })),
       {
+        key: "",
         label: sansCategorie,
         items: open.filter((item) => !item.categoryId || !knownIds.has(item.categoryId)),
       },
     ].filter((group) => group.items.length);
+    const replies = readCollapsed();
 
     elements.list.replaceChildren(
       ...groups.map((group) => {
+        const replie = replies.has(group.key);
         const section = document.createElement("li");
         section.className = "taches-groupe";
+        section.classList.toggle("est-repliee", replie);
+
         const titre = document.createElement("h2");
-        titre.textContent = group.label;
+        const bouton = document.createElement("button");
+        bouton.type = "button";
+        bouton.className = "taches-groupe-tete";
+        bouton.dataset.groupKey = group.key;
+        bouton.setAttribute("aria-expanded", String(!replie));
+        const nom = document.createElement("span");
+        nom.textContent = group.label;
+        const compte = document.createElement("span");
+        compte.className = "taches-groupe-compte";
+        compte.textContent = String(group.items.length);
+        bouton.append(nom, compte);
+        titre.append(bouton);
+
         const liste = document.createElement("ul");
         liste.className = "taches-liste";
+        liste.hidden = replie;
         liste.append(...sortItems(group.items).map(createItem));
         section.append(titre, liste);
         return section;
@@ -562,7 +649,9 @@
       .filter(Boolean)
       .join(" · ");
 
-    renderCategories(ordered);
+    if (global.document.activeElement !== elements.category) {
+      renderCategoryChips(ordered);
+    }
   }
 
   function renderSession() {
@@ -622,6 +711,8 @@
       list.addEventListener("focusout", () => global.setTimeout(render, 0));
     });
     elements.category.value = readJson(lastCategoryKey, "") || "";
+    elements.categoryChips.addEventListener("click", handleChipClick);
+    elements.category.addEventListener("input", () => renderCategoryChips());
     elements.submit.disabled = false;
 
     // La liste de la visite precedente s'affiche aussitot, la fraiche suit.
