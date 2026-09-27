@@ -140,12 +140,34 @@
       };
     }
 
+    /*
+      Lecture anticipee. La lecture de la file ne modifie rien : elle peut donc
+      partir en meme temps que le chargement de l'espace distant, au lieu
+      d'attendre qu'il soit fini. Seule la creation des pages reste soumise a
+      isAvailable(), dans ingest(). Les lignes lues ici servent une seule fois.
+    */
+    let lectureAnticipee = null;
+
+    function prefetch() {
+      const peutLire = Boolean(
+        remote?.syncEnabled &&
+          remote?.url &&
+          context.auth?.isSignedIn() &&
+          !context.data?.isReadOnlyMode?.()
+      );
+      lectureAnticipee = peutLire ? fetchRows().catch(() => null) : null;
+    }
+
     async function ingest() {
+      const anticipee = lectureAnticipee;
+      lectureAnticipee = null;
+
       if (!isAvailable()) {
         return { created: 0, skipped: 0, lastNoteId: null };
       }
 
-      const rows = await fetchRows();
+      // Une lecture anticipee ratee se rattrape ici par une lecture normale.
+      const rows = (anticipee && (await anticipee)) || (await fetchRows());
       if (!rows.length) {
         return { created: 0, skipped: 0, lastNoteId: null };
       }
@@ -196,18 +218,21 @@
         context.data.saveNotes();
       }
 
-      for (const clientKey of traitees) {
-        try {
-          await deleteRow(clientKey);
-        } catch (error) {
-          // Sans consequence : la page porte deja l'identifiant de la dictee,
-          // la ligne sera reconnue et ignoree au prochain demarrage.
-        }
-      }
+      // Les suppressions ne retardent plus l'affichage : les pages sont deja
+      // enregistrees, l'ordre qui protege la dictee est donc respecte. Elles
+      // partent en parallele, sans etre attendues.
+      const suppressions = Promise.all(
+        traitees.map((clientKey) =>
+          deleteRow(clientKey).catch(() => {
+            // Sans consequence : la page porte deja l'identifiant de la dictee,
+            // la ligne sera reconnue et ignoree au prochain demarrage.
+          })
+        )
+      );
 
-      return { created, skipped, lastNoteId };
+      return { created, skipped, lastNoteId, suppressions };
     }
 
-    return { ingest, isAvailable, noteIdForClientKey };
+    return { ingest, prefetch, isAvailable, noteIdForClientKey };
   };
 })(window);

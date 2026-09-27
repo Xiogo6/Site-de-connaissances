@@ -1437,18 +1437,19 @@
 
       try {
         await flushPendingRemoteSync();
-        const payload = await callRemoteRpc("get_app_payload");
+        // Les deux lectures partent ensemble : l'une apres l'autre, elles
+        // ajoutaient un aller-retour complet avant le premier affichage.
+        const [payload, rawDeletedNotes] = await Promise.all([
+          callRemoteRpc("get_app_payload"),
+          // The deletion log is unavailable until the safety migration is deployed.
+          callRemoteRpc("get_note_deletions").catch(() => []),
+        ]);
         const remoteNotes = normalizeNoteCollection(payload?.notes || []);
         const remoteSnapshots = normalizeSnapshotCollection(payload?.snapshots || []);
         const remoteSettings = normalizeSettings(payload?.settings || {});
         const hasAuthoritativeRemoteSettings =
           Number(payload?.settings?.settingsAuthorityVersion) >= 1;
-        let remoteDeletedNotes = [];
-        try {
-          remoteDeletedNotes = normalizeDeletedNotes(await callRemoteRpc("get_note_deletions"));
-        } catch (error) {
-          // The deletion log is unavailable until the safety migration is deployed.
-        }
+        const remoteDeletedNotes = normalizeDeletedNotes(rawDeletedNotes);
         validateRemotePayload(payload, remoteNotes, remoteDeletedNotes);
         remoteSettings.deletedNotes = remoteDeletedNotes;
         const hasRemoteData =
