@@ -113,21 +113,25 @@
     // exactement comme l'application l'avait fait avec ai.js (C-04). Pire :
     // cache.addAll echoue en bloc si un seul chemin est faux, donc une faute
     // de frappe ici emporte tout le hors-ligne, sans erreur visible.
-    test.surServeur("chaque fichier de voice.html est dans le cache du service worker", async () => {
-      const html = await (await fetch("../voice.html", { cache: "no-store" })).text();
-      const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
+    // write.html, la page d'ecriture rapide, est dans le meme cas.
+    for (const page of ["voice.html", "write.html"]) {
+      test.surServeur(`chaque fichier de ${page} est dans le cache du service worker`, async () => {
+        const html = await (await fetch(`../${page}`, { cache: "no-store" })).text();
+        const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
 
-      const fichiers = [
-        ...[...html.matchAll(/<script src="\.\/([^"?]+)/g)].map((m) => m[1]),
-        ...[...html.matchAll(/<link rel="stylesheet" href="\.\/([^"?]+)/g)].map((m) => m[1]),
-        ...[...html.matchAll(/<link rel="manifest" href="\.\/([^"?]+)/g)].map((m) => m[1]),
-        "voice.html",
-      ];
-      attendre(fichiers.length > 4).vrai();
+        const fichiers = [
+          ...[...html.matchAll(/<script src="\.\/([^"?]+)/g)].map((m) => m[1]),
+          ...[...html.matchAll(/<link rel="stylesheet" href="\.\/([^"?]+)/g)].map((m) => m[1]),
+          ...[...html.matchAll(/<link rel="manifest" href="\.\/([^"?]+)/g)].map((m) => m[1]),
+          ...[...html.matchAll(/<link rel="apple-touch-icon" href="\.\/([^"?]+)/g)].map((m) => m[1]),
+          page,
+        ];
+        attendre(fichiers.length > 4).vrai();
 
-      const manquants = fichiers.filter((chemin) => !sw.includes(`"./${chemin}"`));
-      attendre(manquants.join(", ")).vaut("");
-    });
+        const manquants = fichiers.filter((chemin) => !sw.includes(`"./${chemin}"`));
+        attendre(manquants.join(", ")).vaut("");
+      });
+    }
 
     // cache.addAll echoue en bloc : un seul chemin faux dans ASSETS et le
     // service worker ne s'installe pas du tout. Pas de hors-ligne, et rien ne
@@ -158,13 +162,14 @@
     test.surServeur("les numeros de version sont tous identiques", async () => {
       const html = await (await fetch("../index.html", { cache: "no-store" })).text();
       const voice = await (await fetch("../voice.html", { cache: "no-store" })).text();
+      const write = await (await fetch("../write.html", { cache: "no-store" })).text();
       const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
 
       // voice.html porte ses propres ?v= : version.sh les avance avec ceux de
       // index.html, et ce test verifie qu'aucune des deux pages n'est restee
       // en arriere.
       const versions = [
-        ...new Set([...`${html}\n${voice}`.matchAll(/\?v=(\d+)/g)].map((m) => m[1])),
+        ...new Set([...`${html}\n${voice}\n${write}`.matchAll(/\?v=(\d+)/g)].map((m) => m[1])),
       ];
       attendre(versions.length > 0).vrai();
       attendre(versions.sort().join(", ")).vaut(versions[0]);
