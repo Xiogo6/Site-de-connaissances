@@ -93,6 +93,12 @@
       return;
     }
 
+    const createButton = event.target.closest("[data-create-placement-folder]");
+    if (createButton) {
+      createSuggestedFolder();
+      return;
+    }
+
     const applyButton = event.target.closest("[data-apply-placement]");
     if (!applyButton) {
       return;
@@ -106,6 +112,33 @@
     context.elements.parentInput.value = suggestion.folderId;
     context.elements.parentInput.dispatchEvent(new Event("change", { bubbles: true }));
     context.ai?.clearPlacementSuggestion?.();
+  }
+
+  // Cree le dossier propose puis le preselectionne, comme "Choisir ce
+  // dossier". La page elle-meme n'est deplacee qu'a l'enregistrement.
+  function createSuggestedFolder() {
+    const suggestion = context.state.aiPlacementSuggestion;
+    if (!suggestion?.newFolder || context.data.isReadOnlyMode() || !context.elements.parentInput) {
+      return;
+    }
+
+    const folder = context.notes.createFolderForPlacement(
+      suggestion.newFolder,
+      suggestion.newFolderParentId || null
+    );
+    if (!folder) {
+      return;
+    }
+
+    // Les listes de dossiers se redessinent pour montrer le nouveau. Elles
+    // reprennent le type enregistre de la page : on garde celui du brouillon.
+    const draftType = context.elements.typeInput.value;
+    context.ai?.clearPlacementSuggestion?.();
+    context.renderers.syncDynamicControls();
+    context.elements.typeInput.value = draftType;
+    context.renderers.renderKnowledgeList();
+    context.elements.parentInput.value = folder.id;
+    context.elements.parentInput.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
   function handleAiUndoRewriteClick() {

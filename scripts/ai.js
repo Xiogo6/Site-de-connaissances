@@ -334,6 +334,7 @@
         "- respecter la nomenclature existante : sa langue, sa casse, son niveau de detail",
         "- si tu proposes un nouveau dossier, le nommer dans le meme style que les autres",
         "- rester au niveau de generalite des dossiers deja presents",
+        "- placer un nouveau dossier sous le dossier existant le plus proche du sujet, plutot qu a la racine",
         "",
         "Interdictions :",
         "- ne pas inventer un chemin de dossier qui n est pas dans la liste",
@@ -342,10 +343,11 @@
         "",
         "Contraintes de sortie :",
         "- retourne uniquement un JSON valide, sans markdown ni commentaire",
-        '- le JSON contient exactement les cles "folder", "newFolder" et "reason"',
+        '- le JSON contient exactement les cles "folder", "newFolder", "newFolderParent" et "reason"',
         '- "folder" : le chemin exact d un dossier de la liste, sinon null',
-        '- "newFolder" : le nom d un dossier a creer, sinon null',
-        '- une seule des deux est non nulle, l autre vaut null',
+        '- "newFolder" : le nom court du seul dossier a creer, sans chemin, sinon null',
+        '- "newFolderParent" : si "newFolder" est rempli, le chemin exact du dossier de la liste qui le contiendra, ou null pour la racine ; sinon null',
+        '- "folder" et "newFolder" : une seule des deux est non nulle, l autre vaut null',
         '- "reason" : une phrase courte, quinze mots au plus',
         "",
         "Dossiers existants :",
@@ -360,29 +362,63 @@
     }
 
     function normalizePlacementPayload(payload, folders) {
-      const cheminPropose = typeof payload?.folder === "string" ? payload.folder.trim() : "";
-      const nouveauDossier = typeof payload?.newFolder === "string" ? payload.newFolder.trim() : "";
-      const raison = typeof payload?.reason === "string" ? payload.reason.trim() : "";
+      const texte = (valeur) => (typeof valeur === "string" ? valeur.trim() : "");
+      const cheminPropose = texte(payload?.folder);
+      const nouveauDossier = texte(payload?.newFolder);
+      const parentPropose = texte(payload?.newFolderParent);
+      const raison = texte(payload?.reason);
 
       // Le modele rend un chemin, pas un identifiant : on le rapproche d un
       // dossier reel. Un chemin qu on ne retrouve pas est traite comme une
       // invention, et bascule en proposition de nouveau dossier.
-      const cible = cheminPropose
-        ? folders.find(
-            (folder) =>
-              folder.path.toLowerCase() === cheminPropose.toLowerCase() ||
-              folder.title.toLowerCase() === cheminPropose.toLowerCase()
-          )
-        : null;
+      const retrouver = (chemin) =>
+        chemin
+          ? folders.find(
+              (folder) =>
+                folder.path.toLowerCase() === chemin.toLowerCase() ||
+                folder.title.toLowerCase() === chemin.toLowerCase()
+            ) || null
+          : null;
+      const dossierExistant = (folder) => ({
+        folderId: folder.id,
+        folderPath: folder.path,
+        newFolder: "",
+        newFolderParentId: "",
+        newFolderParentPath: "",
+        reason: raison,
+      });
 
+      const cible = retrouver(cheminPropose);
       if (cible) {
-        return { folderId: cible.id, folderPath: cible.path, newFolder: "", reason: raison };
+        return dossierExistant(cible);
+      }
+
+      // Le nom rendu peut porter un chemin, "A / B" : "A" devient le parent
+      // s il existe, et seul "B" reste a creer.
+      let nom = nouveauDossier || cheminPropose;
+      let parent = retrouver(parentPropose);
+      const morceaux = nom.split("/").map((morceau) => morceau.trim()).filter(Boolean);
+      if (morceaux.length > 1) {
+        const parentDuChemin = retrouver(morceaux.slice(0, -1).join(" / "));
+        if (parentDuChemin) {
+          parent = parentDuChemin;
+          nom = morceaux[morceaux.length - 1];
+        }
+      }
+
+      // Un "nouveau" dossier qui existe deja est propose tel quel, plutot que
+      // d en creer un second du meme nom.
+      const deja = nom ? retrouver(parent ? `${parent.path} / ${nom}` : nom) : null;
+      if (deja) {
+        return dossierExistant(deja);
       }
 
       return {
         folderId: "",
         folderPath: "",
-        newFolder: nouveauDossier || cheminPropose,
+        newFolder: nom,
+        newFolderParentId: parent?.id || "",
+        newFolderParentPath: parent?.path || "",
         reason: raison,
       };
     }
@@ -434,7 +470,7 @@
           type: "success",
           message: suggestion.folderId
             ? "Emplacement propose."
-            : "Aucun dossier existant ne convient.",
+            : "Aucun dossier existant ne convient : nouveau dossier propose.",
           error: "",
           lastRunAt: new Date().toISOString(),
         });

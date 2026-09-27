@@ -914,13 +914,21 @@
       return;
     }
 
+    const cheminNouveau = suggestion.newFolderParentPath
+      ? `${suggestion.newFolderParentPath} / ${suggestion.newFolder || "sans nom"}`
+      : suggestion.newFolder || "sans nom";
     zone.innerHTML = `
       <p class="editor-placement-headline">
-        Aucun dossier existant ne convient. Gemini suggere d en creer un :
-        <strong>${escapeHtml(suggestion.newFolder || "sans nom")}</strong>
+        Aucun dossier existant ne convient. Nouveau dossier propose :
+        <strong>${escapeHtml(cheminNouveau)}</strong>
       </p>
       ${raison}
       <div class="editor-placement-actions">
+        ${
+          suggestion.newFolder
+            ? '<button type="button" class="button button-inline" data-create-placement-folder>Creer ce dossier</button>'
+            : ""
+        }
         <button type="button" class="button button-ghost button-inline" data-dismiss-placement>Ignorer</button>
       </div>
     `;
