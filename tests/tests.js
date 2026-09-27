@@ -113,8 +113,8 @@
     // exactement comme l'application l'avait fait avec ai.js (C-04). Pire :
     // cache.addAll echoue en bloc si un seul chemin est faux, donc une faute
     // de frappe ici emporte tout le hors-ligne, sans erreur visible.
-    // todo.html, le raccourci "Taches", est dans le meme cas.
-    for (const page of ["voice.html", "todo.html"]) {
+    // write.html (ecriture rapide) et todo.html (raccourci "Taches") sont dans le meme cas.
+    for (const page of ["voice.html", "write.html", "todo.html"]) {
       test.surServeur(`chaque fichier de ${page} est dans le cache du service worker`, async () => {
         const html = await (await fetch(`../${page}`, { cache: "no-store" })).text();
         const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
@@ -162,6 +162,7 @@
     test.surServeur("les numeros de version sont tous identiques", async () => {
       const html = await (await fetch("../index.html", { cache: "no-store" })).text();
       const voice = await (await fetch("../voice.html", { cache: "no-store" })).text();
+      const write = await (await fetch("../write.html", { cache: "no-store" })).text();
       const todo = await (await fetch("../todo.html", { cache: "no-store" })).text();
       const sw = await (await fetch("../service-worker.js", { cache: "no-store" })).text();
 
@@ -169,7 +170,7 @@
       // index.html, et ce test verifie qu'aucune des deux pages n'est restee
       // en arriere.
       const versions = [
-        ...new Set([...`${html}\n${voice}\n${todo}`.matchAll(/\?v=(\d+)/g)].map((m) => m[1])),
+        ...new Set([...`${html}\n${voice}\n${write}\n${todo}`.matchAll(/\?v=(\d+)/g)].map((m) => m[1])),
       ];
       attendre(versions.length > 0).vrai();
       attendre(versions.sort().join(", ")).vaut(versions[0]);

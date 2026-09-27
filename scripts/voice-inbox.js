@@ -63,12 +63,21 @@
       );
     }
 
-    function noteIdForClientKey(clientKey) {
+    /*
+      La file porte aussi les pages tapees dans write.html, marquees
+      `source: "texte"`. Tout le reste du chemin est le meme : seuls le
+      prefixe d'identifiant, le titre par defaut et le dossier changent.
+    */
+    function isWritten(row) {
+      return row?.payload?.source === "texte";
+    }
+
+    function noteIdForClientKey(clientKey, prefix = "voice") {
       const empreinte = String(clientKey || "")
         .replace(/[^a-z0-9]/gi, "")
         .slice(0, 12)
         .toLowerCase();
-      return `voice-${empreinte || "inconnue"}`;
+      return `${prefix}-${empreinte || "inconnue"}`;
     }
 
     function todoIdPrefixForClientKey(clientKey) {
@@ -122,10 +131,11 @@
     // "Sans titre" de plus serait introuvable trois jours apres.
     function fallbackTitle(row) {
       const date = new Date(row?.payload?.capturedAt || row?.created_at || Date.now());
+      const nom = isWritten(row) ? "Note" : "Dictee";
       if (Number.isNaN(date.getTime())) {
-        return "Dictee";
+        return nom;
       }
-      return `Dictee du ${date.toLocaleDateString("fr-FR", {
+      return `${nom} du ${date.toLocaleDateString("fr-FR", {
         day: "numeric",
         month: "long",
       })}`;
@@ -139,6 +149,7 @@
 
       return {
         clientKey: row?.client_key || "",
+        written: isWritten(row),
         title,
         type: String(structured.type || "").trim() || "concept",
         tags: Array.isArray(structured.tags) ? structured.tags : [],
@@ -189,7 +200,7 @@
           return;
         }
 
-        const noteId = noteIdForClientKey(donnees.clientKey);
+        const noteId = noteIdForClientKey(donnees.clientKey, donnees.written ? "ecrit" : "voice");
         const dejaLa = context.state.notes.some((note) => note.id === noteId);
 
         if (dejaLa) {
@@ -207,7 +218,10 @@
           tags: donnees.tags,
           content: donnees.content,
           // Toutes les dictees au meme endroit, a trier ensuite a la main.
-          parentId: context.notes.ensureVoiceFolder().id,
+          // Les pages tapees ont le leur.
+          parentId: donnees.written
+            ? context.notes.ensureWrittenFolder().id
+            : context.notes.ensureVoiceFolder().id,
         });
 
         traitees.push(row.client_key);

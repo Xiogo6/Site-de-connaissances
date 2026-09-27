@@ -2,7 +2,7 @@
 #
 # Incremente d'un cran le numero de version du cache, partout a la fois.
 #
-# Les references ?v= de index.html, voice.html et todo.html, plus CACHE_NAME dans
+# Les references ?v= de index.html, voice.html, write.html et todo.html, plus CACHE_NAME dans
 # service-worker.js, doivent porter le meme numero. voice.html compte autant
 # que les autres : oubliee ici, elle reclamerait une version de voice.js que
 # plus rien n'ecrit, et le navigateur servirait l'ancienne sans rien signaler.
@@ -23,10 +23,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 INDEX="$ROOT_DIR/index.html"
 VOICE="$ROOT_DIR/voice.html"
+WRITE="$ROOT_DIR/write.html"
 TODO="$ROOT_DIR/todo.html"
 WORKER="$ROOT_DIR/service-worker.js"
 
-for fichier in "$INDEX" "$VOICE" "$TODO" "$WORKER"; do
+for fichier in "$INDEX" "$VOICE" "$WRITE" "$TODO" "$WORKER"; do
   if [[ ! -f "$fichier" ]]; then
     echo "Fichier introuvable : $fichier" >&2
     exit 1
@@ -50,14 +51,14 @@ if ! [[ "$nouvelle" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
-sed -i '' -E "s/\?v=[0-9]+/?v=${nouvelle}/g" "$INDEX" "$VOICE" "$TODO"
+sed -i '' -E "s/\?v=[0-9]+/?v=${nouvelle}/g" "$INDEX" "$VOICE" "$WRITE" "$TODO"
 sed -i '' -E "s/atlas-connaissance-v[0-9]+/atlas-connaissance-v${nouvelle}/g" "$WORKER"
 
-references=$(cat "$INDEX" "$VOICE" "$TODO" | grep -c '?v=')
-distinctes=$(cat "$INDEX" "$VOICE" "$TODO" | grep -o '?v=[0-9]*' | sort -u | wc -l | tr -d ' ')
+references=$(cat "$INDEX" "$VOICE" "$WRITE" "$TODO" | grep -c '?v=')
+distinctes=$(cat "$INDEX" "$VOICE" "$WRITE" "$TODO" | grep -o '?v=[0-9]*' | sort -u | wc -l | tr -d ' ')
 cache=$(grep -o 'atlas-connaissance-v[0-9]*' "$WORKER" | head -1)
 
-echo "index+voice+todo: ${references} references, ${distinctes} valeur(s) distincte(s)"
+echo "pages           : ${references} references, ${distinctes} valeur(s) distincte(s)"
 echo "service-worker  : ${cache}"
 
 if [[ "$distinctes" != "1" || "$cache" != "atlas-connaissance-v${nouvelle}" ]]; then

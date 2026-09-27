@@ -18,6 +18,7 @@
       dailyRoot: "Kevin Barbet",
       daily: "Daily",
       voice: "Dictées",
+      written: "Notes rapides",
     };
 
   // Le feed a sa propre recherche : il passe son texte ici. Le type de page,
@@ -214,6 +215,11 @@
   */
   function ensureVoiceFolder() {
     return ensureFolder(systemFolders.voice);
+  }
+
+  // Meme principe pour les pages tapees depuis write.html.
+  function ensureWrittenFolder() {
+    return ensureFolder(systemFolders.written);
   }
 
   function getDefaultParentIdForType(type) {
@@ -1639,6 +1645,7 @@ ${String(body).trim() || "Idee a developper."}${lien}`,
     moveNoteToRoot,
     createNoteFromCapture,
     ensureVoiceFolder,
+    ensureWrittenFolder,
     openOrCreateNote,
     discardPendingNewNote,
     removeWikiLinkLine,
