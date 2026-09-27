@@ -147,7 +147,7 @@ Une page a ouvrir, rien a installer :
 tests/index.html
 ```
 
-Ouverte par double-clic, la page fonctionne : 50 tests s'executent. Huit
+Ouverte par double-clic, la page fonctionne : 51 tests s'executent. Huit
 lisent les fichiers du projet et ont besoin d'une vraie adresse HTTP, car le
 navigateur bloque ces lectures en `file://` ; ils sont alors ignores, et la
 page explique comment les lancer.
@@ -222,6 +222,24 @@ recoivent chacune leur conteneur. Une dictee faite depuis l'icone Dicter est don
 invisible depuis Atlas, `localStorage` compris, donc la session Supabase aussi :
 il faut se connecter une fois depuis chaque icone. La page affiche dans quel
 contexte elle tourne plutot que de laisser croire a une file unique.
+
+## Ecriture rapide
+
+`write.html` est le pendant tape de la dictee : un champ, un bouton Envoyer, et
+la page apparait dans Atlas a sa prochaine ouverture, dans le dossier
+`Notes rapides`. Meme chemin que la dictee, sans Gemini : le texte part dans la
+table `voice_inbox` avec `source: "texte"`, et `scripts/voice-inbox.js` le range
+a part. Aucune migration.
+
+Une premiere ligne courte (80 caracteres au plus) sert de titre si le champ
+Titre est vide. Le texte en cours est garde en brouillon a chaque frappe, et un
+envoi sans reseau ou sans session attend dans `localStorage` puis repart a la
+prochaine ouverture ou au retour du reseau.
+
+Pour l'avoir en icone : ouvrir `write.html` dans Safari, Partager, Sur l'ecran
+d'accueil. Comme pour Dicter, cette icone a son propre stockage : il faut s'y
+connecter une fois. Le lien `Ecrire une page` en bas de la page de dictee ouvre
+la meme page dans le contexte de l'icone Dicter, avec sa session deja ouverte.
 
 ## Sauvegarde robuste
 

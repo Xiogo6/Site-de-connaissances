@@ -1,11 +1,12 @@
-const CACHE_NAME = "atlas-connaissance-v115";
-// Meme numero que les ?v= de index.html et voice.html : version.sh avance les
-// deux ensemble, un test verifie qu'ils concordent.
+const CACHE_NAME = "atlas-connaissance-v117";
+// Meme numero que les ?v= des pages (index, voice, write) : version.sh les
+// avance ensemble, un test verifie qu'ils concordent.
 const VERSION = CACHE_NAME.split("-v").pop();
 const ASSETS = [
   "./",
   "./index.html",
   "./voice.html",
+  "./write.html",
   "./app.js",
   "./scripts/config.js",
   "./scripts/dom.js",
@@ -24,6 +25,7 @@ const ASSETS = [
   "./scripts/events.js",
   "./scripts/voice.js",
   "./scripts/voice-send.js",
+  "./scripts/write.js",
   "./styles/tokens.css",
   "./styles/base.css",
   "./styles/layout.css",
@@ -36,10 +38,14 @@ const ASSETS = [
   "./assets/mascot/aster-thinking.png",
   "./manifest.webmanifest",
   "./voice.webmanifest",
+  "./write.webmanifest",
   "./icon.svg",
   "./voice-icon.svg",
   "./voice-icon-180.png",
   "./voice-icon-512.png",
+  "./write-icon.svg",
+  "./write-icon-180.png",
+  "./write-icon-512.png",
   "./knowledge-base.json",
 ];
 

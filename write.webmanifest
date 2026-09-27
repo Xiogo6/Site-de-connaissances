@@ -1,0 +1,24 @@
+{
+  "name": "Atlas Ecrire",
+  "short_name": "Écrire",
+  "start_url": "./write.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef1ec",
+  "theme_color": "#edf0eb",
+  "description": "Saisie rapide d'une page pour l'Atlas de Connaissance.",
+  "icons": [
+    {
+      "src": "./write-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./write-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
