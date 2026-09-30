@@ -16,8 +16,8 @@
     <!-- iOS ignore les icones SVG pour l'ecran d'accueil. -->
     <link rel="apple-touch-icon" href="./todo-icon-180.png" />
     <!-- Comme voice.html : deux feuilles seulement, le reste est ci-dessous. -->
-    <link rel="stylesheet" href="./styles/tokens.css?v=128" />
-    <link rel="stylesheet" href="./styles/base.css?v=128" />
+    <link rel="stylesheet" href="./styles/tokens.css?v=129" />
+    <link rel="stylesheet" href="./styles/base.css?v=129" />
     <style>
       /* Preset Atelier, recopie de voice.html (et donc de themes.css). */
       :root {
@@ -210,6 +210,31 @@
         padding: 1px 8px;
       }
 
+      .taches-categorie {
+        position: relative;
+      }
+
+      /* Place pour la croix : le texte ne passe pas dessous. */
+      .taches-categorie input {
+        padding-right: 48px;
+      }
+
+      .taches-saisie .taches-categorie-effacer {
+        background: transparent;
+        color: var(--text-soft);
+        font-size: 1.4rem;
+        font-weight: 400;
+        height: 44px;
+        line-height: 1;
+        min-height: 0;
+        padding: 0;
+        position: absolute;
+        right: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44px;
+      }
+
       .taches-pastilles {
         display: flex;
         flex-wrap: wrap;
@@ -347,12 +372,21 @@
           <!-- Desactive jusqu'au branchement du formulaire par todo-quick.js. -->
           <button id="todo-quick-submit" type="submit" disabled>Ajouter</button>
         </div>
-        <input
-          id="todo-quick-category"
-          type="text"
-          placeholder="Categorie (facultatif)"
-          aria-label="Categorie"
-        />
+        <div class="taches-categorie">
+          <input
+            id="todo-quick-category"
+            type="text"
+            placeholder="Categorie (facultatif)"
+            aria-label="Categorie"
+          />
+          <button
+            id="todo-quick-category-clear"
+            class="taches-categorie-effacer"
+            type="button"
+            aria-label="Effacer la categorie"
+            hidden
+          >×</button>
+        </div>
         <div id="todo-quick-category-chips" class="taches-pastilles" hidden></div>
         <p id="todo-quick-status" class="taches-statut" role="status"></p>
       </form>
@@ -392,9 +426,9 @@
       </footer>
     </main>
 
-    <script src="./scripts/config.js?v=128"></script>
-    <script src="./scripts/auth.js?v=128"></script>
-    <script src="./scripts/todo-inbox.js?v=128"></script>
-    <script src="./scripts/todo-quick.js?v=128"></script>
+    <script src="./scripts/config.js?v=129"></script>
+    <script src="./scripts/auth.js?v=129"></script>
+    <script src="./scripts/todo-inbox.js?v=129"></script>
+    <script src="./scripts/todo-quick.js?v=129"></script>
   </body>
 </html>
