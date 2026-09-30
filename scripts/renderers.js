@@ -192,7 +192,7 @@
       variant = "is-warning";
     } else if (remote.status === "error" && context.data.isRemoteConfigured()) {
       message =
-        "Synchronisation en echec. Vos changements sont gardes sur ce Mac et Atlas reessaie tout seul.";
+        "Synchronisation en echec. Vos changements sont gardes sur cet appareil et Atlas reessaie tout seul.";
       variant = "is-error";
     }
 
