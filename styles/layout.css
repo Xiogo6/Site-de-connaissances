@@ -681,7 +681,7 @@ body[data-theme="dark"] .tab.is-active {
       rgba(255, 249, 240, 0.38);
     border: 1px solid rgba(255, 255, 255, 0.52);
     border-radius: 32px;
-    bottom: 18px;
+    bottom: 28px;
     box-shadow:
       0 22px 48px rgba(28, 23, 18, 0.18),
       inset 0 1px 1px rgba(255, 255, 255, 0.76),
@@ -728,7 +728,7 @@ body[data-theme="dark"] .tab.is-active {
 
   body.feed-view-active .feed-layout {
     max-width: none;
-    padding-bottom: 114px;
+    padding-bottom: 124px;
     width: 100%;
   }
 
