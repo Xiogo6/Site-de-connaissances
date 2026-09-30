@@ -822,6 +822,44 @@
       attendre(listes.todos[0].completed).vrai();
     });
 
+    test("une categorie de la page Taches se replie et le reste au rechargement", () => {
+      const cle = "atlas-todo-collapsed-categories";
+      const avant = global.localStorage.getItem(cle);
+      global.localStorage.removeItem(cle);
+      try {
+        const conteneur = document.createElement("div");
+        const contexte = {
+          state: {
+            settings: {
+              todoCategories: [{ id: "cat-maison", label: "Maison", order: 0 }],
+              todos: [{ id: "a", label: "Garage", categoryId: "cat-maison", completed: false, order: 0 }],
+            },
+          },
+          elements: { todoPageGroups: conteneur },
+          data: { isReadOnlyMode: () => false, saveNotes: () => {} },
+        };
+        const todos = global.AtlasApp.createTodosModule(contexte);
+        todos.bindEvents();
+        todos.render();
+
+        const groupe = () => conteneur.querySelector('[data-todo-category="cat-maison"]');
+        attendre(groupe().classList.contains("is-collapsed")).faux();
+        conteneur.querySelector(".todo-group-toggle").click();
+        attendre(groupe().classList.contains("is-collapsed")).vrai();
+        attendre(groupe().querySelector(".todo-group-list").hidden).vrai();
+
+        // Un module neuf, comme au rechargement de la page.
+        global.AtlasApp.createTodosModule(contexte).render();
+        attendre(groupe().classList.contains("is-collapsed")).vrai();
+      } finally {
+        if (avant === null) {
+          global.localStorage.removeItem(cle);
+        } else {
+          global.localStorage.setItem(cle, avant);
+        }
+      }
+    });
+
     test("rien n'est ingere tant que l'espace distant n'est pas charge", async () => {
       const contexte = contexteTaches([ligne]);
       contexte.state.remote.status = "error";

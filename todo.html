@@ -16,8 +16,8 @@
     <!-- iOS ignore les icones SVG pour l'ecran d'accueil. -->
     <link rel="apple-touch-icon" href="./todo-icon-180.png" />
     <!-- Comme voice.html : deux feuilles seulement, le reste est ci-dessous. -->
-    <link rel="stylesheet" href="./styles/tokens.css?v=123" />
-    <link rel="stylesheet" href="./styles/base.css?v=123" />
+    <link rel="stylesheet" href="./styles/tokens.css?v=124" />
+    <link rel="stylesheet" href="./styles/base.css?v=124" />
     <style>
       /* Preset Atelier, recopie de voice.html (et donc de themes.css). */
       :root {
@@ -164,12 +164,73 @@
       }
 
       .taches-groupe h2 {
+        margin: 0 0 8px;
+      }
+
+      .taches-groupe.est-repliee h2 {
+        margin-bottom: 0;
+      }
+
+      .taches-groupe-tete {
+        align-items: center;
+        background: transparent;
+        border: none;
         color: var(--text-soft);
+        cursor: pointer;
+        display: flex;
         font-size: 0.72rem;
         font-weight: 600;
+        gap: 8px;
         letter-spacing: 0.1em;
-        margin: 0 0 8px;
+        min-height: 32px;
+        padding: 0;
         text-transform: uppercase;
+        width: 100%;
+      }
+
+      /* Le chevron dit l'etat : pointe vers le bas quand c'est ouvert. */
+      .taches-groupe-tete::before {
+        border-bottom: 2px solid currentColor;
+        border-right: 2px solid currentColor;
+        content: "";
+        height: 6px;
+        transform: rotate(45deg) translate(-2px, -2px);
+        transition: transform 120ms ease;
+        width: 6px;
+      }
+
+      .est-repliee .taches-groupe-tete::before {
+        transform: rotate(-45deg);
+      }
+
+      .taches-groupe-compte {
+        background: var(--line);
+        border-radius: 999px;
+        letter-spacing: 0;
+        padding: 1px 8px;
+      }
+
+      .taches-pastilles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .taches-saisie .taches-pastille {
+        background: rgba(191, 91, 44, 0.08);
+        border: 1px solid rgba(191, 91, 44, 0.16);
+        border-radius: 999px;
+        color: var(--accent-strong);
+        font-size: 0.85rem;
+        font-weight: 500;
+        min-height: 36px;
+        padding: 0 14px;
+      }
+
+      .taches-saisie .taches-pastille.est-choisie {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #f8fbfa;
       }
 
       .taches-liste {
@@ -289,11 +350,10 @@
         <input
           id="todo-quick-category"
           type="text"
-          list="todo-quick-categories"
           placeholder="Categorie (facultatif)"
           aria-label="Categorie"
         />
-        <datalist id="todo-quick-categories"></datalist>
+        <div id="todo-quick-category-chips" class="taches-pastilles" hidden></div>
         <p id="todo-quick-status" class="taches-statut" role="status"></p>
       </form>
 
@@ -332,9 +392,9 @@
       </footer>
     </main>
 
-    <script src="./scripts/config.js?v=123"></script>
-    <script src="./scripts/auth.js?v=123"></script>
-    <script src="./scripts/todo-inbox.js?v=123"></script>
-    <script src="./scripts/todo-quick.js?v=123"></script>
+    <script src="./scripts/config.js?v=124"></script>
+    <script src="./scripts/auth.js?v=124"></script>
+    <script src="./scripts/todo-inbox.js?v=124"></script>
+    <script src="./scripts/todo-quick.js?v=124"></script>
   </body>
 </html>
