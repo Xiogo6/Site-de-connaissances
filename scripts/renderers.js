@@ -589,6 +589,25 @@
       context.elements.feedTagFilterPopover.classList.toggle("is-hidden", !context.state.feedTagFilterOpen);
     }
 
+    // Les filtres restent replies par defaut ; le bouton du haut les deplie et
+    // compte ceux qui s'appliquent, pour qu'un filtre actif ne passe pas inapercu.
+    const filtersOpen = Boolean(context.state.feedFiltersOpen);
+    context.elements.feedFilterBar?.classList.toggle("is-hidden", !filtersOpen);
+    const activeFilters =
+      (context.state.feedFilter ? 1 : 0) +
+      (context.state.typeFilter && context.state.typeFilter !== "all" ? 1 : 0) +
+      (context.state.favoritesOnly ? 1 : 0) +
+      (context.state.feedHideFolders === false ? 1 : 0) +
+      (excludedCount ? 1 : 0);
+    if (context.elements.feedFiltersToggle) {
+      context.elements.feedFiltersToggle.setAttribute("aria-expanded", filtersOpen ? "true" : "false");
+      context.elements.feedFiltersToggle.classList.toggle("is-open", filtersOpen);
+      context.elements.feedFiltersToggle.classList.toggle("has-active-filter", Boolean(activeFilters));
+    }
+    if (context.elements.feedFiltersCount) {
+      context.elements.feedFiltersCount.textContent = activeFilters ? String(activeFilters) : "";
+    }
+
     renderFeedExcludedTags();
   }
 

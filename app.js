@@ -57,6 +57,7 @@
       feedSeed: Date.now(),
       feedNavCompact: false,
       feedExcludedTags: [],
+      feedFiltersOpen: false,
       feedHideFolders: true,
       feedFilter: "",
       aiPlacementSuggestion: null,

@@ -343,6 +343,13 @@
       context.state.feedHideFolders = event.target.checked;
       context.renderers.renderFeed();
     });
+    context.elements.feedFiltersToggle?.addEventListener("click", () => {
+      context.state.feedFiltersOpen = !context.state.feedFiltersOpen;
+      if (!context.state.feedFiltersOpen) {
+        context.state.feedTagFilterOpen = false;
+      }
+      context.renderers.renderFeed();
+    });
     context.elements.feedTagFilterButton?.addEventListener("click", (event) => {
       event.stopPropagation();
       context.state.feedTagFilterOpen = !context.state.feedTagFilterOpen;
@@ -1141,7 +1148,7 @@
   function isFeedRefreshIgnoredTarget(target) {
     return Boolean(
       target?.closest?.(
-        ".feed-filter-bar, .feed-toolbar-actions, .feed-action, .mobile-tab-bar, .mobile-action-bar, [data-tab], input, select, textarea, a"
+        ".feed-filter-bar, .feed-toolbar, .feed-action, .mobile-tab-bar, .mobile-action-bar, [data-tab], input, select, textarea, a"
       )
     );
   }
