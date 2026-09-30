@@ -3908,14 +3908,7 @@ body[data-theme="dark"] .toggle-row-editor {
 .feed-toolbar {
   align-items: center;
   display: flex;
-  gap: 18px;
-  justify-content: space-between;
-}
-
-.feed-toolbar h2 {
-  font-size: clamp(1.35rem, 2.2vw, 2rem);
-  line-height: 1.05;
-  margin: 0;
+  justify-content: center;
 }
 
 .feed-toolbar-actions {
@@ -3923,7 +3916,64 @@ body[data-theme="dark"] .toggle-row-editor {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: center;
+}
+
+/* Bouton qui deplie les filtres du feed, replies par defaut. La pastille
+   compte les filtres actifs pour qu'ils restent visibles une fois replies. */
+.feed-filters-toggle {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid rgba(86, 70, 48, 0.12);
+  border-radius: 999px;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+  width: 44px;
+}
+
+.feed-filters-toggle svg {
+  fill: none;
+  height: 20px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2;
+  width: 20px;
+}
+
+.feed-filters-toggle.is-open,
+.feed-filters-toggle.has-active-filter {
+  background: rgba(191, 91, 44, 0.13);
+  color: var(--accent-strong);
+}
+
+.feed-filters-count {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 999px;
+  color: #fff;
+  display: none;
+  font-size: 0.66rem;
+  font-weight: 800;
+  height: 17px;
+  justify-content: center;
+  min-width: 17px;
+  padding: 0 4px;
+  position: absolute;
+  right: -3px;
+  top: -3px;
+}
+
+.feed-filters-toggle.has-active-filter .feed-filters-count {
+  display: inline-flex;
+}
+
+.feed-filter-bar.is-hidden {
+  display: none;
 }
 
 .feed-filter-bar {
@@ -4442,12 +4492,14 @@ body[data-theme="dark"] .feed-empty {
 }
 
 :root[data-theme="dark"] .segmented-control,
+:root[data-theme="dark"] .feed-filters-toggle,
 :root[data-theme="dark"] .feed-filter-bar,
 :root[data-theme="dark"] .feed-filter-input,
 :root[data-theme="dark"] .feed-filter-select,
 :root[data-theme="dark"] .feed-filter-toggle,
 :root[data-theme="dark"] .feed-filter-clear,
 body[data-theme="dark"] .segmented-control,
+body[data-theme="dark"] .feed-filters-toggle,
 body[data-theme="dark"] .feed-filter-bar,
 body[data-theme="dark"] .feed-filter-input,
 body[data-theme="dark"] .feed-filter-select,
@@ -4485,7 +4537,11 @@ body[data-theme="dark"] .feed-tag-filter-button {
 }
 
 :root[data-theme="dark"] .feed-tag-filter-button.has-active-filter,
-body[data-theme="dark"] .feed-tag-filter-button.has-active-filter {
+:root[data-theme="dark"] .feed-filters-toggle.is-open,
+:root[data-theme="dark"] .feed-filters-toggle.has-active-filter,
+body[data-theme="dark"] .feed-tag-filter-button.has-active-filter,
+body[data-theme="dark"] .feed-filters-toggle.is-open,
+body[data-theme="dark"] .feed-filters-toggle.has-active-filter {
   background: rgba(208, 122, 76, 0.18);
   border-color: rgba(240, 160, 111, 0.34);
   color: #ffc09a;
@@ -4555,12 +4611,6 @@ body[data-theme="dark"] .feed-toast {
 }
 
 @media (max-width: 780px) {
-  .feed-toolbar {
-    align-items: stretch;
-    display: grid;
-    gap: 10px;
-  }
-
   .feed-filter-bar {
     grid-template-columns: 1fr 1fr;
   }
@@ -4591,18 +4641,7 @@ body[data-theme="dark"] .feed-toast {
   }
 
   .feed-toolbar-actions {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    justify-content: stretch;
-  }
-
-  .feed-toolbar-actions .segmented-control {
-    justify-content: stretch;
-  }
-
-  .feed-toolbar-actions .segmented-control button {
-    flex: 1;
-    padding-inline: 8px;
+    flex-wrap: nowrap;
   }
 
   .feed-card-footer {
@@ -4641,12 +4680,11 @@ body[data-theme="dark"] .feed-toast {
 
 @media (max-width: 420px) {
   .feed-toolbar-actions {
-    grid-template-columns: 1fr auto;
+    gap: 6px;
   }
 
-  #feed-count {
-    grid-column: 1 / -1;
-    justify-self: start;
+  .feed-toolbar-actions .segmented-control button {
+    padding-inline: 10px;
   }
 
   .feed-title-row {

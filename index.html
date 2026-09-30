@@ -296,19 +296,29 @@
           <div class="feed-layout" aria-label="Feed des pages">
             <div id="feed-refresh-indicator" class="feed-refresh-indicator" aria-hidden="true"></div>
             <header class="feed-toolbar">
-              <div>
-                <p class="eyebrow">Feed</p>
-                <h2>Atlas de pages</h2>
-              </div>
               <div class="feed-toolbar-actions">
                 <div class="segmented-control" aria-label="Mode du feed">
                   <button class="is-active" data-feed-mode="random" type="button">Aleatoire</button>
                   <button data-feed-mode="foryou" type="button">Pour toi</button>
                 </div>
                 <span id="feed-count" class="pill"></span>
+                <button
+                  id="feed-filters-toggle"
+                  class="feed-filters-toggle"
+                  type="button"
+                  aria-expanded="false"
+                  aria-controls="feed-filter-bar"
+                  aria-label="Filtres du feed"
+                  title="Filtres"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" role="presentation">
+                    <path d="M4 6h16M7 12h10M10 18h4" />
+                  </svg>
+                  <span id="feed-filters-count" class="feed-filters-count" aria-hidden="true"></span>
+                </button>
               </div>
             </header>
-            <section class="feed-filter-bar" aria-label="Filtres du feed">
+            <section id="feed-filter-bar" class="feed-filter-bar is-hidden" aria-label="Filtres du feed">
               <div class="search-field">
                 <input
                   id="feed-search-input"
