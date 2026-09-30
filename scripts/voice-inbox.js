@@ -320,10 +320,25 @@
         context.data.saveNotes();
       }
 
-      // Les suppressions ne retardent plus l'affichage : les pages sont deja
-      // enregistrees, l'ordre qui protege la dictee est donc respecte. Elles
-      // partent en parallele, sans etre attendues.
-      const suppressions = Promise.all(
+      /*
+        La ligne ne quitte la file qu'une fois la page arrivee dans Supabase.
+        Avant, elle etait retiree des l'enregistrement local : si l'envoi
+        echouait ensuite, la page n'existait plus que sur cet appareil. Si
+        l'envoi echoue, la ligne reste, et le prochain demarrage reconnait la
+        page deja creee (meme identifiant) et retente seulement la suppression.
+        Rien de tout cela ne retarde l'affichage.
+      */
+      const suppressions = context.data.whenRemoteSaved
+        ? context.data
+            .whenRemoteSaved()
+            .then((envoye) => (envoye ? supprimerLignes(traitees) : []))
+        : supprimerLignes(traitees);
+
+      return { created, skipped, lastNoteId, todosCreated, suppressions };
+    }
+
+    function supprimerLignes(traitees) {
+      return Promise.all(
         traitees.map((clientKey) =>
           deleteRow(clientKey).catch(() => {
             // Sans consequence : la page porte deja l'identifiant de la dictee,
@@ -331,8 +346,6 @@
           })
         )
       );
-
-      return { created, skipped, lastNoteId, todosCreated, suppressions };
     }
 
     return { ingest, prefetch, isAvailable, noteIdForClientKey, todoIdPrefixForClientKey };

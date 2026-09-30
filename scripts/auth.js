@@ -155,9 +155,31 @@
 
     // Les jetons de rafraichissement tournent : chaque appel invalide le precedent.
     // Une seule requete a la fois, sinon deux appels concurrents s'annulent.
+    /*
+      Atlas, write.html, voice.html et todo.html partagent la meme session
+      stockee, et deux onglets d'Atlas aussi. Quand l'un renouvelle le jeton,
+      l'ancien jeton de rafraichissement garde en memoire par les autres ne
+      vaut plus rien : Supabase le refuse, et l'onglet se croyait deconnecte
+      (envoi en echec). On relit donc la session stockee avant de renouveler,
+      et encore apres un refus.
+    */
+    function adoptStoredSessionIfNewer() {
+      const stored = readStoredSession();
+      if (stored && stored.refreshToken !== session?.refreshToken) {
+        session = stored;
+        return true;
+      }
+      return false;
+    }
+
     function refreshSession() {
       if (refreshPromise) {
         return refreshPromise;
+      }
+
+      adoptStoredSessionIfNewer();
+      if (session && session.expiresAt - Date.now() > refreshMarginMs) {
+        return Promise.resolve(session);
       }
 
       const refreshToken = session?.refreshToken;
@@ -167,6 +189,11 @@
 
       refreshPromise = requestToken("refresh_token", { refresh_token: refreshToken })
         .catch((error) => {
+          // Un autre onglet a renouvele la session pendant ce temps : son
+          // jeton est bon, le refus ne concernait que l'ancien.
+          if (adoptStoredSessionIfNewer()) {
+            return session.expiresAt - Date.now() > refreshMarginMs ? session : null;
+          }
           // Un refus definitif signifie que la session n'est plus valable.
           // Une simple coupure reseau, elle, ne doit pas deconnecter.
           if (error.status >= 400 && error.status < 500) {

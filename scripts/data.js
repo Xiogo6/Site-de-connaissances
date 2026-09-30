@@ -24,7 +24,13 @@
       syncEnabled: Boolean(supabase?.syncEnabled),
     };
 
-    let remoteSyncQueue = Promise.resolve();
+    let remoteSyncQueue = Promise.resolve(true);
+    let remoteRetryTimer = null;
+    let remoteRetryDelayMs = 0;
+    let remoteRetryRunning = false;
+    let remoteRetryEventsBound = false;
+    const remoteRetryFirstDelayMs = 15 * 1000;
+    const remoteRetryMaxDelayMs = 5 * 60 * 1000;
     let syncBannerTimer = null;
     let dailySnapshotTimer = null;
     const dailySnapshotHour = 3;
@@ -137,7 +143,13 @@
     async function getRemoteHeaders() {
       const accessToken = (await context.auth?.getAccessToken()) || "";
       if (!accessToken) {
-        throw new Error("Session Supabase expiree. Reconnecte-toi.");
+        // Toujours connecte : le renouvellement a echoue sur le reseau, pas
+        // sur un refus. Une nouvelle tentative suffira.
+        throw new Error(
+          context.auth?.isSignedIn()
+            ? "Reseau indisponible pour renouveler la session."
+            : "Session Supabase expiree. Reconnecte-toi."
+        );
       }
 
       return {
@@ -286,6 +298,32 @@
           `Chargement bloque: ${unexplainedMissingIds.length} page(s) ont disparu sans suppression enregistree`
         );
       }
+    }
+
+    /*
+      Pages du cache local absentes de Supabase et jamais supprimees. Elles
+      naissent d'un envoi rate dont la file d'attente n'a pas pu etre gardee
+      (stockage plein, onglet ferme au mauvais moment). Sans ce filet, le
+      chargement suivant remplacait l'etat local par l'etat distant et elles
+      disparaissaient. Seulement sur un appareil deja synchronise : sur un
+      premier chargement, le cache peut contenir la base de demonstration.
+    */
+    function findLocalOnlyNotes(remoteNotes, remoteDeletedNotes) {
+      const dejaSynchronise = Array.isArray(
+        readStoredJson(remoteIntegrityStorageKey, null)?.noteIds
+      );
+      if (!dejaSynchronise || !Array.isArray(context.state.notes)) {
+        return [];
+      }
+
+      const idsDistants = new Set(remoteNotes.map((note) => note.id));
+      const candidates = context.state.notes.filter(
+        (note) => note?.id && !idsDistants.has(note.id)
+      );
+      return filterDeletedNotes(
+        filterDeletedNotes(candidates, remoteDeletedNotes),
+        context.state.settings?.deletedNotes
+      );
     }
 
     function rememberRemoteIntegrity(remoteNotes, payload) {
@@ -1461,6 +1499,7 @@
 
         if (hasRemoteData) {
           const localSettings = context.state.settings;
+          const pagesSeulementIci = findLocalOnlyNotes(remoteNotes, remoteDeletedNotes);
           context.state.settings = hasAuthoritativeRemoteSettings
             ? remoteSettings
             : normalizeSettings({
@@ -1471,7 +1510,7 @@
               });
           context.state.settings.deletedNotes = remoteDeletedNotes;
           context.state.notes = filterDeletedNotes(
-            remoteNotes,
+            [...remoteNotes, ...pagesSeulementIci],
             remoteDeletedNotes
           );
           context.state.snapshots = remoteSnapshots;
@@ -1479,7 +1518,12 @@
 
           saveNotes({ skipRemote: true });
           saveSnapshots({ skipRemote: true });
-          rememberRemoteIntegrity(context.state.notes, payload);
+          // L'empreinte ne retient que ce que Supabase a reellement transmis :
+          // une page sauvee ci-dessus n'y est pas encore.
+          rememberRemoteIntegrity(
+            filterDeletedNotes(remoteNotes, remoteDeletedNotes),
+            payload
+          );
           setRemoteState({
             status: "synced",
             lastSyncedAt: new Date().toISOString(),
@@ -1489,7 +1533,18 @@
             // laquelle s'appuie l'ingestion des raccourcis (voice-inbox.js).
             loadedFromRemote: true,
           });
-          if (!hasAuthoritativeRemoteSettings) {
+          if (pagesSeulementIci.length) {
+            // Ces pages n'etaient que dans le cache de cet appareil : un envoi
+            // echoue sans file d'attente conservee. Elles repartent vers
+            // Supabase au lieu d'etre remplacees par l'etat distant.
+            console.info(
+              `Atlas : ${pagesSeulementIci.length} page(s) presente(s) seulement sur cet appareil, renvoyee(s) a Supabase.`
+            );
+            queueRemoteSync({
+              includeSnapshots: false,
+              changedNoteIds: pagesSeulementIci.map((note) => note.id),
+            });
+          } else if (!hasAuthoritativeRemoteSettings) {
             queueRemoteSync({ includeSnapshots: false });
           }
           return true;
@@ -1531,6 +1586,8 @@
       context.renderers?.renderWorkspaceBanner();
       const pendingEnvelope = writePendingRemoteSync(payload);
 
+      // Chaque envoi resout a true ou false : l'ingestion des raccourcis
+      // attend ce resultat avant de retirer une ligne de la file distante.
       remoteSyncQueue = remoteSyncQueue
         .catch(() => {})
         .then(async () => {
@@ -1545,12 +1602,16 @@
               lastError: "",
               showSyncWarning: false,
             });
+            remoteRetryDelayMs = 0;
+            return true;
           } catch (error) {
             setRemoteState({
               status: "error",
               lastError: error.message || "Synchronisation impossible",
               showSyncWarning: false,
             });
+            scheduleRemoteRetry();
+            return false;
           } finally {
             context.renderers?.renderWorkspaceBanner();
             context.renderers?.renderPublishCenter();
@@ -1559,6 +1620,101 @@
         });
 
       return remoteSyncQueue;
+    }
+
+    // Resout a true quand le dernier envoi demande est arrive dans Supabase.
+    function whenRemoteSaved() {
+      if (!isRemoteConfigured()) {
+        return Promise.resolve(false);
+      }
+      return remoteSyncQueue.then(
+        (result) => result !== false && context.state.remote?.status !== "error",
+        () => false
+      );
+    }
+
+    /*
+      Nouvelle tentative apres un echec. Avant, un envoi rate (Mac qui sort de
+      veille avant le Wi-Fi, jeton a renouveler, coupure) laissait le bandeau
+      "synchronisation en echec" jusqu'a la prochaine modification, meme une
+      fois le reseau revenu. On reessaie seul : a intervalle croissant, au
+      retour du reseau et quand la fenetre redevient visible.
+    */
+    function scheduleRemoteRetry() {
+      if (remoteRetryTimer) {
+        window.clearTimeout(remoteRetryTimer);
+      }
+      remoteRetryDelayMs = Math.min(
+        remoteRetryMaxDelayMs,
+        remoteRetryDelayMs ? remoteRetryDelayMs * 2 : remoteRetryFirstDelayMs
+      );
+      remoteRetryTimer = window.setTimeout(() => {
+        remoteRetryTimer = null;
+        retryRemoteSync();
+      }, remoteRetryDelayMs);
+    }
+
+    async function retryRemoteSync() {
+      if (
+        remoteRetryRunning ||
+        context.state.remote?.status !== "error" ||
+        isReadOnlyMode() ||
+        !isRemoteConfigured()
+      ) {
+        return false;
+      }
+
+      remoteRetryRunning = true;
+      try {
+        if (context.state.remote?.loadedFromRemote) {
+          // L'etat affiche vient de Supabase et a seulement des modifications
+          // en plus : on le renvoie, avec les pages explicitement modifiees
+          // de l'envoi rate.
+          const pending = readPendingRemoteSync();
+          const changedNoteIds = Array.isArray(pending?.payload?.changedNoteIds)
+            ? pending.payload.changedNoteIds
+            : [];
+          if (!context.state.notes.length) {
+            return false;
+          }
+          return await queueRemoteSync({ includeSnapshots: false, changedNoteIds });
+        }
+
+        // Le chargement du demarrage avait echoue : l'etat affiche n'est que
+        // le cache de cet appareil. On refait le chargement complet (il
+        // envoie d'abord la file en attente), comme une reouverture d'Atlas,
+        // mais jamais pendant une edition, pour ne pas ecraser le formulaire.
+        if (context.state.noteViewMode === "edit" ||
+          context.state.pendingNewNoteId ||
+          !context.onRemoteRecovered) {
+          scheduleRemoteRetry();
+          return false;
+        }
+        const loaded = await loadWorkspaceFromRemote();
+        if (context.state.remote?.status === "error") {
+          scheduleRemoteRetry();
+          return false;
+        }
+        await context.onRemoteRecovered(loaded);
+        return true;
+      } finally {
+        remoteRetryRunning = false;
+      }
+    }
+
+    function bindRemoteRetryEvents() {
+      if (remoteRetryEventsBound) {
+        return;
+      }
+      remoteRetryEventsBound = true;
+      window.addEventListener("online", () => {
+        retryRemoteSync();
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          retryRemoteSync();
+        }
+      });
     }
 
     async function bootstrapWorkspace() {
@@ -1575,7 +1731,11 @@
         return;
       }
 
+      bindRemoteRetryEvents();
       const loaded = await loadWorkspaceFromRemote();
+      if (context.state.remote?.status === "error") {
+        scheduleRemoteRetry();
+      }
       if (loaded || context.state.notes.length) {
         ensureDailySnapshot("Snapshot quotidien");
         scheduleDailySnapshot();
@@ -1905,6 +2065,8 @@
       createQuizQuestionStats,
       normalizeTemplates,
       queueRemoteSync,
+      retryRemoteSync,
+      whenRemoteSaved,
       registerServiceWorker,
       restoreLatestSnapshot,
       restoreSnapshotById,
