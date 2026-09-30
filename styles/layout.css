@@ -97,6 +97,20 @@
   color: #8f2d2d;
 }
 
+.workspace-banner-reason {
+  opacity: 0.75;
+}
+
+.workspace-banner-retry {
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 2px 10px;
+}
+
 .workspace,
 .graph-layout,
 .quiz-layout,
