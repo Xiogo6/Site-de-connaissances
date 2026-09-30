@@ -3245,6 +3245,47 @@ body.utility-drawer-open .quick-capture-toggle {
   flex: 0 0 auto;
 }
 
+.todo-group-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 30px;
+  justify-content: center;
+  padding: 0;
+  width: 30px;
+}
+
+/* Chevron vers le bas quand la categorie est ouverte, vers la droite
+   quand elle est repliee. */
+.todo-group-toggle::before {
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  content: "";
+  height: 7px;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 120ms ease;
+  width: 7px;
+}
+
+.todo-group.is-collapsed .todo-group-toggle::before {
+  transform: translateX(-2px) rotate(-45deg);
+}
+
+/* L'attribut hidden seul ne suffit pas : .todo-list pose son propre display. */
+.todo-group.is-collapsed .todo-group-list {
+  display: none;
+}
+
+.todo-group-toggle:hover,
+.todo-group-toggle:focus-visible {
+  background: var(--line);
+}
+
 .todo-group-remove {
   flex: 0 0 auto;
   font-size: 0.72rem;
