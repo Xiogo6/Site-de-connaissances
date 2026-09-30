@@ -62,6 +62,10 @@
 
     // Compteur de secondes pendant un appel : on ne touche qu'a la ligne de
     // statut, sans re-rendre l'editeur chaque seconde.
+    function progressLabel(base, seconds, retryNote) {
+      return `${base} ${seconds} s${retryNote ? ` (${retryNote})` : ""}`;
+    }
+
     function showProgress(message) {
       if (!context.state.aiStatus?.busy) {
         return;
@@ -162,6 +166,7 @@
         : note.metadata || {};
 
       captureRewriteBackup(note);
+      const startedAt = Date.now();
 
       setStatus({
         busy: true,
@@ -179,7 +184,8 @@
             content: draftContent,
           },
           config,
-          (seconds) => showProgress(`Gemini re-ecrit la note... ${seconds} s`)
+          (seconds, retryNote) =>
+            showProgress(progressLabel("Gemini re-ecrit la note...", seconds, retryNote))
         );
         applyRewriteResult(note, rewrittenContent, draftTitle);
         context.state.aiFactCheck = factCheck.length ? { noteId: note.id, entries: factCheck } : null;
@@ -188,11 +194,7 @@
         setStatus({
           busy: false,
           type: "success",
-          message: factCheck.length
-            ? `Reecriture appliquee. ${factCheck.length} point${
-                factCheck.length > 1 ? "s" : ""
-              } a verifier.`
-            : "Reecriture appliquee. Tu peux l'annuler si besoin.",
+          message: rewriteDoneMessage(factCheck.length, Date.now() - startedAt),
           error: "",
           lastRunAt: new Date().toISOString(),
         });
@@ -211,6 +213,15 @@
     // L'appel de reecriture seul, sans toucher a l'editeur. write.html s'en
     // sert aussi : le raccourci reformule avec le meme prompt et les memes
     // reglages qu'Atlas, sans en garder une copie qui finirait par diverger.
+    function rewriteDoneMessage(factCheckCount, elapsedMs) {
+      const duree = `en ${Math.round(elapsedMs / 1000)} s`;
+      return factCheckCount
+        ? `Reecriture appliquee ${duree}. ${factCheckCount} point${
+            factCheckCount > 1 ? "s" : ""
+          } a verifier.`
+        : `Reecriture appliquee ${duree}. Tu peux l'annuler si besoin.`;
+    }
+
     async function requestRewrite({ title, type, metadata, content }, config, onProgress) {
       const reponse = await callGemini(
         buildRewritePrompt({ title, type, metadata, content }),
@@ -270,7 +281,8 @@
             json: true,
             thinking: "medium",
             sourceLength: draftContent.length,
-            onProgress: (seconds) => showProgress(`Gemini genere les questions... ${seconds} s`),
+            onProgress: (seconds, retryNote) =>
+              showProgress(progressLabel("Gemini genere les questions...", seconds, retryNote)),
           }
         );
 
@@ -720,8 +732,15 @@
       const requestTimeoutMs = timeoutForLength(options.sourceLength);
       const startedAt = Date.now();
       const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
+      // Un nouvel essai silencieux allongeait l'attente sans rien dire : on le
+      // signale dans le compteur, pour distinguer un Gemini lent d'un Gemini
+      // qui refuse (quota ou surcharge) puis accepte.
+      let retryNote = "";
       const ticker = onProgress
-        ? window.setInterval(() => onProgress(Math.round((Date.now() - startedAt) / 1000)), 1000)
+        ? window.setInterval(
+            () => onProgress(Math.round((Date.now() - startedAt) / 1000), retryNote),
+            1000
+          )
         : null;
 
       try {
@@ -756,6 +775,7 @@
               );
             }
             if (attempt < retryDelaysMs.length) {
+              retryNote = `reseau coupe, essai ${attempt + 2}`;
               await wait(retryDelaysMs[attempt]);
               continue;
             }
@@ -777,6 +797,10 @@
               continue;
             }
             if (retryableStatuses.has(response.status) && attempt < retryDelaysMs.length) {
+              retryNote =
+                response.status === 429
+                  ? `quota Gemini atteint, essai ${attempt + 2}`
+                  : `Gemini surcharge, essai ${attempt + 2}`;
               await wait(retryDelaysMs[attempt]);
               continue;
             }
@@ -1092,7 +1116,9 @@
       loadConfig,
       restoreLastRewrite,
       rewriteActiveNote,
+      progressLabel,
       requestRewrite,
+      rewriteDoneMessage,
       timeoutForLength,
       clearFactCheck,
       clearPlacementSuggestion,

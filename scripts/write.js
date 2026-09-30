@@ -858,6 +858,7 @@
     renderAiButtons();
     renderSaveButton();
     setStatus("Gemini re-ecrit la note...");
+    const startedAt = Date.now();
 
     try {
       const { content, factCheck } = await ai.requestRewrite(
@@ -868,19 +869,14 @@
           content: backup,
         },
         config,
-        (seconds) => setStatus(`Gemini re-ecrit la note... ${seconds} s`)
+        (seconds, retryNote) =>
+          setStatus(ai.progressLabel("Gemini re-ecrit la note...", seconds, retryNote))
       );
       elements.content.value = extractBody(content);
       state.rewriteBackup = backup;
       state.factCheck = factCheck;
       saveDraft();
-      setStatus(
-        factCheck.length
-          ? `Reecriture appliquee. ${factCheck.length} point${
-              factCheck.length > 1 ? "s" : ""
-            } a verifier.`
-          : "Reecriture appliquee. Tu peux l'annuler si besoin."
-      );
+      setStatus(ai.rewriteDoneMessage(factCheck.length, Date.now() - startedAt));
     } catch (error) {
       setStatus(error.message || "Gemini a rencontre un probleme.");
     } finally {
