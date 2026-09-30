@@ -171,27 +171,15 @@
       });
 
       try {
-        const content = await callGemini(
-          buildRewritePrompt({
+        const { content: rewrittenContent, factCheck } = await requestRewrite(
+          {
             title: draftTitle,
             type: draftType,
             metadata: draftMetadata,
             content: draftContent,
-          }),
+          },
           config,
-          {
-            temperature: 0,
-            json: true,
-            thinking: "medium",
-            onProgress: (seconds) => showProgress(`Gemini re-ecrit la note... ${seconds} s`),
-          }
-        );
-
-        const payload = parseJsonPayload(content);
-        const { content: rewrittenContent, factCheck } = normalizeRewritePayload(
-          payload,
-          draftTitle,
-          note
+          (seconds) => showProgress(`Gemini re-ecrit la note... ${seconds} s`)
         );
         applyRewriteResult(note, rewrittenContent, draftTitle);
         context.state.aiFactCheck = factCheck.length ? { noteId: note.id, entries: factCheck } : null;
@@ -218,6 +206,23 @@
         });
         throw error;
       }
+    }
+
+    // L'appel de reecriture seul, sans toucher a l'editeur. write.html s'en
+    // sert aussi : le raccourci reformule avec le meme prompt et les memes
+    // reglages qu'Atlas, sans en garder une copie qui finirait par diverger.
+    async function requestRewrite({ title, type, metadata, content }, config, onProgress) {
+      const reponse = await callGemini(
+        buildRewritePrompt({ title, type, metadata, content }),
+        config,
+        {
+          temperature: 0,
+          json: true,
+          thinking: "medium",
+          onProgress,
+        }
+      );
+      return normalizeRewritePayload(parseJsonPayload(reponse), title, { title });
     }
 
     async function generateQuestionsForActiveNote() {
@@ -1115,6 +1120,7 @@
       loadConfig,
       restoreLastRewrite,
       rewriteActiveNote,
+      requestRewrite,
       clearFactCheck,
       clearPlacementSuggestion,
       saveConfig,

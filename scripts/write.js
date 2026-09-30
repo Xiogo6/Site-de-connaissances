@@ -17,6 +17,9 @@
   - dates au format souple, normalisees par helpers.js comme dans Atlas
   - tags separes par des virgules, avec suggestions parmi les tags existants
   - barre de mise en forme identique
+  - Reformuler : meme appel Gemini qu'Atlas (scripts/ai.js, requestRewrite),
+    meme prompt et memes reglages, avec son "Annuler reformulation" et ses
+    points a verifier
 
   Les types, dossiers, tags et le theme viennent de Supabase (get_app_payload,
   lecture seule), et sont gardes dans localStorage : a l'ouverture suivante,
@@ -64,6 +67,12 @@
     status: $("#write-status"),
     session: $("#write-session"),
     pending: $("#write-pending"),
+    aiAssist: $("#ai-assist-button"),
+    aiUndo: $("#ai-undo-button"),
+    factCheck: $("#ai-fact-check"),
+    geminiPanel: $("#write-gemini"),
+    geminiKey: $("#ai-api-key"),
+    geminiSave: $("#ai-save-button"),
   };
 
   // Les identifiants que scripts/auth.js sait piloter : l'ecran de connexion
@@ -81,7 +90,16 @@
     auth: null,
     catalog: null,
     flushing: false,
+    // Reformulation : appel en cours, texte d'avant pour "Annuler", et points
+    // a verifier renvoyes par Gemini.
+    aiBusy: false,
+    rewriteBackup: null,
+    factCheck: [],
   };
+
+  // Seules les fonctions sans etat du module d'Atlas servent ici : l'appel,
+  // le prompt et la lecture de la reponse.
+  const ai = AtlasApp.createAiModule?.({ state: {}, elements: {} }) || null;
 
   /* ---------- stockage local ---------- */
 
@@ -679,7 +697,10 @@
   }
 
   function renderSaveButton() {
-    elements.save.disabled = !elements.title.value.trim() && !elements.content.value.trim();
+    // Pendant une reformulation, envoyer partirait avec le texte d'avant et
+    // la reponse arriverait sur une page vide.
+    elements.save.disabled =
+      state.aiBusy || (!elements.title.value.trim() && !elements.content.value.trim());
   }
 
   function renderPending() {
@@ -699,6 +720,7 @@
   }
 
   function resetForm() {
+    clearRewrite();
     applyDraft({ type: elements.type.options[0]?.value });
     elements.type.value = elements.type.options[0]?.value || "";
     clearDraft();
@@ -706,6 +728,60 @@
     renderStructuredFields();
     renderTagSuggestions();
     renderSaveButton();
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  // Meme rendu que renderFactCheck() dans renderers.js.
+  function renderFactCheck() {
+    const entries = state.factCheck;
+    elements.factCheck.classList.toggle("is-hidden", !entries.length);
+    if (!entries.length) {
+      elements.factCheck.innerHTML = "";
+      return;
+    }
+    const lignes = entries
+      .map(
+        (entree) => `
+          <li class="fact-check-entry">
+            <p class="fact-check-claim">${escapeHtml(entree.claim)}</p>
+            <p class="fact-check-issue">${escapeHtml(entree.issue)}</p>
+          </li>
+        `
+      )
+      .join("");
+    elements.factCheck.innerHTML = `
+      <div class="fact-check-head">
+        <strong>${entries.length} point${entries.length > 1 ? "s" : ""} a verifier</strong>
+        <button type="button" class="button button-ghost button-inline" data-dismiss-fact-check>
+          Ignorer
+        </button>
+      </div>
+      <ul class="fact-check-list">${lignes}</ul>
+    `;
+  }
+
+  function renderAiButtons() {
+    const label = elements.aiAssist.querySelector(".button-label");
+    if (label) {
+      label.textContent = state.aiBusy ? "Gemini en cours..." : "Reformuler";
+    }
+    elements.aiAssist.disabled = state.aiBusy;
+    elements.aiUndo.classList.toggle("is-hidden", !state.rewriteBackup);
+    elements.aiUndo.disabled = state.aiBusy || !state.rewriteBackup;
+  }
+
+  function clearRewrite() {
+    state.rewriteBackup = null;
+    state.factCheck = [];
+    renderFactCheck();
+    renderAiButtons();
   }
 
   /* ---------- actions ---------- */
@@ -735,6 +811,110 @@
         ? `${error.message} Page gardee ici, reessai automatique.`
         : `« ${entry.note.title} » envoyee a Atlas.`
     );
+  }
+
+  /* ---------- reformulation ---------- */
+
+  function loadAiConfig() {
+    return AtlasApp.normalizeAiConfig(readJson(AtlasApp.config.aiStorageKey, {}));
+  }
+
+  // Le corps sans la ligne "# Titre", comme extractEditorBody() dans notes.js.
+  function extractBody(content) {
+    const lines = String(content || "").replace(/\r\n/g, "\n").split("\n");
+    const headingIndex = lines.findIndex((line) => line.trim().length > 0);
+    if (headingIndex >= 0 && lines[headingIndex].trimStart().startsWith("# ")) {
+      lines.splice(headingIndex, 1);
+      if (lines[headingIndex]?.trim() === "") {
+        lines.splice(headingIndex, 1);
+      }
+    }
+    return lines.join("\n").replace(/^\n+/, "");
+  }
+
+  async function rewrite() {
+    if (state.aiBusy || !ai?.requestRewrite) {
+      return;
+    }
+    if (!elements.title.value.trim() && !elements.content.value.trim()) {
+      setStatus("Ecris d'abord quelque chose a reformuler.");
+      return;
+    }
+    const config = loadAiConfig();
+    if (!config.apiKey) {
+      elements.geminiPanel.classList.remove("is-hidden");
+      elements.geminiPanel.scrollIntoView({ block: "nearest" });
+      elements.geminiKey.focus();
+      setStatus("Cle Gemini manquante pour cette icone.");
+      return;
+    }
+
+    const title = elements.title.value.trim() || "Sans titre";
+    const backup = elements.content.value;
+    state.aiBusy = true;
+    renderAiButtons();
+    renderSaveButton();
+    setStatus("Gemini re-ecrit la note...");
+
+    try {
+      const { content, factCheck } = await ai.requestRewrite(
+        {
+          title,
+          type: elements.type.value || "concept",
+          metadata: collectMetadata(),
+          content: backup,
+        },
+        config,
+        (seconds) => setStatus(`Gemini re-ecrit la note... ${seconds} s`)
+      );
+      elements.content.value = extractBody(content);
+      state.rewriteBackup = backup;
+      state.factCheck = factCheck;
+      saveDraft();
+      setStatus(
+        factCheck.length
+          ? `Reecriture appliquee. ${factCheck.length} point${
+              factCheck.length > 1 ? "s" : ""
+            } a verifier.`
+          : "Reecriture appliquee. Tu peux l'annuler si besoin."
+      );
+    } catch (error) {
+      setStatus(error.message || "Gemini a rencontre un probleme.");
+    } finally {
+      state.aiBusy = false;
+      renderFactCheck();
+      renderAiButtons();
+      renderSaveButton();
+    }
+  }
+
+  function undoRewrite() {
+    if (state.aiBusy || state.rewriteBackup === null) {
+      return;
+    }
+    elements.content.value = state.rewriteBackup;
+    // Les signalements portaient sur le texte reecrit : annuler celui-ci les
+    // rend caducs.
+    clearRewrite();
+    saveDraft();
+    renderSaveButton();
+    setStatus("Reecriture annulee.");
+  }
+
+  function saveGeminiKey() {
+    const apiKey = elements.geminiKey.value.trim();
+    if (!apiKey) {
+      elements.geminiKey.focus();
+      return;
+    }
+    const config = AtlasApp.normalizeAiConfig({ ...loadAiConfig(), apiKey });
+    if (!writeJson(AtlasApp.config.aiStorageKey, config)) {
+      setStatus("Impossible d'enregistrer la cle sur cet appareil.");
+      return;
+    }
+    elements.geminiKey.value = "";
+    elements.geminiPanel.classList.add("is-hidden");
+    rewrite();
   }
 
   function cancel() {
@@ -814,6 +994,22 @@
       const button = event.target.closest("[data-format-action]");
       if (button) {
         applyFormat(button.dataset.formatAction);
+      }
+    });
+
+    elements.aiAssist.addEventListener("click", rewrite);
+    elements.aiUndo.addEventListener("click", undoRewrite);
+    elements.geminiSave.addEventListener("click", saveGeminiKey);
+    elements.geminiKey.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        saveGeminiKey();
+      }
+    });
+    elements.factCheck.addEventListener("click", (event) => {
+      if (event.target.closest("[data-dismiss-fact-check]")) {
+        state.factCheck = [];
+        renderFactCheck();
       }
     });
 
