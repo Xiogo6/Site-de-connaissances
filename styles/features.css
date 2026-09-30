@@ -1946,7 +1946,7 @@ body[data-theme="dark"] .quiz-universe .quiz-session-table th {
   }
 
   .quiz-floating-action {
-    bottom: 102px;
+    bottom: 112px;
     left: 14px;
   }
 
@@ -3962,16 +3962,16 @@ body.graph-view-active .graph-panel {
   }
 
   .quick-capture-toggle {
-    bottom: 102px;
+    bottom: 112px;
     right: 14px;
   }
 
   .quick-capture-toggle.is-quiz-return-mode {
-    bottom: 126px;
+    bottom: 136px;
   }
 
   .quiz-floating-action {
-    bottom: 102px;
+    bottom: 112px;
     left: 14px;
   }
 
@@ -4073,10 +4073,10 @@ body.graph-view-active .graph-panel {
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    padding: 0 0 calc(160px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 0 0 calc(170px + env(safe-area-inset-bottom, 0px)) !important;
     position: fixed;
     right: 0;
-    scroll-padding-bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+    scroll-padding-bottom: calc(158px + env(safe-area-inset-bottom, 0px));
     scroll-padding-top: 58px;
     top: var(--editor-viewport-top, 0px);
     z-index: 200;
@@ -4098,7 +4098,7 @@ body.graph-view-active .graph-panel {
 
   body.note-editor-active .panel-editor > .panel-header .inline-actions {
     align-items: center;
-    bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
     display: flex;
     gap: 8px;
     justify-content: flex-end;
@@ -4253,7 +4253,7 @@ body.graph-view-active .graph-panel {
 
   body.note-editor-active .editor-mini-actions {
     align-items: center;
-    bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
     display: flex;
     gap: 8px;
     left: 12px;
@@ -4303,7 +4303,7 @@ body.graph-view-active .graph-panel {
     max-height: none;
     min-height: calc(var(--editor-viewport-height, 100dvh) - 204px);
     overflow: hidden;
-    padding: 10px 0 calc(180px + env(safe-area-inset-bottom, 0px));
+    padding: 10px 0 calc(190px + env(safe-area-inset-bottom, 0px));
     resize: none;
     scrollbar-gutter: auto;
     transform: none;
@@ -4316,9 +4316,9 @@ body.graph-view-active .graph-panel {
   }
 
   /* Barre flottante, meme format que la barre de navigation d'Atlas
-     (.tabs sur mobile) : 14px de marge de chaque cote, 18px au-dessus du bas
+     (.tabs sur mobile) : 14px de marge de chaque cote, 28px au-dessus du bas
      de l'ecran (ou du clavier). Hauteur totale 58px, donc son haut est a
-     76px du bas : les boutons poses au-dessus sont a bottom: 86px. */
+     86px du bas : les boutons poses au-dessus sont a bottom: 96px. */
   body.note-editor-active .editor-toolbar {
     align-items: center;
     background:
@@ -4352,7 +4352,7 @@ body.graph-view-active .graph-panel {
       var(--editor-viewport-top, 0px) +
       var(--editor-viewport-height, 100dvh) -
       58px -
-      18px -
+      28px -
       env(safe-area-inset-bottom, 0px)
     );
     transform: translateX(-50%);
@@ -4461,7 +4461,7 @@ body.graph-view-active .graph-panel {
   }
 
   body.note-editor-active .editor-secondary-actions:not(.is-hidden) {
-    bottom: calc(142px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(152px + env(safe-area-inset-bottom, 0px));
     display: flex;
     left: 12px;
     pointer-events: none;
