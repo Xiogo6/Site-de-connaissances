@@ -746,13 +746,15 @@ body[data-theme-preset] .feed-empty {
 :root[data-theme-preset] body .feed-tag-filter-button,
 :root[data-theme-preset] body .feed-tag-filter,
 :root[data-theme-preset] body .segmented-control,
+:root[data-theme-preset] body .feed-filters-toggle,
 body[data-theme-preset] .feed-filter-input,
 body[data-theme-preset] .feed-filter-select,
 body[data-theme-preset] .feed-filter-toggle,
 body[data-theme-preset] .feed-filter-clear,
 body[data-theme-preset] .feed-tag-filter-button,
 body[data-theme-preset] .feed-tag-filter,
-body[data-theme-preset] .segmented-control {
+body[data-theme-preset] .segmented-control,
+body[data-theme-preset] .feed-filters-toggle {
   background: var(--theme-feed-control);
   border-color: var(--line);
   color: var(--text-soft);
@@ -768,9 +770,13 @@ body[data-theme-preset] .feed-tag-filter-popover {
 :root[data-theme-preset] body .segmented-control button.is-active,
 :root[data-theme-preset] body .feed-tag-filter-button.has-active-filter,
 :root[data-theme-preset] body .feed-tag-filter.is-excluded,
+:root[data-theme-preset] body .feed-filters-toggle.is-open,
+:root[data-theme-preset] body .feed-filters-toggle.has-active-filter,
 body[data-theme-preset] .segmented-control button.is-active,
 body[data-theme-preset] .feed-tag-filter-button.has-active-filter,
-body[data-theme-preset] .feed-tag-filter.is-excluded {
+body[data-theme-preset] .feed-tag-filter.is-excluded,
+body[data-theme-preset] .feed-filters-toggle.is-open,
+body[data-theme-preset] .feed-filters-toggle.has-active-filter {
   background: var(--theme-accent-wash);
   border-color: var(--theme-accent-line);
   color: var(--accent-strong);

@@ -151,6 +151,8 @@ Backlink : page qui cite la page actuelle.`,
     themeStorageKey: "atlas-connaissance-theme",
     themePresetStorageKey: "atlas-connaissance-theme-preset",
     aiStorageKey: "atlas-connaissance-ai",
+    // Tags masques du feed : un choix d'affichage propre a cet appareil.
+    feedExcludedTagsStorageKey: "atlas-connaissance-feed-excluded-tags",
     geminiBaseUrl: "https://generativelanguage.googleapis.com/v1beta/models/",
     geminiDefaultModel: "gemini-3.5-flash",
     // Nommes par ROLE et non par nom de modele : changer le modele qui

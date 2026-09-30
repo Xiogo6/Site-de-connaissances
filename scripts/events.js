@@ -343,6 +343,13 @@
       context.state.feedHideFolders = event.target.checked;
       context.renderers.renderFeed();
     });
+    context.elements.feedFiltersToggle?.addEventListener("click", () => {
+      context.state.feedFiltersOpen = !context.state.feedFiltersOpen;
+      if (!context.state.feedFiltersOpen) {
+        context.state.feedTagFilterOpen = false;
+      }
+      context.renderers.renderFeed();
+    });
     context.elements.feedTagFilterButton?.addEventListener("click", (event) => {
       event.stopPropagation();
       context.state.feedTagFilterOpen = !context.state.feedTagFilterOpen;
@@ -388,6 +395,7 @@
       context.state.tagFilter = "all";
       context.state.favoritesOnly = false;
       context.state.feedExcludedTags = [];
+      saveFeedExcludedTags();
       context.state.feedTagFilterOpen = false;
       context.elements.searchInput.value = "";
       context.elements.typeFilter.value = "all";
@@ -1087,7 +1095,19 @@
     }
 
     context.state.feedExcludedTags = [...excluded];
+    saveFeedExcludedTags();
     context.renderers.renderFeed();
+  }
+
+  function saveFeedExcludedTags() {
+    try {
+      window.localStorage.setItem(
+        AtlasApp.config.feedExcludedTagsStorageKey,
+        JSON.stringify(context.state.feedExcludedTags || [])
+      );
+    } catch (error) {
+      // Stockage indisponible : le choix vaut pour cette visite seulement.
+    }
   }
 
   function stopFeedFilterEvent(event) {
@@ -1101,6 +1121,7 @@
     context.state.tagFilter = "all";
     context.state.favoritesOnly = false;
     context.state.feedExcludedTags = [];
+    saveFeedExcludedTags();
     context.state.feedTagFilterOpen = false;
     // Effacer les filtres ramene le feed a son etat normal, dossiers masques :
     // les faire reapparaitre serait l'inverse de ce que le bouton promet.
@@ -1141,7 +1162,7 @@
   function isFeedRefreshIgnoredTarget(target) {
     return Boolean(
       target?.closest?.(
-        ".feed-filter-bar, .feed-toolbar-actions, .feed-action, .mobile-tab-bar, .mobile-action-bar, [data-tab], input, select, textarea, a"
+        ".feed-filter-bar, .feed-toolbar, .feed-action, .mobile-tab-bar, .mobile-action-bar, [data-tab], input, select, textarea, a"
       )
     );
   }
