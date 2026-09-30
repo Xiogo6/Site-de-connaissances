@@ -1175,7 +1175,58 @@
       }
     }
 
+    // Meme cle que public.slugify_text cote Supabase (unaccent, minuscules,
+    // tout sauf a-z0-9 remplace par un tiret).
+    function remoteTagSlug(label) {
+      return String(label || "")
+        .toLowerCase()
+        .replace(/œ/g, "oe")
+        .replace(/æ/g, "ae")
+        .replace(/ß/g, "ss")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    }
+
+    /*
+      Supabase range les tags par slug, et son insertion echoue en bloc si deux
+      libelles differents donnent le meme slug ("Maths" sur une page, "maths"
+      ou "Mathematiques" sur une autre, "C" et "C++") : "ON CONFLICT DO UPDATE
+      command cannot affect row a second time". Toute la synchronisation
+      echouait alors a chaque tentative. On envoie un seul libelle par slug,
+      le premier rencontre, et chaque tag une seule fois par page.
+    */
+    function buildRemoteTagResolver(notes) {
+      const labelBySlug = new Map();
+      notes.forEach((note) => {
+        (Array.isArray(note?.tags) ? note.tags : []).forEach((tag) => {
+          const label = String(tag || "").trim();
+          const slug = remoteTagSlug(label);
+          if (label && !labelBySlug.has(slug)) {
+            labelBySlug.set(slug, label);
+          }
+        });
+      });
+
+      return (tags) => {
+        const seen = new Set();
+        const result = [];
+        (Array.isArray(tags) ? tags : []).forEach((tag) => {
+          const label = String(tag || "").trim();
+          const slug = remoteTagSlug(label);
+          if (!label || seen.has(slug)) {
+            return;
+          }
+          seen.add(slug);
+          result.push(labelBySlug.get(slug) || label);
+        });
+        return result;
+      };
+    }
+
     function createRemotePayload({ includeSnapshots = false, changedNoteIds = [] } = {}) {
+      const resolveRemoteTags = buildRemoteTagResolver(context.state.notes);
       const payload = {
         settings: {
           siteName: document.title || "Atlas de Connaissance",
@@ -1204,7 +1255,7 @@
           type: note.type,
           parentId: note.parentId,
           favorite: Boolean(note.favorite),
-          tags: [...note.tags],
+          tags: resolveRemoteTags(note.tags),
           content: note.content,
           quizQuestions: normalizeQuizQuestionCollection(note.quizQuestions, note.id),
           metadata: {
@@ -2065,6 +2116,7 @@
       createQuizQuestionStats,
       normalizeTemplates,
       queueRemoteSync,
+      remoteTagSlug,
       retryRemoteSync,
       whenRemoteSaved,
       registerServiceWorker,

@@ -739,6 +739,53 @@
         });
       }
     });
+
+    test.surServeur("deux libelles d'un meme tag partent sous un seul nom", async () => {
+      const config = global.AtlasApp.config;
+      const cle = `${config.appStorageKey}-pending-remote-sync`;
+      const avant = global.localStorage.getItem(cle);
+      const origine = {
+        fetch: global.fetch,
+        syncEnabled: config.supabase.syncEnabled,
+        url: config.supabase.url,
+        key: config.supabase.publishableKey,
+      };
+      const envois = [];
+      try {
+        config.supabase.syncEnabled = true;
+        config.supabase.url = "https://exemple.invalid";
+        config.supabase.publishableKey = config.supabase.publishableKey || "cle";
+        global.fetch = async (url, options = {}) => {
+          if (String(url).endsWith("/sync_app_payload")) {
+            envois.push(JSON.parse(options.body).payload);
+          }
+          return new Response("{}", { status: 200 });
+        };
+        const page = (id, tags) => ({ id, title: id, type: "concept", tags, content: id });
+        const contexte = {
+          state: {
+            notes: [page("a", ["Maths", "IA"]), page("b", ["maths", "Mathématiques", "ia", "C++"]), page("c", ["C"])],
+            settings: {}, snapshots: [],
+            remote: { status: "synced", lastError: "" },
+          },
+          auth: { isSignedIn: () => true, getAccessToken: async () => "jeton" },
+        };
+        const data = global.AtlasApp.createDataModule(contexte);
+        attendre(data.remoteTagSlug("  Mathématiques ")).vaut("mathematiques");
+        attendre(await data.queueRemoteSync()).vrai();
+        const tags = Object.fromEntries(envois[0].notes.map((n) => [n.id, n.tags]));
+        attendre(tags.a).equivaut(["Maths", "IA"]);
+        attendre(tags.b).equivaut(["Maths", "Mathématiques", "IA", "C++"]);
+        attendre(tags.c).equivaut(["C++"]);
+      } finally {
+        global.fetch = origine.fetch;
+        config.supabase.syncEnabled = origine.syncEnabled;
+        config.supabase.url = origine.url;
+        config.supabase.publishableKey = origine.key;
+        if (avant === null) global.localStorage.removeItem(cle);
+        else global.localStorage.setItem(cle, avant);
+      }
+    });
   });
 
   suite("Raccourci taches", () => {
