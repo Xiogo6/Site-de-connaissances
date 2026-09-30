@@ -273,7 +273,41 @@
     return /23505|duplicate key|already exists/i.test(String(detail || ""));
   }
 
+  /*
+    Texte d'un complement, tel qu'il sera ajoute a la fin de la page. Gemini
+    met toute dictee en forme de page, titre compris : pour une suite, ce
+    titre est retire, la page a deja le sien.
+  */
+  function complementText(recording) {
+    if (recording?.typed) {
+      return String(recording.transcript || "").trim();
+    }
+    const contenu = String(recording?.structured?.content || "")
+      .trim()
+      .replace(/^#\s+[^\n]*\n*/, "")
+      .trim();
+    return contenu || String(recording?.transcript || "").trim();
+  }
+
+  /*
+    Un complement ne cree pas de page : il vise celle de la dictee d'origine,
+    que voice-inbox.js retrouve par son client_key. `transcript` est la pour
+    un Atlas encore en cache qui ne connaitrait pas "voice-append" : il en
+    ferait une page a part plutot que de jeter le texte.
+  */
   function buildPayload(recording) {
+    if (recording.appendTo) {
+      const text = complementText(recording);
+      return {
+        source: "voice-append",
+        clientKey: recording.clientKey,
+        capturedAt: recording.createdAt,
+        targetClientKey: recording.appendTo.clientKey,
+        targetTitle: recording.appendTo.title || "",
+        text,
+        transcript: text,
+      };
+    }
     return {
       clientKey: recording.clientKey,
       capturedAt: recording.createdAt,
@@ -351,7 +385,9 @@
 
   AtlasApp.voiceSend = {
     baseMimeType,
+    buildPayload,
     checkSize,
+    complementText,
     estimateRequestBytes,
     loadConfig,
     maxRequestBytes,
