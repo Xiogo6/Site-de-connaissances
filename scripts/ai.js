@@ -60,6 +60,18 @@
       context.renderers?.renderKnowledgeMode();
     }
 
+    // Compteur de secondes pendant un appel : on ne touche qu'a la ligne de
+    // statut, sans re-rendre l'editeur chaque seconde.
+    function showProgress(message) {
+      if (!context.state.aiStatus?.busy) {
+        return;
+      }
+      context.state.aiStatus = { ...context.state.aiStatus, message };
+      if (context.elements.aiEditorStatus) {
+        context.elements.aiEditorStatus.textContent = message;
+      }
+    }
+
     function readConfigFromInputs() {
       return normalizeConfig({
         apiKey: context.elements.aiApiKeyInput?.value,
@@ -105,6 +117,7 @@
       try {
         const content = await callGemini("Reponds uniquement par pong.", config, {
           temperature: 0,
+          thinking: "low",
         });
 
         if (String(content || "").trim().toLowerCase() !== "pong") {
@@ -168,6 +181,9 @@
           config,
           {
             temperature: 0,
+            json: true,
+            thinking: "medium",
+            onProgress: (seconds) => showProgress(`Gemini re-ecrit la note... ${seconds} s`),
           }
         );
 
@@ -245,6 +261,9 @@
           config,
           {
             temperature: 0.35,
+            json: true,
+            thinking: "medium",
+            onProgress: (seconds) => showProgress(`Gemini genere les questions... ${seconds} s`),
           }
         );
 
@@ -315,6 +334,7 @@
         "- respecter la nomenclature existante : sa langue, sa casse, son niveau de detail",
         "- si tu proposes un nouveau dossier, le nommer dans le meme style que les autres",
         "- rester au niveau de generalite des dossiers deja presents",
+        "- placer un nouveau dossier sous le dossier existant le plus proche du sujet, plutot qu a la racine",
         "",
         "Interdictions :",
         "- ne pas inventer un chemin de dossier qui n est pas dans la liste",
@@ -323,10 +343,11 @@
         "",
         "Contraintes de sortie :",
         "- retourne uniquement un JSON valide, sans markdown ni commentaire",
-        '- le JSON contient exactement les cles "folder", "newFolder" et "reason"',
+        '- le JSON contient exactement les cles "folder", "newFolder", "newFolderParent" et "reason"',
         '- "folder" : le chemin exact d un dossier de la liste, sinon null',
-        '- "newFolder" : le nom d un dossier a creer, sinon null',
-        '- une seule des deux est non nulle, l autre vaut null',
+        '- "newFolder" : le nom court du seul dossier a creer, sans chemin, sinon null',
+        '- "newFolderParent" : si "newFolder" est rempli, le chemin exact du dossier de la liste qui le contiendra, ou null pour la racine ; sinon null',
+        '- "folder" et "newFolder" : une seule des deux est non nulle, l autre vaut null',
         '- "reason" : une phrase courte, quinze mots au plus',
         "",
         "Dossiers existants :",
@@ -341,29 +362,63 @@
     }
 
     function normalizePlacementPayload(payload, folders) {
-      const cheminPropose = typeof payload?.folder === "string" ? payload.folder.trim() : "";
-      const nouveauDossier = typeof payload?.newFolder === "string" ? payload.newFolder.trim() : "";
-      const raison = typeof payload?.reason === "string" ? payload.reason.trim() : "";
+      const texte = (valeur) => (typeof valeur === "string" ? valeur.trim() : "");
+      const cheminPropose = texte(payload?.folder);
+      const nouveauDossier = texte(payload?.newFolder);
+      const parentPropose = texte(payload?.newFolderParent);
+      const raison = texte(payload?.reason);
 
       // Le modele rend un chemin, pas un identifiant : on le rapproche d un
       // dossier reel. Un chemin qu on ne retrouve pas est traite comme une
       // invention, et bascule en proposition de nouveau dossier.
-      const cible = cheminPropose
-        ? folders.find(
-            (folder) =>
-              folder.path.toLowerCase() === cheminPropose.toLowerCase() ||
-              folder.title.toLowerCase() === cheminPropose.toLowerCase()
-          )
-        : null;
+      const retrouver = (chemin) =>
+        chemin
+          ? folders.find(
+              (folder) =>
+                folder.path.toLowerCase() === chemin.toLowerCase() ||
+                folder.title.toLowerCase() === chemin.toLowerCase()
+            ) || null
+          : null;
+      const dossierExistant = (folder) => ({
+        folderId: folder.id,
+        folderPath: folder.path,
+        newFolder: "",
+        newFolderParentId: "",
+        newFolderParentPath: "",
+        reason: raison,
+      });
 
+      const cible = retrouver(cheminPropose);
       if (cible) {
-        return { folderId: cible.id, folderPath: cible.path, newFolder: "", reason: raison };
+        return dossierExistant(cible);
+      }
+
+      // Le nom rendu peut porter un chemin, "A / B" : "A" devient le parent
+      // s il existe, et seul "B" reste a creer.
+      let nom = nouveauDossier || cheminPropose;
+      let parent = retrouver(parentPropose);
+      const morceaux = nom.split("/").map((morceau) => morceau.trim()).filter(Boolean);
+      if (morceaux.length > 1) {
+        const parentDuChemin = retrouver(morceaux.slice(0, -1).join(" / "));
+        if (parentDuChemin) {
+          parent = parentDuChemin;
+          nom = morceaux[morceaux.length - 1];
+        }
+      }
+
+      // Un "nouveau" dossier qui existe deja est propose tel quel, plutot que
+      // d en creer un second du meme nom.
+      const deja = nom ? retrouver(parent ? `${parent.path} / ${nom}` : nom) : null;
+      if (deja) {
+        return dossierExistant(deja);
       }
 
       return {
         folderId: "",
         folderPath: "",
-        newFolder: nouveauDossier || cheminPropose,
+        newFolder: nom,
+        newFolderParentId: parent?.id || "",
+        newFolderParentPath: parent?.path || "",
         reason: raison,
       };
     }
@@ -403,7 +458,7 @@
             folders,
           }),
           config,
-          { temperature: 0 }
+          { temperature: 0, json: true, thinking: "low" }
         );
 
         const suggestion = normalizePlacementPayload(parseJsonPayload(content), folders);
@@ -415,7 +470,7 @@
           type: "success",
           message: suggestion.folderId
             ? "Emplacement propose."
-            : "Aucun dossier existant ne convient.",
+            : "Aucun dossier existant ne convient : nouveau dossier propose.",
           error: "",
           lastRunAt: new Date().toISOString(),
         });
@@ -574,44 +629,145 @@
       return true;
     }
 
+    // Reglages d'un appel. La reecriture etait lente pour trois raisons :
+    // le modele "reflechissait" longuement avant d'ecrire (reflexion par
+    // defaut, poussee par la verification des faits), il pouvait enrober son
+    // JSON de texte, et un refus passager (503 surcharge, 429 quota) faisait
+    // tout echouer d'un coup, sans delai maximal ni nouvelle tentative.
+    const requestTimeoutMs = 90000;
+    const retryDelaysMs = [1500, 4000];
+    const retryableStatuses = new Set([429, 500, 502, 503, 504]);
+
+    // Gemini 3 se regle par niveau, Gemini 2.5 par budget de jetons. Un
+    // modele qui ne connait pas le reglage le refuse (400) : on retente alors
+    // sans lui, plutot que de bloquer l'utilisateur.
+    function buildThinkingConfig(model, level) {
+      if (!level) {
+        return null;
+      }
+      const name = String(model || "").toLowerCase();
+      if (/^gemini-[3-9]/.test(name)) {
+        return { thinkingLevel: level };
+      }
+      if (/^gemini-2\.5-flash/.test(name)) {
+        return { thinkingBudget: { low: 0, medium: 2048 }[level] ?? -1 };
+      }
+      return null;
+    }
+
+    function wait(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    function describeGeminiError(status, text) {
+      let detail = "";
+      try {
+        detail = JSON.parse(text)?.error?.message || "";
+      } catch (error) {
+        detail = "";
+      }
+      if (status === 429) {
+        return "Quota Gemini atteint pour le moment. Reessaie dans une minute.";
+      }
+      if (status === 503 || status === 500 || status === 502 || status === 504) {
+        return "Gemini est surcharge en ce moment. Reessaie dans un instant.";
+      }
+      return detail || text || `Gemini a repondu avec le statut ${status}.`;
+    }
+
     async function callGemini(prompt, config, options = {}) {
       // Le role est explicite : tous les appels d'ici sont du texte, mais le
       // modele n'est plus ecrit en dur au moment de l'appel.
       const model = options.model || config.models?.text || defaultModel;
-      const response = await fetch(
-        `${apiBaseUrl}${encodeURIComponent(model)}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "x-goog-api-key": config.apiKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: String(prompt || "") }],
+      const generationConfig = {
+        temperature: typeof options.temperature === "number" ? options.temperature : 0.2,
+      };
+      if (options.json) {
+        generationConfig.responseMimeType = "application/json";
+      }
+      const thinkingConfig = buildThinkingConfig(model, options.thinking);
+      if (thinkingConfig) {
+        generationConfig.thinkingConfig = thinkingConfig;
+      }
+
+      const startedAt = Date.now();
+      const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
+      const ticker = onProgress
+        ? window.setInterval(() => onProgress(Math.round((Date.now() - startedAt) / 1000)), 1000)
+        : null;
+
+      try {
+        for (let attempt = 0; ; attempt += 1) {
+          const controller = typeof AbortController === "function" ? new AbortController() : null;
+          const timer = controller
+            ? window.setTimeout(() => controller.abort(), requestTimeoutMs)
+            : null;
+          let response;
+          try {
+            response = await fetch(`${apiBaseUrl}${encodeURIComponent(model)}:generateContent`, {
+              method: "POST",
+              headers: {
+                "x-goog-api-key": config.apiKey,
+                "Content-Type": "application/json",
               },
-            ],
-            generationConfig: {
-              temperature: typeof options.temperature === "number" ? options.temperature : 0.2,
-            },
-          }),
+              body: JSON.stringify({
+                contents: [
+                  {
+                    role: "user",
+                    parts: [{ text: String(prompt || "") }],
+                  },
+                ],
+                generationConfig,
+              }),
+              signal: controller?.signal,
+            });
+          } catch (error) {
+            if (error?.name === "AbortError") {
+              throw new Error(
+                `Gemini n'a pas repondu en ${Math.round(requestTimeoutMs / 1000)} s. Reessaie.`
+              );
+            }
+            if (attempt < retryDelaysMs.length) {
+              await wait(retryDelaysMs[attempt]);
+              continue;
+            }
+            throw new Error("Connexion a Gemini impossible. Verifie le reseau.");
+          } finally {
+            if (timer) {
+              window.clearTimeout(timer);
+            }
+          }
+
+          if (!response.ok) {
+            const text = await response.text();
+            if (
+              response.status === 400 &&
+              generationConfig.thinkingConfig &&
+              /thinking/i.test(text)
+            ) {
+              delete generationConfig.thinkingConfig;
+              continue;
+            }
+            if (retryableStatuses.has(response.status) && attempt < retryDelaysMs.length) {
+              await wait(retryDelaysMs[attempt]);
+              continue;
+            }
+            throw new Error(describeGeminiError(response.status, text));
+          }
+
+          const data = await response.json();
+          const content = extractTextFromResponse(data);
+          if (typeof content !== "string" || !content.trim()) {
+            throw new Error("Gemini a renvoye une reponse vide.");
+          }
+
+          return content;
         }
-      );
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `Gemini a repondu avec le statut ${response.status}.`);
+      } finally {
+        if (ticker) {
+          window.clearInterval(ticker);
+        }
       }
-
-      const data = await response.json();
-      const content = extractTextFromResponse(data);
-      if (typeof content !== "string" || !content.trim()) {
-        throw new Error("Gemini a renvoye une reponse vide.");
-      }
-
-      return content;
     }
 
     function extractTextFromResponse(data) {
@@ -625,7 +781,7 @@
       }
 
       return parts
-        .map((part) => (typeof part?.text === "string" ? part.text : ""))
+        .map((part) => (typeof part?.text === "string" && !part.thought ? part.text : ""))
         .join("")
         .trim();
     }
