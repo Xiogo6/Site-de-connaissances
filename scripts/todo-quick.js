@@ -53,6 +53,7 @@
     input: document.querySelector("#todo-quick-input"),
     category: document.querySelector("#todo-quick-category"),
     categoryChips: document.querySelector("#todo-quick-category-chips"),
+    categoryClear: document.querySelector("#todo-quick-category-clear"),
     submit: document.querySelector("#todo-quick-submit"),
     status: document.querySelector("#todo-quick-status"),
     session: document.querySelector("#todo-quick-session"),
@@ -525,6 +526,7 @@
       })
     );
     elements.categoryChips.hidden = shown.length === 0;
+    elements.categoryClear.hidden = !elements.category.value;
   }
 
   function handleChipClick(event) {
@@ -712,6 +714,12 @@
     });
     elements.category.value = readJson(lastCategoryKey, "") || "";
     elements.categoryChips.addEventListener("click", handleChipClick);
+    elements.categoryClear.addEventListener("click", () => {
+      elements.category.value = "";
+      writeJson(lastCategoryKey, "");
+      renderCategoryChips();
+      elements.input.focus();
+    });
     elements.category.addEventListener("input", () => renderCategoryChips());
     elements.submit.disabled = false;
 
