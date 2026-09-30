@@ -894,6 +894,9 @@
     const raison = suggestion.reason
       ? `<span class="editor-placement-reason">${escapeHtml(suggestion.reason)}</span>`
       : "";
+    const tagsAjoutes = suggestion.addedTags?.length
+      ? `<span class="editor-placement-reason">Tags ajoutes : ${escapeHtml(suggestion.addedTags.join(", "))}</span>`
+      : "";
 
     if (suggestion.folderId) {
       const dejaRange = (note.parentId || "") === suggestion.folderId;
@@ -902,6 +905,7 @@
           Proposition : <strong>${escapeHtml(suggestion.folderPath)}</strong>
         </p>
         ${raison}
+        ${tagsAjoutes}
         <div class="editor-placement-actions">
           ${
             dejaRange
@@ -923,6 +927,7 @@
         <strong>${escapeHtml(cheminNouveau)}</strong>
       </p>
       ${raison}
+      ${tagsAjoutes}
       <div class="editor-placement-actions">
         ${
           suggestion.newFolder
