@@ -504,6 +504,21 @@
   });
 
   /* ------------------------------------------------------------------ */
+  suite("Delai Gemini", () => {
+    const ai = global.AtlasApp.createAiModule({ state: { aiConfig: {} }, elements: {}, renderers: {} });
+
+    test("une note courte garde 90 s", () => {
+      attendre(ai.timeoutForLength(0)).vaut(90000);
+      attendre(ai.timeoutForLength(3000)).vaut(90000);
+    });
+
+    test("une note longue a plus de temps, plafonne a 5 min", () => {
+      attendre(ai.timeoutForLength(6000)).vaut(150000);
+      attendre(ai.timeoutForLength(50000)).vaut(300000);
+    });
+  });
+
+  /* ------------------------------------------------------------------ */
   suite("Rendu du contenu", () => {
     test("le contenu d'une page ne peut pas injecter de HTML", () => {
       const rendu = helpers.renderNoteHtml("# Titre\n\n<script>alert(1)</script>");
