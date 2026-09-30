@@ -22,15 +22,25 @@
       Elles sont dans le cache du service worker, donc gratuites apres la
       premiere ouverture.
     -->
-    <link rel="stylesheet" href="./styles/tokens.css?v=125" />
-    <link rel="stylesheet" href="./styles/base.css?v=125" />
-    <link rel="stylesheet" href="./styles/layout.css?v=125" />
-    <link rel="stylesheet" href="./styles/components.css?v=125" />
-    <link rel="stylesheet" href="./styles/features.css?v=125" />
-    <link rel="stylesheet" href="./styles/themes.css?v=125" />
+    <link rel="stylesheet" href="./styles/tokens.css?v=126" />
+    <link rel="stylesheet" href="./styles/base.css?v=126" />
+    <link rel="stylesheet" href="./styles/layout.css?v=126" />
+    <link rel="stylesheet" href="./styles/components.css?v=126" />
+    <link rel="stylesheet" href="./styles/features.css?v=126" />
+    <link rel="stylesheet" href="./styles/themes.css?v=126" />
     <style>
       /* Ce que la page ajoute a l'editeur d'Atlas, et rien d'autre. */
       #write-status:empty {
+        display: none;
+      }
+
+      #write-gemini {
+        display: grid;
+        gap: 10px;
+        padding: 12px 16px;
+      }
+
+      #write-gemini.is-hidden {
         display: none;
       }
 
@@ -188,6 +198,36 @@
 
       <section class="editor-label" aria-labelledby="note-content-label">
         <span id="note-content-label" class="field-label">Contenu</span>
+        <div class="editor-mini-actions">
+          <button
+            id="ai-assist-button"
+            class="button button-inline button-flat"
+            type="button"
+            title="Reformuler avec Gemini"
+          >
+            <span class="button-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z" />
+                <path d="M18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />
+              </svg>
+            </span>
+            <span class="button-label">Reformuler</span>
+          </button>
+          <button
+            id="ai-undo-button"
+            class="button button-inline button-flat is-hidden"
+            type="button"
+            title="Annuler la reformulation"
+          >
+            <span class="button-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M9 7H5v-4" />
+                <path d="M5 7c2-2.5 4.5-3.7 7.5-3.5A8 8 0 1 1 6 16" />
+              </svg>
+            </span>
+            <span class="button-label">Annuler reformulation</span>
+          </button>
+        </div>
         <div class="editor-toolbar" role="toolbar" aria-label="Mise en forme">
           <button class="button button-inline" data-format-action="bullet" type="button" title="Puce">Puce</button>
           <button class="button button-inline" data-format-action="checklist" type="button" title="Case a cocher">Case</button>
@@ -210,6 +250,23 @@
 
       <div class="editor-secondary-actions">
         <span id="write-status" class="pill pill-soft" role="status"></span>
+      </div>
+
+      <div id="ai-fact-check" class="ai-fact-check is-hidden" aria-live="polite"></div>
+
+      <!-- Sur iOS, chaque icone a son propre stockage : la cle Gemini d'Atlas
+           n'est pas visible ici, il faut la coller une fois pour cette icone. -->
+      <div id="write-gemini" class="link-section is-hidden">
+        <p class="helper-copy">
+          Pour reformuler, colle ta cle Gemini une fois pour cette icone. Elle reste sur cet appareil.
+        </p>
+        <label>
+          <span class="field-label">Cle API Gemini</span>
+          <input id="ai-api-key" class="text-input" type="password" autocomplete="off" placeholder="AIza..." />
+        </label>
+        <div class="stack-actions compact-actions">
+          <button id="ai-save-button" class="button button-primary" type="button">Enregistrer et reformuler</button>
+        </div>
       </div>
     </section>
 
@@ -235,9 +292,10 @@
       </div>
     </section>
 
-    <script src="./scripts/config.js?v=125"></script>
-    <script src="./scripts/helpers.js?v=125"></script>
-    <script src="./scripts/auth.js?v=125"></script>
-    <script src="./scripts/write.js?v=125"></script>
+    <script src="./scripts/config.js?v=126"></script>
+    <script src="./scripts/helpers.js?v=126"></script>
+    <script src="./scripts/auth.js?v=126"></script>
+    <script src="./scripts/ai.js?v=126"></script>
+    <script src="./scripts/write.js?v=126"></script>
   </body>
 </html>
