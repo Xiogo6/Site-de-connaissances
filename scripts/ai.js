@@ -219,6 +219,7 @@
           temperature: 0,
           json: true,
           thinking: "medium",
+          sourceLength: String(content || "").length,
           onProgress,
         }
       );
@@ -268,6 +269,7 @@
             temperature: 0.35,
             json: true,
             thinking: "medium",
+            sourceLength: draftContent.length,
             onProgress: (seconds) => showProgress(`Gemini genere les questions... ${seconds} s`),
           }
         );
@@ -463,7 +465,7 @@
             folders,
           }),
           config,
-          { temperature: 0, json: true, thinking: "low" }
+          { temperature: 0, json: true, thinking: "low", sourceLength: draftContent.length }
         );
 
         const suggestion = normalizePlacementPayload(parseJsonPayload(content), folders);
@@ -639,7 +641,26 @@
     // defaut, poussee par la verification des faits), il pouvait enrober son
     // JSON de texte, et un refus passager (503 surcharge, 429 quota) faisait
     // tout echouer d'un coup, sans delai maximal ni nouvelle tentative.
-    const requestTimeoutMs = 90000;
+    //
+    // Le delai maximal grandit avec la note : jusqu'a une page (environ 3000
+    // caracteres) Gemini a 90 s, puis 20 s de plus par tranche de 1000
+    // caracteres, plafonne a 5 min. Gemini reecrit toute la note, donc son
+    // temps de reponse suit la longueur du texte.
+    const baseTimeoutMs = 90000;
+    const baseTimeoutChars = 3000;
+    const extraMsPer1000Chars = 20000;
+    const maxTimeoutMs = 300000;
+
+    function timeoutForLength(length) {
+      const surplus = Math.max(0, Number(length) || 0) - baseTimeoutChars;
+      if (surplus <= 0) {
+        return baseTimeoutMs;
+      }
+      return Math.min(
+        maxTimeoutMs,
+        baseTimeoutMs + Math.ceil(surplus / 1000) * extraMsPer1000Chars
+      );
+    }
     const retryDelaysMs = [1500, 4000];
     const retryableStatuses = new Set([429, 500, 502, 503, 504]);
 
@@ -695,6 +716,8 @@
         generationConfig.thinkingConfig = thinkingConfig;
       }
 
+      // sourceLength : longueur de la note seule, sans le prompt autour.
+      const requestTimeoutMs = timeoutForLength(options.sourceLength);
       const startedAt = Date.now();
       const onProgress = typeof options.onProgress === "function" ? options.onProgress : null;
       const ticker = onProgress
@@ -1070,6 +1093,7 @@
       restoreLastRewrite,
       rewriteActiveNote,
       requestRewrite,
+      timeoutForLength,
       clearFactCheck,
       clearPlacementSuggestion,
       saveConfig,
