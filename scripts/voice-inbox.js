@@ -48,18 +48,30 @@
                    a ecraser, et refuser d'ingerer condamnerait un Atlas encore
                    vierge a ne jamais recevoir ses dictees.
 
+      Un troisieme etat est accepte, "syncing", mais seulement si l'espace
+      distant a bien ete charge juste avant (`loadedFromRemote`). C'est le cas
+      courant au demarrage : le snapshot quotidien, ou un dossier systeme
+      recree, part vers Supabase aussitot apres le chargement. L'etat local
+      est alors celui de reference plus une ecriture en cours ; le refuser
+      laissait les pages des raccourcis bloquees dans la file a chaque
+      premiere ouverture de la journee, sans rien signaler.
+
       Tout le reste est bloque, "error" et "loading" en tete : ce sont
       precisement les cas ou l'etat local n'est pas celui de reference.
     */
     const etatsSurs = ["synced", "idle"];
 
     function isAvailable() {
+      const etat = context.state?.remote;
+      const sur =
+        etatsSurs.includes(etat?.status) ||
+        (etat?.status === "syncing" && etat?.loadedFromRemote === true);
       return Boolean(
         remote?.syncEnabled &&
           remote?.url &&
           context.auth?.isSignedIn() &&
           !context.data?.isReadOnlyMode?.() &&
-          etatsSurs.includes(context.state?.remote?.status)
+          sur
       );
     }
 

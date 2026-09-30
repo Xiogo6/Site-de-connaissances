@@ -4,14 +4,16 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+      content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
     />
+    <!-- Meme viewport qu'Atlas, sans viewport-fit=cover : avec lui, iOS
+         annonce une marge basse (safe-area-inset-bottom) que les feuilles
+         d'Atlas ajoutent sous la barre d'outils, d'ou un bandeau vide. -->
     <title>Ecrire — Atlas</title>
     <meta name="theme-color" content="#181b1f" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Écrire" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="./write.webmanifest" />
     <link rel="apple-touch-icon" href="./write-icon-180.png" />
     <!--
@@ -20,12 +22,12 @@
       Elles sont dans le cache du service worker, donc gratuites apres la
       premiere ouverture.
     -->
-    <link rel="stylesheet" href="./styles/tokens.css?v=124" />
-    <link rel="stylesheet" href="./styles/base.css?v=124" />
-    <link rel="stylesheet" href="./styles/layout.css?v=124" />
-    <link rel="stylesheet" href="./styles/components.css?v=124" />
-    <link rel="stylesheet" href="./styles/features.css?v=124" />
-    <link rel="stylesheet" href="./styles/themes.css?v=124" />
+    <link rel="stylesheet" href="./styles/tokens.css?v=125" />
+    <link rel="stylesheet" href="./styles/base.css?v=125" />
+    <link rel="stylesheet" href="./styles/layout.css?v=125" />
+    <link rel="stylesheet" href="./styles/components.css?v=125" />
+    <link rel="stylesheet" href="./styles/features.css?v=125" />
+    <link rel="stylesheet" href="./styles/themes.css?v=125" />
     <style>
       /* Ce que la page ajoute a l'editeur d'Atlas, et rien d'autre. */
       #write-status:empty {
@@ -233,9 +235,9 @@
       </div>
     </section>
 
-    <script src="./scripts/config.js?v=124"></script>
-    <script src="./scripts/helpers.js?v=124"></script>
-    <script src="./scripts/auth.js?v=124"></script>
-    <script src="./scripts/write.js?v=124"></script>
+    <script src="./scripts/config.js?v=125"></script>
+    <script src="./scripts/helpers.js?v=125"></script>
+    <script src="./scripts/auth.js?v=125"></script>
+    <script src="./scripts/write.js?v=125"></script>
   </body>
 </html>

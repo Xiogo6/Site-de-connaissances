@@ -1484,6 +1484,10 @@
             status: "synced",
             lastSyncedAt: new Date().toISOString(),
             lastError: "",
+            // L'etat local est desormais celui de Supabase. Les envois qui
+            // suivent ("syncing") ne changent rien a cette garantie, sur
+            // laquelle s'appuie l'ingestion des raccourcis (voice-inbox.js).
+            loadedFromRemote: true,
           });
           if (!hasAuthoritativeRemoteSettings) {
             queueRemoteSync({ includeSnapshots: false });
@@ -1494,12 +1498,14 @@
         setRemoteState({
           status: "idle",
           lastError: "",
+          loadedFromRemote: true,
         });
         return false;
       } catch (error) {
         setRemoteState({
           status: "error",
           lastError: error.message || "Connexion impossible",
+          loadedFromRemote: false,
         });
         return false;
       }

@@ -868,5 +868,21 @@
       attendre(contexte.state.settings.todos.length).vaut(0);
       attendre(contexte.supprimees.length).vaut(0);
     });
+
+    test("l'envoi qui suit le chargement n'empeche pas l'ingestion", async () => {
+      const contexte = contexteTaches([ligne]);
+      contexte.state.remote = { status: "syncing", loadedFromRemote: true };
+      const resultat = await ingerer(contexte);
+      attendre(resultat.todosCreated).vaut(2);
+      attendre(contexte.supprimees).equivaut([ligne.client_key]);
+    });
+
+    test("pas d'ingestion pendant un chargement pas encore termine", async () => {
+      const contexte = contexteTaches([ligne]);
+      contexte.state.remote = { status: "syncing" };
+      const resultat = await ingerer(contexte);
+      attendre(resultat.todosCreated).vaut(0);
+      attendre(contexte.supprimees.length).vaut(0);
+    });
   });
 })(window);
