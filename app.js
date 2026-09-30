@@ -194,11 +194,12 @@
   async function ingestVoiceInbox() {
     try {
       const resultat = await context.voiceInbox.ingest();
-      if (resultat.created) {
-        // Ouvrir sur la page dictee : c'est ce qu'on vient chercher.
+      if (resultat.created || resultat.appended) {
+        // Ouvrir sur la page dictee (ou completee) : c'est ce qu'on vient chercher.
         context.state.activeNoteId = resultat.lastNoteId || context.state.activeNoteId;
         console.info(
-          `Atlas : ${resultat.created} dictee(s) transformee(s) en page(s).`
+          `Atlas : ${resultat.created} dictee(s) transformee(s) en page(s), ` +
+            `${resultat.appended || 0} page(s) completee(s).`
         );
       }
       if (resultat.todosCreated) {

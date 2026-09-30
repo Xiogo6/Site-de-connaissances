@@ -432,6 +432,46 @@
         white-space: pre-wrap;
       }
 
+      /* Ce qui a ete ajoute depuis : meme trait, en couleur d'accent. */
+      .dictee-item-transcript.est-ajout {
+        border-left-color: var(--accent);
+      }
+
+      .dictee-complement {
+        border-top: 1px solid var(--line);
+        display: grid;
+        gap: 8px;
+        padding-top: 10px;
+      }
+
+      .dictee-complement-aide {
+        color: var(--text-soft);
+        font-size: 0.8rem;
+        margin: 0;
+      }
+
+      /* 16 px au moins : en dessous, iOS zoome sur le champ au toucher. */
+      .dictee-complement textarea {
+        background: transparent;
+        border: 1px solid var(--line-strong);
+        border-radius: 10px;
+        color: var(--text);
+        font: inherit;
+        font-size: 16px;
+        line-height: 1.45;
+        min-height: 96px;
+        padding: 10px 12px;
+        resize: vertical;
+        width: 100%;
+      }
+
+      .dictee-item-actions button.est-principal {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #f8fbfa;
+        font-weight: 600;
+      }
+
       .dictee-item-erreur {
         color: #d8503a;
         font-size: 0.78rem;

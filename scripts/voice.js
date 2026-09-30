@@ -118,6 +118,11 @@
     playbackUrl: "",
     audio: null,
     recordings: [],
+    // Dictee deja deposee que l'on complete : { id, clientKey, title }. Tant
+    // qu'elle est posee, la prochaine dictee et le texte tape vont a la fin
+    // de la meme page d'Atlas au lieu d'en creer une nouvelle.
+    completing: null,
+    completionPanel: null,
   };
 
   /* ================================================================
@@ -213,7 +218,7 @@
     ].join("-");
   }
 
-  async function createRecording(mimeType) {
+  async function createRecording(mimeType, extra = {}) {
     const database = await openDatabase();
     const recording = {
       id: generateId(),
@@ -237,6 +242,7 @@
       transcript: null,
       structured: null,
       noteId: null,
+      ...extra,
     };
 
     const transaction = database.transaction(recordingsStore, "readwrite");
@@ -610,7 +616,12 @@
     // La ligne est creee en parallele du demarrage : la capture ne doit pas
     // attendre une ecriture disque. Le premier morceau n'arrive qu'au bout de
     // timesliceMs, et handleData attend cette promesse de toute facon.
-    state.recordingPromise = createRecording(recorder.mimeType || mimeType);
+    // Le complement est fixe des l'appui : fermer le panneau pendant
+    // l'enregistrement ne doit pas changer la destination.
+    state.recordingPromise = createRecording(
+      recorder.mimeType || mimeType,
+      state.completing ? { appendTo: { ...state.completing } } : {}
+    );
 
     recorder.start(settings.timesliceMs);
     state.status = "recording";
@@ -694,8 +705,15 @@
           endedReason: reason,
           mimeType: recorder?.mimeType || recording.mimeType,
         });
-        setStatus(messageForReason(reason, durationMs));
+        setStatus(
+          recording.appendTo
+            ? "Suite enregistree : elle rejoindra la meme page dans Atlas."
+            : messageForReason(reason, durationMs)
+        );
         saved = recording;
+        if (recording.appendTo && state.completing?.id === recording.appendTo.id) {
+          state.completing = null;
+        }
       }
     } catch (error) {
       setStatus("Enregistrement incomplet, il est dans la liste.", true);
@@ -844,6 +862,9 @@
         sentAt: new Date().toISOString(),
         wasDuplicate: Boolean(resultat.duplicate),
       });
+      if (recording.appendTo) {
+        await mergeComplement(recording);
+      }
     } catch (error) {
       // L'audio est toujours la : la reprise reutilisera le meme clientKey.
       await updateRecording(id, {
@@ -854,6 +875,27 @@
     }
 
     await renderList();
+  }
+
+  /*
+    Un complement depose rejoint la dictee qu'il complete, dans la liste :
+    une ligne a part n'apprendrait rien de plus, et la dictee affiche ainsi
+    tout ce que contient la page. Si la dictee a ete supprimee d'ici entre
+    temps, le complement reste simplement affiche seul.
+  */
+  async function mergeComplement(recording) {
+    const parent = await getRecording(recording.appendTo.id);
+    if (!parent) {
+      return;
+    }
+    const additions = Array.isArray(parent.additions) ? parent.additions : [];
+    await updateRecording(parent.id, {
+      additions: [
+        ...additions,
+        { text: AtlasApp.voiceSend.complementText(recording), at: new Date().toISOString() },
+      ],
+    });
+    await deleteRecording(recording.id);
   }
 
   // Tout ce qui est transcrit mais pas encore depose. Un echec n'arrete pas
@@ -1024,8 +1066,8 @@
       return;
     }
 
-    elements.recordLabel.textContent =
-      state.mode === "hold" ? "Maintenir\npour dicter" : "Appuyer\npour dicter";
+    const suite = state.completing ? "\npour dicter la suite" : "\npour dicter";
+    elements.recordLabel.textContent = (state.mode === "hold" ? "Maintenir" : "Appuyer") + suite;
   }
 
   function renderMode() {
@@ -1087,13 +1129,19 @@
 
     const titre = document.createElement("div");
     titre.className = "dictee-item-titre";
-    titre.textContent = formatMoment(recording.createdAt);
+    titre.textContent = recording.appendTo
+      ? `Complement · ${recording.appendTo.title}`
+      : formatMoment(recording.createdAt);
 
     const meta = document.createElement("div");
     meta.className = "dictee-item-meta";
     meta.textContent = `${formatDuration(recording.durationMs)} · ${formatSize(
       recording.sizeBytes
     )} · ${shortFormat(recording.mimeType)}`;
+
+    if (recording.typed) {
+      meta.textContent = "Texte tape";
+    }
 
     if (recording.status === "interrupted") {
       const marque = document.createElement("span");
@@ -1115,7 +1163,7 @@
     ecouter.type = "button";
     ecouter.dataset.action = "play";
     ecouter.textContent = state.playbackId === recording.id ? "Relire" : "Ecouter";
-    ecouter.hidden = recording.delivery === "sent";
+    ecouter.hidden = recording.delivery === "sent" || Boolean(recording.typed);
 
     const supprimer = document.createElement("button");
     supprimer.type = "button";
@@ -1144,6 +1192,17 @@
       actions.append(reprise);
     }
 
+    // Une dictee deposee peut etre completee : la suite va a la fin de la
+    // meme page d'Atlas. Un complement ne se complete pas lui-meme.
+    const enCompletion = state.completing?.id === recording.id;
+    if (delivery === "sent" && !recording.appendTo) {
+      const completer = document.createElement("button");
+      completer.type = "button";
+      completer.dataset.action = "complete";
+      completer.textContent = enCompletion ? "Fermer" : "Completer";
+      actions.append(completer);
+    }
+
     actions.append(supprimer);
     item.append(titre, meta, pastille, actions);
 
@@ -1154,12 +1213,25 @@
       item.appendChild(erreur);
     }
 
-    const texte = recording.structured?.content || recording.transcript;
+    const texte = recording.appendTo
+      ? AtlasApp.voiceSend.complementText(recording)
+      : recording.structured?.content || recording.transcript;
     if (texte) {
       const transcription = document.createElement("p");
       transcription.className = "dictee-item-transcript";
       transcription.textContent = texte;
       item.appendChild(transcription);
+    }
+
+    (Array.isArray(recording.additions) ? recording.additions : []).forEach((ajout) => {
+      const suite = document.createElement("p");
+      suite.className = "dictee-item-transcript est-ajout";
+      suite.textContent = ajout.text;
+      item.appendChild(suite);
+    });
+
+    if (enCompletion) {
+      item.appendChild(completionPanel());
     }
 
     // Le lecteur est un element unique deplace d'une ligne a l'autre : le
@@ -1180,10 +1252,22 @@
       return;
     }
 
+    // Le panneau de complement est un element unique, deplace comme le
+    // lecteur : un redessin pendant la saisie ne perd ni le texte ni le
+    // curseur.
+    const zone = state.completionPanel?.querySelector("textarea");
+    const saisieEnCours = zone && document.activeElement === zone;
+    const curseur = saisieEnCours ? [zone.selectionStart, zone.selectionEnd] : null;
+
     elements.list.textContent = "";
     state.recordings.forEach((recording) => {
       elements.list.appendChild(buildItem(recording));
     });
+
+    if (saisieEnCours && zone.isConnected) {
+      zone.focus();
+      zone.setSelectionRange(curseur[0], curseur[1]);
+    }
 
     elements.empty.hidden = state.recordings.length > 0;
 
@@ -1240,6 +1324,95 @@
     state.audio.play().catch(() => {
       // Lecture refusee : les commandes restent disponibles a la main.
     });
+  }
+
+  /* ---------- completer une dictee deja deposee ---------- */
+
+  function completionPanel() {
+    if (state.completionPanel) {
+      return state.completionPanel;
+    }
+
+    const panel = document.createElement("div");
+    panel.className = "dictee-complement";
+
+    const aide = document.createElement("p");
+    aide.className = "dictee-complement-aide";
+    aide.textContent =
+      "Tape la suite ici, ou dicte-la avec le grand bouton en haut. " +
+      "Elle s'ajoutera a la fin de la meme page dans Atlas.";
+
+    const zone = document.createElement("textarea");
+    zone.id = "voice-complement-texte";
+    zone.rows = 4;
+    zone.placeholder = "Ce que tu veux ajouter...";
+
+    const actions = document.createElement("div");
+    actions.className = "dictee-item-actions";
+    const envoyer = document.createElement("button");
+    envoyer.type = "button";
+    envoyer.dataset.action = "complete-send";
+    envoyer.className = "est-principal";
+    envoyer.textContent = "Ajouter a la page";
+    actions.append(envoyer);
+
+    panel.append(aide, zone, actions);
+    state.completionPanel = panel;
+    return panel;
+  }
+
+  async function toggleCompletion(id) {
+    if (state.completing?.id === id) {
+      state.completing = null;
+    } else {
+      const recording = state.recordings.find((item) => item.id === id);
+      if (!recording?.clientKey) {
+        return;
+      }
+      state.completing = {
+        id,
+        clientKey: recording.clientKey,
+        title: recording.structured?.title || formatMoment(recording.createdAt),
+      };
+      const zone = completionPanel().querySelector("textarea");
+      zone.value = "";
+    }
+    renderButton();
+    await renderList();
+    if (state.completing) {
+      completionPanel().querySelector("textarea")?.focus();
+    }
+  }
+
+  /*
+    Le texte tape suit exactement le chemin d'une dictee transcrite : une
+    ligne locale, deposee dans la file, et qui retentera seule en cas
+    d'echec. Seule l'etape Gemini manque, puisqu'il n'y a rien a transcrire.
+  */
+  async function sendTypedComplement() {
+    const cible = state.completing;
+    const zone = state.completionPanel?.querySelector("textarea");
+    const texte = String(zone?.value || "").trim();
+    if (!cible || !texte) {
+      setStatus("Rien a ajouter : le champ est vide.", true);
+      return;
+    }
+
+    const recording = await createRecording("", {
+      status: "ready",
+      delivery: "transcribed",
+      transcript: texte,
+      typed: true,
+      appendTo: { ...cible },
+    });
+
+    zone.value = "";
+    zone.blur();
+    state.completing = null;
+    renderButton();
+    setStatus("Ajout envoye vers la meme page d'Atlas.");
+    await renderList();
+    await deliverRecording(recording.id);
   }
 
   async function removeRecording(id) {
@@ -1469,6 +1642,10 @@
       transcribeRecording(id);
     } else if (button.dataset.action === "deliver") {
       deliverRecording(id);
+    } else if (button.dataset.action === "complete") {
+      toggleCompletion(id);
+    } else if (button.dataset.action === "complete-send") {
+      sendTypedComplement();
     }
   }
 
