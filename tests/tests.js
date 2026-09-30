@@ -54,7 +54,7 @@
                "normalizeSnapshot", "bootstrapWorkspace", "isReadOnlyMode"],
         notes: ["getActiveNote", "getDueNotes", "isNoteDue", "saveCurrentNote",
                 "cancelEditingNote", "deleteNoteById", "buildHierarchyForest",
-                "getFolderDescendantNotes", "isOrphanNote"],
+                "getFolderDescendantNotes", "isOrphanNote", "createFolderForPlacement"],
         renderers: ["renderEverything", "renderTabs", "renderFeed", "renderKnowledgeList",
                     "renderTypeSettingsList", "renderPreview",
                     "renderWorkspaceBanner", "syncDynamicControls"],
