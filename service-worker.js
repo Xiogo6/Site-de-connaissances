@@ -1,4 +1,4 @@
-const CACHE_NAME = "atlas-connaissance-v131";
+const CACHE_NAME = "atlas-connaissance-v133";
 // Meme numero que les ?v= des pages (index, voice, write, todo) : version.sh les
 // avance ensemble, un test verifie qu'ils concordent.
 const VERSION = CACHE_NAME.split("-v").pop();
