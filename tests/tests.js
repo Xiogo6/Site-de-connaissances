@@ -664,6 +664,130 @@
 
   // Raccourci "Taches" (todo.html) : ses lignes passent par la meme file que
   // les dictees, et doivent finir dans la liste de taches, sans doublon.
+  // Une page restee sur cet appareil apres un envoi rate ne doit pas etre
+  // effacee par le chargement suivant, qui remplace l'etat local par Supabase.
+  suite("Synchronisation en echec", () => {
+    test.surServeur("une page absente de Supabase est gardee et renvoyee", async () => {
+      const config = global.AtlasApp.config;
+      const cles = [
+        config.appStorageKey,
+        config.storageKey,
+        config.snapshotStorageKey,
+        `${config.appStorageKey}-pending-remote-sync`,
+        `${config.appStorageKey}-remote-integrity`,
+      ];
+      const sauvegarde = cles.map((cle) => global.localStorage.getItem(cle));
+      const origine = {
+        fetch: global.fetch,
+        syncEnabled: config.supabase.syncEnabled,
+        url: config.supabase.url,
+        key: config.supabase.publishableKey,
+      };
+      const envois = [];
+      const page = (id) => ({
+        id, title: id, type: "concept", tags: [], content: `# ${id}`,
+        parentId: null, updatedAt: "2026-09-30T08:00:00.000Z",
+      });
+      try {
+        global.localStorage.removeItem(`${config.appStorageKey}-pending-remote-sync`);
+        global.localStorage.setItem(
+          `${config.appStorageKey}-remote-integrity`,
+          JSON.stringify({ noteIds: ["distante"] })
+        );
+        config.supabase.syncEnabled = true;
+        config.supabase.url = "https://exemple.invalid";
+        config.supabase.publishableKey = config.supabase.publishableKey || "cle";
+        global.fetch = async (url, options = {}) => {
+          const nom = String(url).split("/rpc/")[1] || "";
+          const corps = options.body ? JSON.parse(options.body) : {};
+          if (nom === "get_app_payload") {
+            return new Response(JSON.stringify({
+              notes: [page("distante")], snapshots: [],
+              settings: { settingsAuthorityVersion: 1 },
+            }), { status: 200 });
+          }
+          if (nom === "get_note_deletions") {
+            return new Response("[]", { status: 200 });
+          }
+          if (nom === "sync_app_payload") {
+            envois.push(corps.payload);
+          }
+          return new Response("{}", { status: 200 });
+        };
+        const contexte = {
+          state: {
+            notes: [page("distante"), page("seulement-ici")],
+            settings: {}, snapshots: [],
+            remote: { status: "idle", lastError: "" },
+          },
+          auth: { isSignedIn: () => true, getAccessToken: async () => "jeton" },
+        };
+        const data = global.AtlasApp.createDataModule(contexte);
+        await data.bootstrapWorkspace();
+        attendre(contexte.state.notes.map((n) => n.id).sort()).equivaut(["distante", "seulement-ici"]);
+        await data.whenRemoteSaved();
+        const envoi = envois.find((p) => (p.changedNoteIds || []).includes("seulement-ici"));
+        attendre(Boolean(envoi)).vrai();
+      } finally {
+        global.fetch = origine.fetch;
+        config.supabase.syncEnabled = origine.syncEnabled;
+        config.supabase.url = origine.url;
+        config.supabase.publishableKey = origine.key;
+        cles.forEach((cle, index) => {
+          if (sauvegarde[index] === null) global.localStorage.removeItem(cle);
+          else global.localStorage.setItem(cle, sauvegarde[index]);
+        });
+      }
+    });
+
+    test.surServeur("deux libelles d'un meme tag partent sous un seul nom", async () => {
+      const config = global.AtlasApp.config;
+      const cle = `${config.appStorageKey}-pending-remote-sync`;
+      const avant = global.localStorage.getItem(cle);
+      const origine = {
+        fetch: global.fetch,
+        syncEnabled: config.supabase.syncEnabled,
+        url: config.supabase.url,
+        key: config.supabase.publishableKey,
+      };
+      const envois = [];
+      try {
+        config.supabase.syncEnabled = true;
+        config.supabase.url = "https://exemple.invalid";
+        config.supabase.publishableKey = config.supabase.publishableKey || "cle";
+        global.fetch = async (url, options = {}) => {
+          if (String(url).endsWith("/sync_app_payload")) {
+            envois.push(JSON.parse(options.body).payload);
+          }
+          return new Response("{}", { status: 200 });
+        };
+        const page = (id, tags) => ({ id, title: id, type: "concept", tags, content: id });
+        const contexte = {
+          state: {
+            notes: [page("a", ["Maths", "IA"]), page("b", ["maths", "Mathématiques", "ia", "C++"]), page("c", ["C"])],
+            settings: {}, snapshots: [],
+            remote: { status: "synced", lastError: "" },
+          },
+          auth: { isSignedIn: () => true, getAccessToken: async () => "jeton" },
+        };
+        const data = global.AtlasApp.createDataModule(contexte);
+        attendre(data.remoteTagSlug("  Mathématiques ")).vaut("mathematiques");
+        attendre(await data.queueRemoteSync()).vrai();
+        const tags = Object.fromEntries(envois[0].notes.map((n) => [n.id, n.tags]));
+        attendre(tags.a).equivaut(["Maths", "IA"]);
+        attendre(tags.b).equivaut(["Maths", "Mathématiques", "IA", "C++"]);
+        attendre(tags.c).equivaut(["C++"]);
+      } finally {
+        global.fetch = origine.fetch;
+        config.supabase.syncEnabled = origine.syncEnabled;
+        config.supabase.url = origine.url;
+        config.supabase.publishableKey = origine.key;
+        if (avant === null) global.localStorage.removeItem(cle);
+        else global.localStorage.setItem(cle, avant);
+      }
+    });
+  });
+
   suite("Raccourci taches", () => {
     function contexteTaches(lignes) {
       const supprimees = [];
@@ -738,6 +862,34 @@
       attendre(Boolean(courses)).vrai();
       attendre(taches[1].categoryId).vaut(courses.id);
       attendre(contexte.sauvegardes).vaut(1);
+      attendre(contexte.supprimees).equivaut([ligne.client_key]);
+    });
+
+    test("la ligne reste dans la file tant que l'envoi a Supabase echoue", async () => {
+      const contexte = contexteTaches([ligne]);
+      contexte.data.whenRemoteSaved = async () => false;
+      const resultat = await ingerer(contexte);
+      await resultat.suppressions;
+      attendre(resultat.todosCreated).vaut(2);
+      attendre(contexte.supprimees).equivaut([]);
+    });
+
+    test("la ligne quitte la file une fois l'envoi a Supabase reussi", async () => {
+      const contexte = contexteTaches([ligne]);
+      contexte.data.whenRemoteSaved = async () => true;
+      const config = global.AtlasApp.config.supabase;
+      const origine = { fetch: global.fetch, syncEnabled: config.syncEnabled, url: config.url };
+      global.fetch = contexte.fetch;
+      config.syncEnabled = true;
+      config.url = config.url || "https://exemple.invalid";
+      try {
+        const resultat = await contexte.voiceInbox.ingest();
+        await resultat.suppressions;
+      } finally {
+        global.fetch = origine.fetch;
+        config.syncEnabled = origine.syncEnabled;
+        config.url = origine.url;
+      }
       attendre(contexte.supprimees).equivaut([ligne.client_key]);
     });
 

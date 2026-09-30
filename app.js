@@ -171,6 +171,24 @@
     context.renderers.renderEverything();
   };
 
+  // Le chargement du demarrage avait echoue et vient de reussir en tache de
+  // fond (reseau revenu) : meme suite qu'apres une connexion, sans recharger.
+  context.onRemoteRecovered = async function onRemoteRecovered() {
+    const activeExiste = context.state.notes.some(
+      (note) => note.id === context.state.activeNoteId
+    );
+    if (!activeExiste) {
+      context.state.activeNoteId =
+        getStartupNoteId() ??
+        context.state.notes.find((note) => note.type !== "folder")?.id ??
+        context.state.notes[0]?.id ??
+        null;
+    }
+    await ingestVoiceInbox();
+    context.renderers.syncDynamicControls();
+    context.renderers.renderEverything();
+  };
+
   // Les dictees deposees depuis le telephone deviennent des pages ici, avant
   // le premier rendu : elles doivent etre la des l'ouverture, sans geste.
   async function ingestVoiceInbox() {

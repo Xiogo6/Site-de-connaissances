@@ -191,7 +191,8 @@
       message = "Attention : synchronisation en cours. Ne fermez pas la page.";
       variant = "is-warning";
     } else if (remote.status === "error" && context.data.isRemoteConfigured()) {
-      message = "Attention : synchronisation en echec. Vos changements restent sur ce Mac.";
+      message =
+        "Synchronisation en echec. Vos changements sont gardes sur cet appareil et Atlas reessaie tout seul.";
       variant = "is-error";
     }
 
@@ -208,8 +209,25 @@
         ${remote.lastError ? `title="${escapeHtml(remote.lastError)}"` : ""}
       >
         ${escapeHtml(message)}
+        ${
+          variant === "is-error" && remote.lastError
+            ? `<span class="workspace-banner-reason">(${escapeHtml(
+                String(remote.lastError).slice(0, 140)
+              )})</span>`
+            : ""
+        }
+        ${
+          variant === "is-error"
+            ? `<button type="button" class="workspace-banner-retry" data-banner-retry>Reessayer</button>`
+            : ""
+        }
       </div>
     `;
+    context.elements.workspaceBanner
+      .querySelector("[data-banner-retry]")
+      ?.addEventListener("click", () => {
+        context.data.retryRemoteSync?.();
+      });
   }
 
   function renderTheme() {
