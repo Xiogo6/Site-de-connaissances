@@ -3908,7 +3908,14 @@ body[data-theme="dark"] .toggle-row-editor {
 .feed-toolbar {
   align-items: center;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Le nombre de pages, en petit sous les onglets et le bouton des filtres. */
+.feed-count {
+  color: var(--text-soft);
+  font-size: 0.78rem;
 }
 
 .feed-toolbar-actions {
@@ -4642,6 +4649,7 @@ body[data-theme="dark"] .feed-toast {
 
   .feed-toolbar-actions {
     flex-wrap: nowrap;
+    max-width: 100%;
   }
 
   .feed-card-footer {
