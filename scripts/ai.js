@@ -440,21 +440,57 @@
       };
     }
 
+    // Cle d'un tag cote serveur : public.slugify_text (lower, unaccent, tout
+    // ce qui n'est ni lettre ni chiffre devient "-"). "C" et "C++", ou
+    // "Maths" et "maths", y tombent sur la meme cle, et deux tags de meme cle
+    // font rejeter tout l'envoi a Supabase.
+    function tagServerSlug(value) {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/œ/g, "oe")
+        .replace(/æ/g, "ae")
+        .replace(/ß/g, "ss")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    }
+
     // Les tags proposes s'ajoutent a la suite de ceux de la note, sans en
     // retirer aucun. Un tag deja present, meme ecrit autrement ("Cuisine" et
-    // "cuisine"), n'est pas rajoute ; un tag deja utilise ailleurs reprend le
-    // libelle de l'atelier plutot que celui du modele.
+    // "cuisine", "C" et "C++"), n'est pas rajoute : on compare a la fois la cle
+    // de l'application (normalizeTag) et celle du serveur (tagServerSlug). Un
+    // tag deja utilise ailleurs reprend le libelle de l'atelier.
     function mergeSuggestedTags(currentTags, proposedTags, knownTags) {
-      const { normalizeTag, normalizeTagList } = context.helpers;
-      const libelles = new Map(knownTags.map((tag) => [normalizeTag(tag), tag]));
-      const presents = new Set(currentTags.map((tag) => normalizeTag(tag)));
-      const proposes = Array.isArray(proposedTags)
-        ? proposedTags.filter((tag) => typeof tag === "string")
-        : [];
-      const added = normalizeTagList(proposes)
-        .map((tag) => libelles.get(normalizeTag(tag)) || tag)
-        .filter((tag) => normalizeTag(tag) && !presents.has(normalizeTag(tag)))
-        .slice(0, 3);
+      const { normalizeTag } = context.helpers;
+      const libelles = new Map();
+      knownTags.forEach((tag) => {
+        libelles.set(`a:${normalizeTag(tag)}`, tag);
+        libelles.set(`s:${tagServerSlug(tag)}`, tag);
+      });
+      const pris = new Set();
+      const retenir = (tag) => {
+        pris.add(`a:${normalizeTag(tag)}`);
+        pris.add(`s:${tagServerSlug(tag)}`);
+      };
+      currentTags.forEach(retenir);
+
+      const added = [];
+      (Array.isArray(proposedTags) ? proposedTags : []).forEach((valeur) => {
+        if (typeof valeur !== "string" || added.length >= 3) {
+          return;
+        }
+        const brut = valeur.trim();
+        const tag =
+          libelles.get(`a:${normalizeTag(brut)}`) || libelles.get(`s:${tagServerSlug(brut)}`) || brut;
+        const cleApp = normalizeTag(tag);
+        const cleServeur = tagServerSlug(tag);
+        if (!cleApp || !cleServeur || pris.has(`a:${cleApp}`) || pris.has(`s:${cleServeur}`)) {
+          return;
+        }
+        retenir(tag);
+        added.push(tag);
+      });
       return { added, merged: [...currentTags, ...added] };
     }
 
