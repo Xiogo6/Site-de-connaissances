@@ -395,6 +395,7 @@
       context.state.tagFilter = "all";
       context.state.favoritesOnly = false;
       context.state.feedExcludedTags = [];
+      saveFeedExcludedTags();
       context.state.feedTagFilterOpen = false;
       context.elements.searchInput.value = "";
       context.elements.typeFilter.value = "all";
@@ -1094,7 +1095,19 @@
     }
 
     context.state.feedExcludedTags = [...excluded];
+    saveFeedExcludedTags();
     context.renderers.renderFeed();
+  }
+
+  function saveFeedExcludedTags() {
+    try {
+      window.localStorage.setItem(
+        AtlasApp.config.feedExcludedTagsStorageKey,
+        JSON.stringify(context.state.feedExcludedTags || [])
+      );
+    } catch (error) {
+      // Stockage indisponible : le choix vaut pour cette visite seulement.
+    }
   }
 
   function stopFeedFilterEvent(event) {
@@ -1108,6 +1121,7 @@
     context.state.tagFilter = "all";
     context.state.favoritesOnly = false;
     context.state.feedExcludedTags = [];
+    saveFeedExcludedTags();
     context.state.feedTagFilterOpen = false;
     // Effacer les filtres ramene le feed a son etat normal, dossiers masques :
     // les faire reapparaitre serait l'inverse de ce que le bouton promet.

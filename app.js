@@ -1,6 +1,16 @@
 (function bootstrapApp(global) {
   const AtlasApp = global.AtlasApp;
-  const { defaultKnowledge } = AtlasApp.config;
+  const { defaultKnowledge, feedExcludedTagsStorageKey } = AtlasApp.config;
+
+  // Les tags masques du feed survivent a la fermeture du site.
+  function readStoredFeedExcludedTags() {
+    try {
+      const value = JSON.parse(global.localStorage.getItem(feedExcludedTagsStorageKey) || "[]");
+      return Array.isArray(value) ? value.filter((tag) => typeof tag === "string") : [];
+    } catch (error) {
+      return [];
+    }
+  }
 
   const context = {
     elements: AtlasApp.createElements(),
@@ -56,7 +66,7 @@
       feedMode: "random",
       feedSeed: Date.now(),
       feedNavCompact: false,
-      feedExcludedTags: [],
+      feedExcludedTags: readStoredFeedExcludedTags(),
       feedFiltersOpen: false,
       feedHideFolders: true,
       feedFilter: "",
