@@ -22,12 +22,12 @@
       Elles sont dans le cache du service worker, donc gratuites apres la
       premiere ouverture.
     -->
-    <link rel="stylesheet" href="./styles/tokens.css?v=129" />
-    <link rel="stylesheet" href="./styles/base.css?v=129" />
-    <link rel="stylesheet" href="./styles/layout.css?v=129" />
-    <link rel="stylesheet" href="./styles/components.css?v=129" />
-    <link rel="stylesheet" href="./styles/features.css?v=129" />
-    <link rel="stylesheet" href="./styles/themes.css?v=129" />
+    <link rel="stylesheet" href="./styles/tokens.css?v=142" />
+    <link rel="stylesheet" href="./styles/base.css?v=142" />
+    <link rel="stylesheet" href="./styles/layout.css?v=142" />
+    <link rel="stylesheet" href="./styles/components.css?v=142" />
+    <link rel="stylesheet" href="./styles/features.css?v=142" />
+    <link rel="stylesheet" href="./styles/themes.css?v=142" />
     <style>
       /* Ce que la page ajoute a l'editeur d'Atlas, et rien d'autre. */
       #write-status:empty {
@@ -42,6 +42,18 @@
 
       #write-gemini.is-hidden {
         display: none;
+      }
+
+      /* Sur iPhone, clavier ouvert, seule la barre de mise en forme reste
+         visible : les boutons flottants (Reformuler, Enregistrer) passent sous
+         le clavier. Reformuler a donc aussi sa place dans la barre. */
+      body.note-editor-active #write-ai-toolbar::before {
+        content: "✦";
+        font-size: 1.2rem !important;
+      }
+
+      body.note-editor-active #write-ai-toolbar[disabled]::before {
+        content: "…";
       }
 
       .write-pending {
@@ -229,6 +241,7 @@
           </button>
         </div>
         <div class="editor-toolbar" role="toolbar" aria-label="Mise en forme">
+          <button id="write-ai-toolbar" class="button button-inline" type="button" title="Reformuler avec Gemini">Reformuler</button>
           <button class="button button-inline" data-format-action="bullet" type="button" title="Puce">Puce</button>
           <button class="button button-inline" data-format-action="checklist" type="button" title="Case a cocher">Case</button>
           <button class="button button-inline" data-format-action="heading-1" type="button" title="Titre">Titre</button>
@@ -292,10 +305,10 @@
       </div>
     </section>
 
-    <script src="./scripts/config.js?v=129"></script>
-    <script src="./scripts/helpers.js?v=129"></script>
-    <script src="./scripts/auth.js?v=129"></script>
-    <script src="./scripts/ai.js?v=129"></script>
-    <script src="./scripts/write.js?v=129"></script>
+    <script src="./scripts/config.js?v=142"></script>
+    <script src="./scripts/helpers.js?v=142"></script>
+    <script src="./scripts/auth.js?v=142"></script>
+    <script src="./scripts/ai.js?v=142"></script>
+    <script src="./scripts/write.js?v=142"></script>
   </body>
 </html>

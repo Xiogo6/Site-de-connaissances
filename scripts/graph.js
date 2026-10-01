@@ -1027,8 +1027,11 @@
       const isDragging =
         context.state.graphDrag.mode === "node" && context.state.graphDrag.nodeId === node.id;
       const degree = getNodeDegree(node.id, graph.edges);
-      const labelMode = getGraphLabelMode(node, degree, zoom, isSelected);
-      const effectiveLabelMode = labelMode || (position.locked ? "compact" : null);
+      // Un point deplace a la main reste epingle (et le reste d'une visite a
+      // l'autre), mais son nom suit la meme regle de zoom que les autres :
+      // le forcer faisait d'une page deplacee une fois la seule etiquette
+      // visible de loin, sans rien pour l'expliquer ni l'enlever.
+      const effectiveLabelMode = getGraphLabelMode(node, degree, zoom, isSelected);
       const shouldShowLabel = Boolean(effectiveLabelMode);
       const palette =
         node.kind === "tag"

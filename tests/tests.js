@@ -788,6 +788,144 @@
     });
   });
 
+  suite("Complement de dictee", () => {
+    const cleDictee = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+    const cleAjout = "12121212-3434-5656-7878-909090909090";
+
+    function contexteAjout(notes, lignes) {
+      const supprimees = [];
+      const contexte = {
+        state: { notes, settings: {}, remote: { status: "synced" } },
+        auth: { isSignedIn: () => true, getAccessToken: async () => "jeton" },
+        data: { isReadOnlyMode: () => false, saveNotes: () => { contexte.sauvegardes += 1; } },
+        notes: {
+          createNoteFromCapture: (note) => {
+            contexte.state.notes.unshift(note);
+            return note;
+          },
+          ensureVoiceFolder: () => ({ id: "dossier-dictees" }),
+        },
+        sauvegardes: 0,
+      };
+      contexte.voiceInbox = global.AtlasApp.createVoiceInboxModule(contexte);
+      contexte.fetch = async (url, options = {}) => {
+        if (options.method === "DELETE") {
+          supprimees.push(decodeURIComponent(String(url).split("client_key=eq.")[1] || ""));
+          return new Response("", { status: 204 });
+        }
+        return new Response(JSON.stringify(lignes), { status: 200 });
+      };
+      return contexte;
+    }
+
+    async function ingerer(contexte) {
+      const config = global.AtlasApp.config.supabase;
+      const origine = { fetch: global.fetch, syncEnabled: config.syncEnabled, url: config.url };
+      global.fetch = contexte.fetch;
+      config.syncEnabled = true;
+      config.url = config.url || "https://exemple.invalid";
+      try {
+        return await contexte.voiceInbox.ingest();
+      } finally {
+        global.fetch = origine.fetch;
+        config.syncEnabled = origine.syncEnabled;
+        config.url = origine.url;
+      }
+    }
+
+    function ligneAjout(texte) {
+      return {
+        client_key: cleAjout,
+        created_at: "2026-09-30T12:00:00.000Z",
+        payload: {
+          source: "voice-append",
+          targetClientKey: cleDictee,
+          targetTitle: "Courses",
+          text: texte,
+          transcript: texte,
+        },
+      };
+    }
+
+    function pageDictee(module) {
+      return {
+        id: module.noteIdForClientKey(cleDictee, "voice"),
+        title: "Courses",
+        type: "concept",
+        content: "# Courses\n\nDu pain.",
+      };
+    }
+
+    test("un complement s'ajoute a la fin de la page de la dictee, sans en creer une autre", async () => {
+      const contexte = contexteAjout([], [ligneAjout("Et du beurre.")]);
+      contexte.state.notes.push(pageDictee(contexte.voiceInbox));
+      const resultat = await ingerer(contexte);
+
+      attendre(resultat.appended).vaut(1);
+      attendre(resultat.created).vaut(0);
+      attendre(contexte.state.notes.length).vaut(1);
+      attendre(contexte.state.notes[0].content).vaut("# Courses\n\nDu pain.\n\nEt du beurre.");
+      attendre(resultat.lastNoteId).vaut(contexte.state.notes[0].id);
+      attendre(contexte.sauvegardes).vaut(1);
+    });
+
+    test("une dictee et son complement deposes ensemble donnent une seule page", async () => {
+      const dictee = {
+        client_key: cleDictee,
+        created_at: "2026-09-30T11:00:00.000Z",
+        payload: { structured: { title: "Courses", content: "# Courses\n\nDu pain." } },
+      };
+      const contexte = contexteAjout([], [dictee, ligneAjout("Et du beurre.")]);
+      const resultat = await ingerer(contexte);
+
+      attendre(resultat.created).vaut(1);
+      attendre(resultat.appended).vaut(1);
+      attendre(contexte.state.notes.length).vaut(1);
+      attendre(contexte.state.notes[0].content.endsWith("Et du beurre.")).vrai();
+    });
+
+    test("un complement deja ajoute ne l'est pas deux fois", async () => {
+      const contexte = contexteAjout([], [ligneAjout("Et du beurre.")]);
+      contexte.state.notes.push(pageDictee(contexte.voiceInbox));
+      await ingerer(contexte);
+      const resultat = await ingerer(contexte);
+
+      attendre(resultat.appended).vaut(0);
+      attendre(contexte.state.notes[0].content).vaut("# Courses\n\nDu pain.\n\nEt du beurre.");
+    });
+
+    test("sans la page d'origine, le complement devient une page a part au lieu d'etre perdu", async () => {
+      const contexte = contexteAjout([], [ligneAjout("Et du beurre.")]);
+      const resultat = await ingerer(contexte);
+
+      attendre(resultat.created).vaut(1);
+      attendre(contexte.state.notes[0].parentId).vaut("dossier-dictees");
+      attendre(contexte.state.notes[0].content.includes("Et du beurre.")).vrai();
+    });
+
+    test("le raccourci envoie la suite sans le titre que Gemini ajoute", () => {
+      const envoi = global.AtlasApp.voiceSend;
+      const dictee = envoi.buildPayload({
+        clientKey: cleAjout,
+        createdAt: "2026-09-30T12:00:00.000Z",
+        appendTo: { id: "rec-1", clientKey: cleDictee, title: "Courses" },
+        transcript: "et du beurre",
+        structured: { title: "Beurre", content: "# Beurre\n\nEt du beurre." },
+      });
+      attendre(dictee.source).vaut("voice-append");
+      attendre(dictee.targetClientKey).vaut(cleDictee);
+      attendre(dictee.text).vaut("Et du beurre.");
+
+      const tape = envoi.buildPayload({
+        clientKey: cleAjout,
+        typed: true,
+        appendTo: { id: "rec-1", clientKey: cleDictee, title: "Courses" },
+        transcript: "# Pas un titre a retirer",
+      });
+      attendre(tape.text).vaut("# Pas un titre a retirer");
+    });
+  });
+
   suite("Raccourci taches", () => {
     function contexteTaches(lignes) {
       const supprimees = [];

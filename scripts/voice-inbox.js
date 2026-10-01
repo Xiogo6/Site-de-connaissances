@@ -84,6 +84,15 @@
       return row?.payload?.source === "texte";
     }
 
+    /*
+      Complement d'une dictee deja deposee, envoye depuis voice.html. Il ne
+      cree pas de page : il vise celle de la dictee d'origine, dont
+      l'identifiant se deduit de son client_key.
+    */
+    function isAppend(row) {
+      return row?.payload?.source === "voice-append";
+    }
+
     function noteIdForClientKey(clientKey, prefix = "voice") {
       const empreinte = String(clientKey || "")
         .replace(/[^a-z0-9]/gi, "")
@@ -239,13 +248,13 @@
       lectureAnticipee = null;
 
       if (!isAvailable()) {
-        return { created: 0, skipped: 0, lastNoteId: null, todosCreated: 0 };
+        return { created: 0, skipped: 0, lastNoteId: null, todosCreated: 0, appended: 0 };
       }
 
       // Une lecture anticipee ratee se rattrape ici par une lecture normale.
       const rows = (anticipee && (await anticipee)) || (await fetchRows());
       if (!rows.length) {
-        return { created: 0, skipped: 0, lastNoteId: null, todosCreated: 0 };
+        return { created: 0, skipped: 0, lastNoteId: null, todosCreated: 0, appended: 0 };
       }
 
       const traitees = [];
@@ -254,6 +263,7 @@
       let lastNoteId = null;
 
       let todosCreated = 0;
+      let appended = 0;
 
       rows.forEach((row) => {
         // Lignes du raccourci todo.html (ajouts et gestes sur la liste) :
@@ -268,6 +278,22 @@
             });
           }
           traitees.push(row.client_key);
+          return;
+        }
+
+        if (isAppend(row)) {
+          const resultat = appendToNote(row);
+          traitees.push(row.client_key);
+          if (resultat.noteId) {
+            lastNoteId = resultat.noteId;
+          }
+          if (resultat.appended) {
+            appended += 1;
+          } else if (resultat.created) {
+            created += 1;
+          } else {
+            skipped += 1;
+          }
           return;
         }
 
@@ -316,7 +342,7 @@
       });
 
       // Enregistrement AVANT toute suppression distante.
-      if (created || todosCreated) {
+      if (created || todosCreated || appended) {
         context.data.saveNotes();
       }
 
@@ -334,7 +360,57 @@
             .then((envoye) => (envoye ? supprimerLignes(traitees) : []))
         : supprimerLignes(traitees);
 
-      return { created, skipped, lastNoteId, todosCreated, suppressions };
+      return { created, skipped, lastNoteId, todosCreated, appended, suppressions };
+    }
+
+    /*
+      Ajoute le complement a la fin de la page de la dictee d'origine.
+
+      Idempotence : si le texte figure deja dans la page, rien n'est ajoute.
+      C'est le cas d'une ligne dont la suppression avait echoue la derniere
+      fois, et c'est le seul marqueur qui survive a un rechargement depuis
+      Supabase (un champ pose sur la page serait efface).
+
+      La page d'origine a disparu (supprimee dans Atlas) : le texte devient
+      une page a part dans le dossier des dictees plutot que d'etre perdu.
+      Les lignes etant lues dans l'ordre d'arrivee, une dictee et son
+      complement deposes avant la meme ouverture d'Atlas arrivent dans le bon
+      ordre : la page existe deja quand le complement la cherche.
+    */
+    function appendToNote(row) {
+      const payload = row?.payload || {};
+      const texte = String(payload.text || "").trim();
+      if (!texte || !row.client_key) {
+        return {};
+      }
+
+      const cibleId = noteIdForClientKey(payload.targetClientKey, "voice");
+      const cible = payload.targetClientKey
+        ? context.state.notes.find((note) => note.id === cibleId)
+        : null;
+
+      if (cible) {
+        const contenu = String(cible.content || "");
+        if (contenu.includes(texte)) {
+          return { noteId: cible.id };
+        }
+        cible.content = `${contenu.trimEnd()}\n\n${texte}`;
+        cible.updatedAt = new Date().toISOString();
+        return { appended: true, noteId: cible.id };
+      }
+
+      const noteId = noteIdForClientKey(row.client_key, "voice");
+      if (context.state.notes.some((note) => note.id === noteId)) {
+        return { noteId };
+      }
+      const titre = `Complement : ${String(payload.targetTitle || "").trim() || fallbackTitle(row)}`;
+      const note = context.notes.createNoteFromCapture({
+        id: noteId,
+        title: titre,
+        content: `# ${titre}\n\n${texte}`,
+        parentId: context.notes.ensureVoiceFolder().id,
+      });
+      return { created: true, noteId: note.id };
     }
 
     function supprimerLignes(traitees) {

@@ -68,6 +68,7 @@
     session: $("#write-session"),
     pending: $("#write-pending"),
     aiAssist: $("#ai-assist-button"),
+    aiToolbar: $("#write-ai-toolbar"),
     aiUndo: $("#ai-undo-button"),
     factCheck: $("#ai-fact-check"),
     geminiPanel: $("#write-gemini"),
@@ -773,6 +774,8 @@
       label.textContent = state.aiBusy ? "Gemini en cours..." : "Reformuler";
     }
     elements.aiAssist.disabled = state.aiBusy;
+    elements.aiToolbar.disabled = state.aiBusy;
+    elements.aiToolbar.title = state.aiBusy ? "Gemini en cours..." : "Reformuler avec Gemini";
     elements.aiUndo.classList.toggle("is-hidden", !state.rewriteBackup);
     elements.aiUndo.disabled = state.aiBusy || !state.rewriteBackup;
   }
@@ -986,7 +989,7 @@
 
     elements.toolbar.addEventListener("pointerdown", (event) => {
       // Garde le clavier ouvert et la selection du texte intacte.
-      if (event.target.closest("[data-format-action]")) {
+      if (event.target.closest("[data-format-action], #write-ai-toolbar")) {
         event.preventDefault();
       }
     });
@@ -998,6 +1001,7 @@
     });
 
     elements.aiAssist.addEventListener("click", rewrite);
+    elements.aiToolbar.addEventListener("click", rewrite);
     elements.aiUndo.addEventListener("click", undoRewrite);
     elements.geminiSave.addEventListener("click", saveGeminiKey);
     elements.geminiKey.addEventListener("keydown", (event) => {

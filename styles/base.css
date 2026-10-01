@@ -8,6 +8,13 @@ body {
   min-height: 100%;
 }
 
+/* Safari sur iPhone grossit parfois le texte de lui-meme : on garde la taille
+   prevue, pour que les pages du feed aient toujours la meme police. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   background:
     linear-gradient(120deg, rgba(255, 255, 255, 0.36), transparent 28%),
