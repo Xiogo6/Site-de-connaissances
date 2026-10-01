@@ -320,10 +320,12 @@
         .sort((gauche, droite) => gauche.path.localeCompare(droite.path, "fr", { sensitivity: "base" }));
     }
 
-    function buildPlacementPrompt({ title, type, content, folders }) {
+    function buildPlacementPrompt({ title, type, content, folders, currentTags = [], knownTags = [] }) {
       const catalogue = folders.length
         ? folders.map((folder) => `- ${folder.path}`).join("\n")
         : "- Aucun dossier n existe encore";
+      const tagsConnus = knownTags.length ? knownTags.join(", ") : "aucun";
+      const tagsDeLaNote = currentTags.length ? currentTags.join(", ") : "aucun";
 
       return [
         "Tu ranges une note dans une arborescence de dossiers deja en place.",
@@ -346,17 +348,27 @@
         "- ne pas proposer un nouveau dossier pour une seule note quand un dossier general existe",
         "- ne pas repondre les deux a la fois : un dossier existant ou un nouveau, pas les deux",
         "",
+        "Tags :",
+        "- propose aussi les tags qui manquent a la note, trois au plus",
+        "- reprends en priorite un tag deja utilise, ecrit exactement comme dans la liste",
+        "- un nouveau tag est en minuscules, sans accent, dans le style des autres",
+        "- aucun tag si ceux de la note suffisent",
+        "",
         "Contraintes de sortie :",
         "- retourne uniquement un JSON valide, sans markdown ni commentaire",
-        '- le JSON contient exactement les cles "folder", "newFolder", "newFolderParent" et "reason"',
+        '- le JSON contient exactement les cles "folder", "newFolder", "newFolderParent", "tags" et "reason"',
         '- "folder" : le chemin exact d un dossier de la liste, sinon null',
         '- "newFolder" : le nom court du seul dossier a creer, sans chemin, sinon null',
         '- "newFolderParent" : si "newFolder" est rempli, le chemin exact du dossier de la liste qui le contiendra, ou null pour la racine ; sinon null',
         '- "folder" et "newFolder" : une seule des deux est non nulle, l autre vaut null',
+        '- "tags" : une liste de zero a trois tags a ajouter a la note, jamais un tag qu elle porte deja',
         '- "reason" : une phrase courte, quinze mots au plus',
         "",
         "Dossiers existants :",
         catalogue,
+        "",
+        `Tags deja utilises : ${tagsConnus}`,
+        `Tags de la note : ${tagsDeLaNote}`,
         "",
         `Titre: ${title}`,
         `Type: ${type}`,
@@ -428,6 +440,60 @@
       };
     }
 
+    // Cle d'un tag cote serveur : public.slugify_text (lower, unaccent, tout
+    // ce qui n'est ni lettre ni chiffre devient "-"). "C" et "C++", ou
+    // "Maths" et "maths", y tombent sur la meme cle, et deux tags de meme cle
+    // font rejeter tout l'envoi a Supabase.
+    function tagServerSlug(value) {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/œ/g, "oe")
+        .replace(/æ/g, "ae")
+        .replace(/ß/g, "ss")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+    }
+
+    // Les tags proposes s'ajoutent a la suite de ceux de la note, sans en
+    // retirer aucun. Un tag deja present, meme ecrit autrement ("Cuisine" et
+    // "cuisine", "C" et "C++"), n'est pas rajoute : on compare a la fois la cle
+    // de l'application (normalizeTag) et celle du serveur (tagServerSlug). Un
+    // tag deja utilise ailleurs reprend le libelle de l'atelier.
+    function mergeSuggestedTags(currentTags, proposedTags, knownTags) {
+      const { normalizeTag } = context.helpers;
+      const libelles = new Map();
+      knownTags.forEach((tag) => {
+        libelles.set(`a:${normalizeTag(tag)}`, tag);
+        libelles.set(`s:${tagServerSlug(tag)}`, tag);
+      });
+      const pris = new Set();
+      const retenir = (tag) => {
+        pris.add(`a:${normalizeTag(tag)}`);
+        pris.add(`s:${tagServerSlug(tag)}`);
+      };
+      currentTags.forEach(retenir);
+
+      const added = [];
+      (Array.isArray(proposedTags) ? proposedTags : []).forEach((valeur) => {
+        if (typeof valeur !== "string" || added.length >= 3) {
+          return;
+        }
+        const brut = valeur.trim();
+        const tag =
+          libelles.get(`a:${normalizeTag(brut)}`) || libelles.get(`s:${tagServerSlug(brut)}`) || brut;
+        const cleApp = normalizeTag(tag);
+        const cleServeur = tagServerSlug(tag);
+        if (!cleApp || !cleServeur || pris.has(`a:${cleApp}`) || pris.has(`s:${cleServeur}`)) {
+          return;
+        }
+        retenir(tag);
+        added.push(tag);
+      });
+      return { added, merged: [...currentTags, ...added] };
+    }
+
     async function suggestPlacementForActiveNote() {
       const note = context.notes.getActiveNote();
       if (!note) {
@@ -461,13 +527,34 @@
             type: draftType,
             content: draftContent,
             folders,
+            currentTags: context.helpers.parseTags(context.elements.tagsInput?.value || ""),
+            knownTags: context.notes.getAllTags().slice(0, 300),
           }),
           config,
           { temperature: 0, json: true, thinking: "low" }
         );
 
-        const suggestion = normalizePlacementPayload(parseJsonPayload(content), folders);
-        context.state.aiPlacementSuggestion = { ...suggestion, noteId: note.id };
+        const payload = parseJsonPayload(content);
+        const suggestion = normalizePlacementPayload(payload, folders);
+
+        // Les tags vont directement dans le champ, comme apres une dictee. On
+        // relit le champ maintenant : l'utilisateur a pu le modifier pendant
+        // l'attente. Si une autre page est ouverte entre-temps, on n'y touche pas.
+        let addedTags = [];
+        if (context.state.activeNoteId === note.id && context.elements.tagsInput) {
+          const { added, merged } = mergeSuggestedTags(
+            context.helpers.parseTags(context.elements.tagsInput.value || ""),
+            payload?.tags,
+            context.notes.getAllTags()
+          );
+          addedTags = added;
+          if (added.length) {
+            context.elements.tagsInput.value = merged.join(", ");
+            context.elements.tagsInput.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+        }
+
+        context.state.aiPlacementSuggestion = { ...suggestion, addedTags, noteId: note.id };
         context.renderers.renderEditorPlacementSuggestion();
 
         setStatus({
