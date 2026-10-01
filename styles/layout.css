@@ -48,6 +48,10 @@
 .main-layout {
   display: grid;
   gap: 18px;
+  /* Une seule colonne bornee a l'ecran : sans elle, un contenu sans espace
+     (ex. le JSON d'une erreur de synchro) elargit la page et l'iPhone la
+     dezoome puis la decale sur le cote. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: calc(100vh - 48px);
   min-width: 0;
@@ -69,6 +73,7 @@
   grid-row: -1;
   justify-self: center;
   margin-top: 8px;
+  min-width: 0;
   padding-bottom: 8px;
   width: 100%;
 }
@@ -82,7 +87,10 @@
   font-size: 0.8rem;
   gap: 8px;
   line-height: 1.35;
+  flex-wrap: wrap;
+  justify-content: center;
   max-width: min(100%, 980px);
+  min-width: 0;
   padding: 8px 12px;
   text-align: center;
 }
@@ -98,7 +106,9 @@
 }
 
 .workspace-banner-reason {
+  min-width: 0;
   opacity: 0.75;
+  overflow-wrap: anywhere;
 }
 
 .workspace-banner-retry {
@@ -565,6 +575,10 @@ body[data-theme="dark"] .tab.is-active {
 @media (max-width: 780px) {
   .shell {
     justify-items: center;
+    /* Filet de securite : rien ne doit depasser sur le cote, sinon l'iPhone
+       elargit la page et elle glisse ou se dezoome au doigt. `clip` (et non
+       `hidden`) garde la barre du haut collante. */
+    overflow-x: clip;
     padding: 14px 14px 108px;
     position: relative;
   }
