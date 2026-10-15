@@ -3241,6 +3241,15 @@ body.sport-assist-open .quick-capture-toggle {
   z-index: 40;
 }
 
+.sport-row-menu.is-detached {
+  left: 12px;
+  position: fixed;
+  right: 12px;
+  top: calc(80px + env(safe-area-inset-top));
+  width: auto;
+  z-index: 130;
+}
+
 body.sport-row-menu-open .quick-capture-toggle {
   visibility: hidden;
 }

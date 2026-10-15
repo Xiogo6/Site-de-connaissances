@@ -450,18 +450,56 @@
       if (!panel || panel.hidden || !container || !row?.isConnected || !shell) {
         return;
       }
-      const containerRect = container.getBoundingClientRect();
-      const shellRect = shell.getBoundingClientRect();
-      const rowBottom = Math.min(row.getBoundingClientRect().bottom, shellRect.bottom);
-      panel.style.top = `${Math.round(rowBottom - containerRect.top + 4)}px`;
-      panel.style.left = `${Math.round(shellRect.left - containerRect.left)}px`;
-      panel.style.width = `${Math.round(shellRect.width)}px`;
+      const place = getSportRowPlacement(row, container);
+      if (!place) {
+        return;
+      }
+      panel.style.top = `${Math.round(place.rowBottom + 4)}px`;
+      panel.style.left = `${Math.round(place.left)}px`;
+      panel.style.width = `${Math.round(place.width)}px`;
       // Sous la derniere ligne, le bandeau depasse du panneau : on rallonge
       // la page d'autant pour pouvoir le faire defiler au-dessus de la barre.
       const overflow = panel.offsetTop + panel.offsetHeight - container.clientHeight;
       container.style.setProperty("--sport-assist-room", `${Math.max(0, overflow + 12)}px`);
       // Le bouton "Nouvelle note" couvrait la fin du bandeau.
       document.body.classList.add("sport-assist-open");
+    }
+
+    // Position d'une ligne dans le panneau, par les offsets de mise en page
+    // plutot que par getBoundingClientRect : sur iPhone, ces mesures a
+    // l'ecran bougent pendant que le clavier se ferme et envoyaient le menu
+    // en bas de la page.
+    function getSportRowPlacement(row, container) {
+      const shell = row.closest(".sport-table-shell");
+      const offsetWithin = (element) => {
+        let top = 0;
+        let left = 0;
+        let current = element;
+        while (current && current !== container) {
+          top += current.offsetTop;
+          left += current.offsetLeft;
+          current = current.offsetParent;
+        }
+        return current === container ? { top, left } : null;
+      };
+      const rowOffset = offsetWithin(row);
+      const shellOffset = shell ? offsetWithin(shell) : null;
+      if (!rowOffset || !shellOffset) {
+        return null;
+      }
+      // Le tableau defile dans sa coque ; la ligne ne doit pas sortir de la
+      // partie visible de cette coque.
+      const rowTop = rowOffset.top - shell.scrollTop;
+      const rowBottom = Math.min(
+        rowTop + row.offsetHeight,
+        shellOffset.top + shell.offsetHeight
+      );
+      return {
+        rowTop,
+        rowBottom,
+        left: shellOffset.left,
+        width: shell.offsetWidth,
+      };
     }
 
     // Sur la derniere ligne, les propositions tombaient sous la barre du bas.
@@ -717,15 +755,41 @@
       // encore ouvert et le bouton "Nouvelle note" le recouvraient, et
       // "Supprimer" restait inaccessible. Il s'ouvre maintenant contre la
       // ligne, clavier ferme.
-      if (document.activeElement?.matches?.("input, textarea")) {
+      // Fermer le clavier valide la cellule en cours, ce qui peut redessiner
+      // le tableau : on retrouve ensuite la poignee de la meme ligne.
+      const entry = getSportSettings().performanceEntries[index];
+      const keyboardOpen = Boolean(document.activeElement?.matches?.("input, textarea"));
+      if (keyboardOpen) {
         document.activeElement.blur();
+      }
+      if (!handle?.isConnected) {
+        const position = entry ? getSportSettings().performanceEntries.indexOf(entry) : index;
+        index = position >= 0 ? position : index;
+        handle = context.elements.sportPerformanceBody?.querySelector(
+          `[data-sport-row-handle][data-sport-index="${index}"]`
+        );
+        handle?.classList.add("is-active");
+        sportMenuIndex = index;
+        if (context.elements.sportRowMenuLabel) {
+          context.elements.sportRowMenuLabel.textContent = `Ligne ${index + 1}`;
+        }
+        // Le redessin remet le curseur dans la ligne (a l'image suivante) :
+        // on referme le clavier juste apres.
+        window.requestAnimationFrame(() => {
+          if (!menu.hidden && document.activeElement?.matches?.("input, textarea")) {
+            document.activeElement.blur();
+          }
+        });
       }
       hideSportExerciseAssist();
       menu.hidden = false;
       document.body.classList.add("sport-row-menu-open");
       positionSportRowMenu(handle);
-      revealSportFloating(menu);
-      // Le clavier qui se ferme redimensionne l'ecran : on recale ensuite.
+      if (!keyboardOpen) {
+        revealSportFloating(menu);
+      }
+      // Le clavier qui se ferme redimensionne l'ecran : on recale ensuite,
+      // une fois la page stabilisee.
       window.setTimeout(() => {
         if (!menu.hidden) {
           positionSportRowMenu(handle);
@@ -738,18 +802,21 @@
       const menu = context.elements.sportRowMenu;
       const container = context.elements.sportPerformancePanel;
       const row = handle?.closest("tr");
-      const shell = row?.closest(".sport-table-shell");
-      if (!menu || !container || !row?.isConnected || !shell) {
+      if (!menu || !container) {
         return;
       }
-      const containerRect = container.getBoundingClientRect();
-      const shellRect = shell.getBoundingClientRect();
-      const rowRect = row.getBoundingClientRect();
-      menu.style.left = `${Math.round(shellRect.left - containerRect.left)}px`;
-      menu.style.width = `${Math.round(shellRect.width)}px`;
+      const place = row?.isConnected ? getSportRowPlacement(row, container) : null;
+      // Ligne introuvable : plutot qu'un menu perdu en bas de la page, un
+      // menu fixe en haut de l'ecran.
+      menu.classList.toggle("is-detached", !place);
+      if (!place) {
+        return;
+      }
+      menu.style.left = `${Math.round(place.left)}px`;
+      menu.style.width = `${Math.round(place.width)}px`;
       const height = menu.offsetHeight;
-      const below = rowRect.bottom - containerRect.top + 6;
-      const above = rowRect.top - containerRect.top - height - 6;
+      const below = place.rowBottom + 6;
+      const above = place.rowTop - height - 6;
       // Sous la ligne, sauf si le menu deborderait du panneau et qu'il y a
       // la place au-dessus (derniere ligne du journal).
       const top = below + height > container.clientHeight && above >= 0 ? above : below;
