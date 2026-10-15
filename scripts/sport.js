@@ -466,7 +466,10 @@
 
     // Sur la derniere ligne, les propositions tombaient sous la barre du bas.
     function revealSportExerciseAssist() {
-      const assist = context.elements.sportExerciseAssist;
+      revealSportFloating(context.elements.sportExerciseAssist);
+    }
+
+    function revealSportFloating(assist) {
       // Une image plus tard : le focus d'une nouvelle ligne fait lui-meme
       // defiler la page. scrollIntoView ne bougeait rien ici (le panneau
       // parent coupe ce qui deborde), d'ou le calcul a la main.
@@ -710,11 +713,52 @@
       if (context.elements.sportRowMenuLabel) {
         context.elements.sportRowMenuLabel.textContent = `Ligne ${index + 1}`;
       }
+      // Le menu etait fixe en bas de l'ecran : sur iPhone, le clavier
+      // encore ouvert et le bouton "Nouvelle note" le recouvraient, et
+      // "Supprimer" restait inaccessible. Il s'ouvre maintenant contre la
+      // ligne, clavier ferme.
+      if (document.activeElement?.matches?.("input, textarea")) {
+        document.activeElement.blur();
+      }
+      hideSportExerciseAssist();
       menu.hidden = false;
+      document.body.classList.add("sport-row-menu-open");
+      positionSportRowMenu(handle);
+      revealSportFloating(menu);
+      // Le clavier qui se ferme redimensionne l'ecran : on recale ensuite.
+      window.setTimeout(() => {
+        if (!menu.hidden) {
+          positionSportRowMenu(handle);
+          revealSportFloating(menu);
+        }
+      }, 400);
+    }
+
+    function positionSportRowMenu(handle) {
+      const menu = context.elements.sportRowMenu;
+      const container = context.elements.sportPerformancePanel;
+      const row = handle?.closest("tr");
+      const shell = row?.closest(".sport-table-shell");
+      if (!menu || !container || !row?.isConnected || !shell) {
+        return;
+      }
+      const containerRect = container.getBoundingClientRect();
+      const shellRect = shell.getBoundingClientRect();
+      const rowRect = row.getBoundingClientRect();
+      menu.style.left = `${Math.round(shellRect.left - containerRect.left)}px`;
+      menu.style.width = `${Math.round(shellRect.width)}px`;
+      const height = menu.offsetHeight;
+      const below = rowRect.bottom - containerRect.top + 6;
+      const above = rowRect.top - containerRect.top - height - 6;
+      // Sous la ligne, sauf si le menu deborderait du panneau et qu'il y a
+      // la place au-dessus (derniere ligne du journal).
+      const top = below + height > container.clientHeight && above >= 0 ? above : below;
+      menu.style.top = `${Math.round(top)}px`;
     }
 
     function closeSportRowMenu() {
       context.elements.sportRowMenu?.setAttribute("hidden", "");
+      document.body.classList.remove("sport-row-menu-open");
       context.elements.sportPerformanceBody
         ?.querySelectorAll(".sport-row-handle.is-active")
         .forEach((button) => button.classList.remove("is-active"));
@@ -1640,6 +1684,10 @@
       context.elements.sportExerciseSuggestions?.addEventListener("click", handleSportAssistClick);
       context.elements.sportLastPerformance?.addEventListener("click", handleSportAssistClick);
       context.elements.sportRowMenu?.addEventListener("click", handleSportRowMenuAction);
+      // Ancre le menu au panneau du tableau pour le placer contre la ligne.
+      if (context.elements.sportRowMenu && context.elements.sportPerformancePanel) {
+        context.elements.sportPerformancePanel.appendChild(context.elements.sportRowMenu);
+      }
       document.addEventListener("click", handleSportOutsideClick);
     }
 
