@@ -2831,16 +2831,69 @@ body[data-theme="dark"] .quiz-bank-table td:first-child {
   }
 }
 
+#sport-performance-panel {
+  margin-bottom: var(--sport-assist-room, 0px);
+  position: relative;
+}
+
+/* Flotte sous la ligne en cours de saisie ; top, left et width viennent de
+   positionSportExerciseAssist() dans sport.js. */
 .sport-exercise-assist {
+  -webkit-backdrop-filter: blur(14px);
   align-items: center;
-  background: rgba(191, 91, 44, 0.055);
-  border: 1px solid rgba(191, 91, 44, 0.16);
+  backdrop-filter: blur(14px);
+  background: linear-gradient(rgba(191, 91, 44, 0.07), rgba(191, 91, 44, 0.07)), var(--surface);
+  border: 1px solid rgba(191, 91, 44, 0.24);
   border-radius: 9px;
+  box-shadow: 0 12px 30px rgba(47, 36, 24, 0.2);
+  box-sizing: border-box;
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
   min-height: 48px;
   padding: 7px 9px 7px 12px;
+  position: absolute;
+  z-index: 30;
+}
+
+body.sport-assist-open .quick-capture-toggle {
+  visibility: hidden;
+}
+
+.sport-suggestion-chip {
+  align-items: center;
+  background: rgba(255, 253, 249, 0.7);
+  border: 1px solid rgba(86, 70, 48, 0.16);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.sport-exercise-suggestions .sport-suggestion-chip button {
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+}
+
+.sport-exercise-suggestions .sport-suggestion-chip button[data-sport-exercise-suggestion] {
+  padding: 0 4px 0 10px;
+}
+
+.sport-exercise-suggestions .sport-suggestion-chip .sport-suggestion-remove {
+  color: var(--text-soft);
+  font-size: 1rem;
+  min-width: 30px;
+  padding: 0 8px 0 4px;
+}
+
+.sport-suggestion-chip:hover,
+.sport-suggestion-chip:focus-within {
+  border-color: rgba(191, 91, 44, 0.42);
+}
+
+.sport-exercise-suggestions .sport-suggestion-chip .sport-suggestion-remove:hover,
+.sport-exercise-suggestions .sport-suggestion-chip .sport-suggestion-remove:focus-visible {
+  color: #b5452f;
 }
 
 .sport-exercise-assist[hidden],
@@ -3521,8 +3574,20 @@ body[data-theme="dark"] .sport-mode-switcher button.is-active {
 
 :root[data-theme="dark"] .sport-exercise-assist,
 body[data-theme="dark"] .sport-exercise-assist {
-  background: rgba(208, 122, 76, 0.08);
-  border-color: rgba(208, 122, 76, 0.22);
+  background: linear-gradient(rgba(208, 122, 76, 0.1), rgba(208, 122, 76, 0.1)), var(--surface);
+  border-color: rgba(208, 122, 76, 0.3);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+}
+
+:root[data-theme="dark"] .sport-suggestion-chip,
+body[data-theme="dark"] .sport-suggestion-chip {
+  background: rgba(15, 18, 21, 0.7);
+  border-color: rgba(215, 201, 185, 0.16);
+}
+
+:root[data-theme="dark"] .sport-exercise-suggestions .sport-suggestion-chip button,
+body[data-theme="dark"] .sport-exercise-suggestions .sport-suggestion-chip button {
+  background: transparent;
 }
 
 :root[data-theme="dark"] .sport-exercise-suggestions button,

@@ -44,6 +44,9 @@
       // Les journaux enregistres avant les modeles n'ont pas ce tableau.
       context.state.settings.sport.sessionTemplates =
         context.state.settings.sport.sessionTemplates || [];
+      // Noms normalises des exercices retires des propositions.
+      context.state.settings.sport.hiddenExercises =
+        context.state.settings.sport.hiddenExercises || [];
       return context.state.settings.sport;
     }
 
@@ -143,6 +146,10 @@
         }
       } else {
         entry[field] = input.type === "checkbox" ? input.checked : input.value;
+        if (table === "performance" && field === "exercise" && event.type === "change") {
+          // Retaper un exercice retire des propositions l'y remet.
+          unhideSportExercise(entry.exercise);
+        }
       }
 
       saveSportChanges();
@@ -163,6 +170,7 @@
       const row = input.closest("tr");
       sportActiveExerciseInput = row?.querySelector('[data-sport-field="exercise"]') || null;
       updateSportExerciseAssist(input);
+      revealSportExerciseAssist();
     }
 
     function handleSportKeydown(event) {
@@ -338,7 +346,7 @@
       const exerciseInput =
         row?.querySelector('[data-sport-field="exercise"]') || sportActiveExerciseInput;
       if (!exerciseInput?.isConnected) {
-        panel.hidden = true;
+        hideSportExerciseAssist();
         return;
       }
 
@@ -348,21 +356,35 @@
       const draft = String(exerciseInput.value || "").trim();
       const normalizedDraft = normalizeExerciseName(draft);
       const knownExercises = getKnownExercises(entries, rowIndex);
+      const hidden = new Set(getSportSettings().hiddenExercises);
       const suggestions = knownExercises
         .filter((exercise) => {
           const normalized = normalizeExerciseName(exercise);
-          return !normalizedDraft || normalized.includes(normalizedDraft);
+          return (
+            !hidden.has(normalized) &&
+            (!normalizedDraft || normalized.includes(normalizedDraft))
+          );
         })
         .slice(0, 5);
 
       suggestionsContainer.replaceChildren();
       suggestions.forEach((exercise) => {
+        const chip = document.createElement("span");
+        chip.className = "sport-suggestion-chip";
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.sportExerciseSuggestion = exercise;
         button.dataset.sportTargetIndex = String(rowIndex);
         button.textContent = exercise;
-        suggestionsContainer.appendChild(button);
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "sport-suggestion-remove";
+        remove.dataset.sportExerciseHide = exercise;
+        remove.dataset.sportTargetIndex = String(rowIndex);
+        remove.setAttribute("aria-label", `Retirer ${exercise} des propositions`);
+        remove.textContent = "×";
+        chip.append(button, remove);
+        suggestionsContainer.appendChild(chip);
       });
       if (context.elements.sportAssistLabel) {
         context.elements.sportAssistLabel.textContent = draft ? "Suggestions" : "Exercices recents";
@@ -412,6 +434,111 @@
       }
 
       panel.hidden = suggestions.length === 0 && !previous;
+      if (panel.hidden) {
+        hideSportExerciseAssist();
+      } else {
+        positionSportExerciseAssist(row);
+      }
+    }
+
+    // Les propositions flottent juste sous la ligne saisie, sur toute la
+    // largeur visible du tableau, quel que soit son zoom ou son defilement.
+    function positionSportExerciseAssist(row = sportActiveExerciseInput?.closest("tr")) {
+      const panel = context.elements.sportExerciseAssist;
+      const container = context.elements.sportPerformancePanel;
+      const shell = row?.closest(".sport-table-shell");
+      if (!panel || panel.hidden || !container || !row?.isConnected || !shell) {
+        return;
+      }
+      const containerRect = container.getBoundingClientRect();
+      const shellRect = shell.getBoundingClientRect();
+      const rowBottom = Math.min(row.getBoundingClientRect().bottom, shellRect.bottom);
+      panel.style.top = `${Math.round(rowBottom - containerRect.top + 4)}px`;
+      panel.style.left = `${Math.round(shellRect.left - containerRect.left)}px`;
+      panel.style.width = `${Math.round(shellRect.width)}px`;
+      // Sous la derniere ligne, le bandeau depasse du panneau : on rallonge
+      // la page d'autant pour pouvoir le faire defiler au-dessus de la barre.
+      const overflow = panel.offsetTop + panel.offsetHeight - container.clientHeight;
+      container.style.setProperty("--sport-assist-room", `${Math.max(0, overflow + 12)}px`);
+      // Le bouton "Nouvelle note" couvrait la fin du bandeau.
+      document.body.classList.add("sport-assist-open");
+    }
+
+    // Sur la derniere ligne, les propositions tombaient sous la barre du bas.
+    function revealSportExerciseAssist() {
+      const assist = context.elements.sportExerciseAssist;
+      // Une image plus tard : le focus d'une nouvelle ligne fait lui-meme
+      // defiler la page. scrollIntoView ne bougeait rien ici (le panneau
+      // parent coupe ce qui deborde), d'ou le calcul a la main.
+      window.requestAnimationFrame(() => {
+        if (!assist || assist.hidden) {
+          return;
+        }
+        const viewportBottom = window.visualViewport?.height || window.innerHeight;
+        const navTop = document.querySelector(".tabs")?.getBoundingClientRect().top;
+        const limit = Math.min(viewportBottom, navTop > 0 ? navTop : viewportBottom) - 12;
+        const overflow = assist.getBoundingClientRect().bottom - limit;
+        if (overflow > 0) {
+          window.scrollBy({ top: overflow, behavior: "smooth" });
+        }
+      });
+    }
+
+    function hideSportExerciseAssist() {
+      if (context.elements.sportExerciseAssist) {
+        context.elements.sportExerciseAssist.hidden = true;
+      }
+      context.elements.sportPerformancePanel?.style.removeProperty("--sport-assist-room");
+      document.body.classList.remove("sport-assist-open");
+    }
+
+    // En flottant, les propositions masquent la ligne suivante : elles
+    // disparaissent quand la saisie quitte le tableau.
+    function handleSportFocusOut() {
+      window.setTimeout(() => {
+        const active = document.activeElement;
+        if (
+          !active?.closest?.("#sport-performance-body") &&
+          !active?.closest?.("#sport-exercise-assist")
+        ) {
+          hideSportExerciseAssist();
+        }
+      }, 150);
+    }
+
+    function hideSportExercise(exercise, targetIndex) {
+      const normalized = normalizeExerciseName(exercise);
+      if (!normalized) {
+        return;
+      }
+      const confirmed = window.confirm(
+        `Retirer « ${exercise} » des propositions ?\n\nLes lignes deja notees avec cet exercice restent dans le journal.`
+      );
+      const targetInput = context.elements.sportPerformanceBody?.querySelector(
+        `[data-sport-index="${targetIndex}"][data-sport-field="exercise"]`
+      );
+      if (confirmed) {
+        const sport = getSportSettings();
+        if (!sport.hiddenExercises.includes(normalized)) {
+          sport.hiddenExercises.push(normalized);
+        }
+        saveSportChanges();
+      }
+      if (targetInput) {
+        sportActiveExerciseInput = targetInput;
+        targetInput.focus({ preventScroll: true });
+        updateSportExerciseAssist(targetInput);
+        revealSportExerciseAssist();
+      }
+    }
+
+    function unhideSportExercise(exercise) {
+      const normalized = normalizeExerciseName(exercise);
+      const sport = getSportSettings();
+      const position = sport.hiddenExercises.indexOf(normalized);
+      if (normalized && position >= 0) {
+        sport.hiddenExercises.splice(position, 1);
+      }
     }
 
     function formatSportEntryDate(value) {
@@ -422,6 +549,15 @@
     }
 
     function handleSportAssistClick(event) {
+      const hideButton = event.target.closest("[data-sport-exercise-hide]");
+      if (hideButton) {
+        hideSportExercise(
+          hideButton.dataset.sportExerciseHide || "",
+          Number(hideButton.dataset.sportTargetIndex)
+        );
+        return;
+      }
+
       const suggestion = event.target.closest("[data-sport-exercise-suggestion]");
       if (suggestion) {
         const targetIndex = Number(suggestion.dataset.sportTargetIndex);
@@ -1476,6 +1612,16 @@
       context.elements.sportPerformanceBody?.addEventListener("input", handleSportInput);
       context.elements.sportPerformanceBody?.addEventListener("change", handleSportInput);
       context.elements.sportPerformanceBody?.addEventListener("focusin", handleSportFocusIn);
+      context.elements.sportPerformanceBody?.addEventListener("focusout", handleSportFocusOut);
+      context.elements.sportExerciseAssist?.addEventListener("focusout", handleSportFocusOut);
+      // Garder le clavier ouvert sur la cellule quand on touche une proposition.
+      context.elements.sportExerciseAssist?.addEventListener("mousedown", (event) =>
+        event.preventDefault()
+      );
+      context.elements.sportPerformancePanel
+        ?.querySelector(".sport-table-shell")
+        ?.addEventListener("scroll", () => positionSportExerciseAssist(), { passive: true });
+      window.addEventListener("resize", () => positionSportExerciseAssist());
       context.elements.sportPerformanceBody?.addEventListener("keydown", handleSportKeydown);
       context.elements.sportPerformanceBody?.addEventListener("pointerdown", handleSportRowPointerDown);
       context.elements.sportPerformanceBody?.addEventListener("pointermove", handleSportRowPointerMove);
