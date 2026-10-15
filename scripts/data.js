@@ -930,6 +930,37 @@
               ])
             )
           : [],
+        // Sans ces deux champs, les modeles de seance et les exercices retires
+        // des propositions disparaissaient a chaque rechargement.
+        sessionTemplates: Array.isArray(rawSport?.sessionTemplates)
+          ? rawSport.sessionTemplates
+              .filter((template) => typeof template?.id === "string" && template.id)
+              .map((template) => ({
+                id: template.id,
+                name: typeof template.name === "string" ? template.name : "",
+                exercises: Array.isArray(template.exercises)
+                  ? template.exercises.map((exercise) =>
+                      normalizeSportEntry(exercise, [
+                        "exercise",
+                        "sets",
+                        "reps",
+                        "weight",
+                        "rest",
+                        "comment",
+                      ])
+                    )
+                  : [],
+              }))
+          : [],
+        hiddenExercises: Array.isArray(rawSport?.hiddenExercises)
+          ? [
+              ...new Set(
+                rawSport.hiddenExercises.filter(
+                  (name) => typeof name === "string" && name.trim()
+                )
+              ),
+            ]
+          : [],
         lastSavedAt: typeof rawSport?.lastSavedAt === "string" ? rawSport.lastSavedAt : null,
       };
     }
