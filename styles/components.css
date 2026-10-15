@@ -3224,20 +3224,25 @@ body.sport-assist-open .quick-capture-toggle {
 }
 
 .sport-row-menu {
+  -webkit-backdrop-filter: blur(14px);
   align-items: center;
+  backdrop-filter: blur(14px);
   background: var(--surface);
   border: 1px solid rgba(86, 70, 48, 0.2);
   border-radius: 10px;
-  bottom: max(18px, env(safe-area-inset-bottom));
   box-shadow: 0 14px 38px rgba(47, 36, 24, 0.22);
+  box-sizing: border-box;
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  left: 50%;
-  max-width: calc(100vw - 24px);
   padding: 5px;
-  position: fixed;
-  transform: translateX(-50%);
-  z-index: 120;
+  /* Pose contre la ligne par positionSportRowMenu() dans sport.js. */
+  position: absolute;
+  z-index: 40;
+}
+
+body.sport-row-menu-open .quick-capture-toggle {
+  visibility: hidden;
 }
 
 .sport-row-menu > span {
@@ -3355,10 +3360,7 @@ body.sport-assist-open .quick-capture-toggle {
   }
 
   .sport-row-menu {
-    bottom: calc(78px + env(safe-area-inset-bottom));
-    flex-wrap: wrap;
     justify-content: center;
-    width: calc(100vw - 24px);
   }
 
   .sport-row-menu > span {
